@@ -1,144 +1,176 @@
 import streamlit as st
 import numpy as np
+import base64
 
 # --- 页面配置 ---
 st.set_page_config(page_title="混凝土大师 RC-Master", layout="wide")
-st.title("🧱 混凝土大师 (RC-Master) | 景观构件")
 
-# --- 0. 登录门卫 (可选，如果需要统一登录，可引用主程序的session) ---
-if 'logged_in' in st.session_state and not st.session_state.logged_in:
-    st.warning("⚠️ 请先在主页登录")
-    st.stop()
+# 🔐 子页面门卫 (防止直接通过URL访问)
+if 'logged_in' not in st.session_state or not st.session_state.logged_in:
+    st.warning("⚠️ 请从首页登录系统")
+    st.stop() # 强制停止
+
+st.title("🧱 混凝土大师 (RC-Master) | v1.1")
 
 # --- 1. 交互侧边栏 ---
-st.sidebar.header("1. 构件参数")
+st.sidebar.header("1. 构件与参数")
 
-# 1.1 构件类型
-comp_type = st.sidebar.selectbox("构件类型", ["矩形梁 (Bench/Lintel)", "板 (Slab/Deck)"])
+# 1.1 构件类型切换
+calc_mode = st.sidebar.radio("选择构件类型", ("梁/板 (受弯/Beam)", "柱 (受压/Column)"), horizontal=True)
 
 # 1.2 材料强度 (GB 50010)
-# C30: fc=14.3, ft=1.43 | C35: fc=16.7, ft=1.57
 conc_grade = st.sidebar.selectbox("混凝土等级", ["C25", "C30", "C35", "C40"])
-fc_map = {"C25": 11.9, "C30": 14.3, "C35": 16.7, "C40": 19.1} # N/mm2 (Design Value)
+fc_map = {"C25": 11.9, "C30": 14.3, "C35": 16.7, "C40": 19.1} 
 ft_map = {"C25": 1.27, "C30": 1.43, "C35": 1.57, "C40": 1.71}
 fc = fc_map[conc_grade]
 ft = ft_map[conc_grade]
 
-# 钢筋: HRB400 (fy=360) 是景观最常用的
-fy = 360 # N/mm2
-st.sidebar.caption(f"材料设计值: {conc_grade} (fc={fc}), HRB400 (fy={fy})")
+fy = 360 # HRB400
+st.sidebar.caption(f"设计值: {conc_grade}(fc={fc}), HRB400(fy={fy})")
 
-# 1.3 几何尺寸
+# --- 2. 几何与荷载 (根据模式变化) ---
 st.sidebar.markdown("---")
-st.sidebar.subheader("截面尺寸 (mm)")
-if comp_type == "矩形梁 (Bench/Lintel)":
-    b = st.sidebar.number_input("梁宽 b", value=200, step=50)
-    h = st.sidebar.number_input("梁高 h", value=400, step=50)
-    # 钢筋输入方式：根数 + 直径
-    st.sidebar.subheader("配筋 (底筋)")
-    bar_num = st.sidebar.number_input("钢筋根数", value=3, step=1)
-    bar_dia = st.sidebar.selectbox("钢筋直径", [8, 10, 12, 14, 16, 18, 20, 22, 25], index=4)
-    As = bar_num * (np.pi * (bar_dia/2)**2)
-    cover = 25 # 保护层
-else: # 板
-    b = 1000 # 板按1米宽带计算
-    h = st.sidebar.number_input("板厚 h", value=120, step=10)
-    st.sidebar.caption("计算取 1000mm 宽板带")
-    # 钢筋输入方式：间距 + 直径
-    st.sidebar.subheader("配筋 (底筋)")
-    bar_dia = st.sidebar.selectbox("钢筋直径", [8, 10, 12, 14], index=1)
-    spacing = st.sidebar.number_input("钢筋间距 (mm)", value=150, step=10)
-    As = (1000 / spacing) * (np.pi * (bar_dia/2)**2)
-    cover = 15 # 板保护层较小
+st.sidebar.subheader("几何与荷载")
 
-# 有效高度 h0
-h0 = h - cover - bar_dia/2
+if "梁" in calc_mode:
+    # === 梁板模式 (原有逻辑) ===
+    sub_type = st.sidebar.selectbox("子类型", ["矩形梁 (Lintel)", "板 (Slab)"])
+    
+    if sub_type == "矩形梁 (Lintel)":
+        b = st.sidebar.number_input("梁宽 b (mm)", 200, step=50)
+        h = st.sidebar.number_input("梁高 h (mm)", 400, step=50)
+        st.sidebar.subheader("配筋 (底筋)")
+        bar_num = st.sidebar.number_input("钢筋根数", 3)
+        bar_dia = st.sidebar.selectbox("钢筋直径", [10, 12, 14, 16, 18, 20, 22, 25], index=3)
+        As = bar_num * (np.pi * (bar_dia/2)**2)
+        cover = 25
+    else:
+        b = 1000
+        h = st.sidebar.number_input("板厚 h (mm)", 120, step=10)
+        st.sidebar.subheader("配筋 (板底)")
+        bar_dia = st.sidebar.selectbox("钢筋直径", [8, 10, 12, 14], index=1)
+        spacing = st.sidebar.number_input("间距 (mm)", 150, step=10)
+        As = (1000 / spacing) * (np.pi * (bar_dia/2)**2)
+        cover = 15
 
-# 1.4 荷载
-st.sidebar.markdown("---")
-st.sidebar.subheader("荷载与跨度")
-span_L = st.sidebar.number_input("计算跨度 L (m)", value=3.0, step=0.1)
-q_design = st.sidebar.number_input("设计线/面荷载 (kN/m 或 kN/m²)", value=5.0, step=1.0)
-st.sidebar.caption("注：输入值应包含 1.3恒+1.5活 的组合系数")
+    h0 = h - cover - bar_dia/2
+    span_L = st.sidebar.number_input("计算跨度 (m)", 3.0, step=0.1)
+    q_design = st.sidebar.number_input("设计荷载 (kN/m或kN/m²)", 5.0, step=0.5)
 
-# --- 2. 核心计算 (GB 50010-2010) ---
-# 2.1 弯矩计算 M (kN.m)
-M_design = 1/8 * q_design * span_L**2 # 简支弯矩
+    # 计算逻辑
+    M_design = 1/8 * q_design * span_L**2
+    x = (fy * As) / (1.0 * fc * b)
+    xi = x / h0
+    xi_b = 0.518
+    rho = As / (b * h)
+    rho_min = max(0.2/100, 0.45 * ft / fy)
+    Mu = fy * As * (h0 - x/2) / 1e6
+    
+    # 结果变量打包
+    val_demand, val_cap = M_design, Mu
+    unit = "kN.m"
+    res_title = "受弯承载力"
 
-# 2.2 承载力计算 (M_u)
-# 平衡方程: alpha1 * fc * b * x = fy * As
-# 简化: alpha1 = 1.0 (for <= C50)
-x = (fy * As) / (1.0 * fc * b) # 受压区高度 x
+else:
+    # === 柱模式 (新增逻辑) ===
+    col_type = st.sidebar.selectbox("截面形状", ["矩形柱 (Rect)", "圆柱 (Round)"])
+    
+    if "矩形" in col_type:
+        b = st.sidebar.number_input("柱宽 b (mm)", 300, step=50)
+        h = st.sidebar.number_input("柱深 h (mm)", 300, step=50)
+        A_conc = b * h
+        st.sidebar.subheader("纵向钢筋 (全部)")
+        bar_total_num = st.sidebar.number_input("总根数 (4根以上)", 4, step=2)
+        bar_dia = st.sidebar.selectbox("钢筋直径", [12, 14, 16, 18, 20, 22, 25], index=2)
+        As = bar_total_num * (np.pi * (bar_dia/2)**2)
+    else:
+        D = st.sidebar.number_input("柱直径 D (mm)", 300, step=50)
+        A_conc = np.pi * (D/2)**2
+        st.sidebar.subheader("纵向钢筋 (全部)")
+        bar_total_num = st.sidebar.number_input("总根数 (6根以上)", 6, step=1)
+        bar_dia = st.sidebar.selectbox("钢筋直径", [12, 14, 16, 18, 20, 22, 25], index=2)
+        As = bar_total_num * (np.pi * (bar_dia/2)**2)
 
-# 相对受压区高度 xi
-xi = x / h0
-xi_b = 0.518 # HRB400 界限值
+    H_col = st.sidebar.number_input("计算高度 H0 (m)", 3.0, step=0.1)
+    N_design = st.sidebar.number_input("轴压力设计值 (kN)", 500.0, step=50.0, help="1.3恒+1.5活")
 
-# 最小配筋率校验
-rho = As / (b * h)
-rho_min = max(0.2/100, 0.45 * ft / fy) # 0.2% 或公式值
-
-# 弯矩承载力 Mu = fy * As * (h0 - x/2)
-Mu = fy * As * (h0 - x/2) / 1e6 # 换算为 kN.m
+    # 柱计算逻辑 (GB 50010 - 轴心受压简化)
+    # 稳定系数 phi
+    # 矩形回转半径 i = h / sqrt(12) ≈ 0.289h
+    # 圆形回转半径 i = d / 4 = 0.25d
+    if "矩形" in col_type:
+        i_radius = min(b, h) * 0.289
+        size_min = min(b, h)
+    else:
+        i_radius = D * 0.25
+        size_min = D
+        
+    l0_i = (H_col * 1000) / i_radius # 长细比
+    
+    # 查表法拟合 phi (简单线性插值)
+    # l0/b (或d) <= 8 -> phi=1.0
+    # GB表: l0/b=10->0.98, 15->0.95, 20->0.92, ... (简化算法)
+    # 这里用更保守的 l0/b 公式
+    ratio = (H_col * 1000) / size_min
+    if ratio <= 8: phi = 1.0
+    elif ratio <= 10: phi = 0.98
+    elif ratio <= 15: phi = 0.95
+    elif ratio <= 20: phi = 0.90
+    elif ratio <= 30: phi = 0.81
+    else: phi = 0.70 # 太细了
+    
+    # 承载力 Nu = 0.9 * phi * (fc*A + fy'*As')
+    # 0.9 是轴压构件的可靠度调整系数
+    Nu = 0.9 * phi * (fc * A_conc + fy * As) / 1000 # N -> kN
+    
+    # 结果变量打包
+    val_demand, val_cap = N_design, Nu
+    unit = "kN"
+    res_title = "轴心受压承载力"
 
 # --- 3. 结果显示 ---
-col1, col2 = st.columns(2)
+col1, col2 = st.columns([3, 2])
 
 with col1:
-    st.subheader("📊 验算结论")
+    st.subheader(f"📊 验算: {res_title}")
     
-    # 弯矩对比
-    st.metric("弯矩需求 (Md)", f"{M_design:.2f} kN.m")
-    st.metric("弯矩抗力 (Mu)", f"{Mu:.2f} kN.m", delta=f"{Mu-M_design:.2f}")
-
-    # 安全判断逻辑
-    checks = []
+    ratio = val_demand / val_cap if val_cap > 0 else 999
     
-    # Check 1: 强度
-    if Mu >= M_design:
-        checks.append(("✅ 强度满足", f"抗力 {Mu:.1f} > 需求 {M_design:.1f}"))
+    st.metric("需求 (Design)", f"{val_demand:.1f} {unit}")
+    st.metric("抗力 (Capacity)", f"{val_cap:.1f} {unit}", delta=f"{val_cap - val_demand:.1f}")
+    
+    st.progress(min(ratio, 1.0))
+    
+    if ratio <= 1.0:
+        st.success(f"✅ 安全 (利用率 {ratio*100:.1f}%)")
     else:
-        checks.append(("❌ 强度不足", "钢筋太少或截面太小，请加筋！"))
-
-    # Check 2: 破坏形态 (最重要!)
-    if xi <= xi_b:
-        checks.append(("✅ 适筋破坏 (安全)", f"ξ={xi:.3f} < {xi_b} (延性好)"))
+        st.error(f"❌ 承载力不足！请加大截面或提高标号。")
+        
+    # 补充检查
+    if "梁" in calc_mode:
+        if xi > xi_b: st.error("❌ 超筋破坏警报！混凝土会被压碎。必须加大截面。")
+        elif rho < rho_min: st.error("❌ 少筋警报！必须增加钢筋。")
     else:
-        checks.append(("❌ 超筋破坏 (极度危险)", "钢筋太多了！混凝土会被压碎，请加大截面或减小钢筋。"))
-
-    # Check 3: 最小配筋率
-    if rho >= rho_min:
-        checks.append(("✅ 配筋率满足", f"ρ={rho:.2%} > {rho_min:.2%}"))
-    else:
-        checks.append(("❌ 少筋 (脆性危险)", "钢筋少于规范构造要求，一裂就断！"))
-
-    # 输出Check结果
-    for title, desc in checks:
-        if "❌" in title:
-            st.error(f"**{title}**\n\n{desc}")
-        else:
-            st.success(f"**{title}**\n\n{desc}")
+        # 柱的补充检查
+        rho_col = As / A_conc
+        st.info(f"配筋率: {rho_col:.2%} (规范最小 0.6%)")
+        if rho_col < 0.006: st.warning("⚠️ 配筋率小于 0.6%，属于少筋柱。")
+        if phi < 0.8: st.warning("⚠️ 柱子比较细长，承载力折减较大。")
 
 with col2:
-    st.subheader("🧱 截面分析")
-    st.info(f"当前截面: {int(b)}x{int(h)} mm | {conc_grade}")
-    
-    # 可视化截面配筋
-    st.write(f"**配筋方案**: {int(As)} mm²")
-    if comp_type == "矩形梁 (Bench/Lintel)":
-        st.write(f"🔹 {int(bar_num)}根 Φ{int(bar_dia)} (底筋)")
+    st.subheader("📝 计算简报")
+    st.write(f"类型: {calc_mode}")
+    st.write(f"材质: {conc_grade} + HRB400")
+    if "梁" in calc_mode:
+        st.write(f"尺寸: {b}x{h} mm")
+        st.write(f"配筋: {int(As)} mm²")
     else:
-        st.write(f"🔹 Φ{int(bar_dia)} @ {int(spacing)} (板带)")
-
-    st.write("---")
-    st.write("**受压区高度 x**:", f"{x:.1f} mm")
+        if "矩形" in col_type: st.write(f"尺寸: {b}x{h} mm")
+        else: st.write(f"尺寸: D={D} mm")
+        st.write(f"配筋: {int(bar_total_num)}根 Φ{bar_dia}")
+        st.write(f"稳定系数 φ: {phi:.3f}")
     
-    # 进度条展示利用率
-    util_ratio = M_design / Mu if Mu > 0 else 1.2
-    st.write(f"**承载力利用率**: {util_ratio*100:.1f}%")
-    st.progress(min(util_ratio, 1.0))
-
-    if util_ratio < 0.5:
-        st.warning("💡 设计过于保守，浪费材料。")
-    elif util_ratio > 0.95 and util_ratio <= 1.0:
-        st.info("👌 极致经济设计。")
+    # 导出 HTML
+    report = f"""<h3>混凝土计算书</h3><p>{res_title}: {val_demand} vs {val_cap} ({unit})</p>"""
+    b64 = base64.b64encode(report.encode()).decode()
+    st.markdown(f'<a href="data:text/html;base64,{b64}" download="混凝土计算书.html">📥 下载报告</a>', unsafe_allow_html=True)
