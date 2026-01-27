@@ -215,4 +215,5 @@ with col2:
     b64 = base64.b64encode(report_html.encode()).decode()
     href = f'<a href="data:text/html;base64,{b64}" download="结构计算书_{datetime.now().strftime("%Y%m%d")}.html" style="background-color:#4CAF50; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;">📥 下载计算书 (HTML)</a>'
     st.markdown(href, unsafe_allow_html=True)
+
     st.caption("下载后双击打开，按 Ctrl+P 即可打印为 PDF。")
