@@ -128,6 +128,28 @@ else:
     unit = "kN"
     res_title = "轴心受压承载力"
 
+# ... (上面是你的配筋计算代码) ...
+    
+    # 结果变量打包
+    val_demand, val_cap = N_design, Nu
+    unit = "kN"
+    res_title = "轴心受压承载力"
+
+    # 👇👇👇 在这里插入向导代码 (只加这一次) 👇👇👇
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("📌 场景选择向导"):
+        st.markdown("""
+        **我要算...**
+        - 🪑 **混凝土坐凳** → 请选 [梁/板] + [矩形梁]
+        - 🌉 **小桥/栈道板** → 请选 [梁/板] + [板]
+        - 🌳 **树池/挡墙压顶** → 请选 [梁/板] + [矩形梁]
+        """)
+    # 👆👆👆 插入结束 👆👆👆
+
+# --- 3. 结果显示 ---
+col1, col2 = st.columns([3, 2])
+# ...
+
 # --- 3. 结果显示 ---
 col1, col2 = st.columns([3, 2])
 
