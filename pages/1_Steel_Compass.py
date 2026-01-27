@@ -167,6 +167,24 @@ else:
     st.sidebar.warning(f"💡 计算长度系数取 K=2.0 (独立悬臂柱模式)。如果是框架柱，结果会更安全。")
 
 # --- 4. 结果输出 (通用UI) ---
+# ... (上面是你的荷载输入代码) ...
+    
+    st.sidebar.warning(f"💡 计算长度系数取 K=2.0 (独立悬臂柱模式)。...") 
+    
+    # 👇👇👇 在这里插入向导代码 (只加这一次) 👇👇👇
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("📌 场景选择向导"):
+        st.markdown("""
+        **我要算...**
+        - 🏯 **精神堡垒/导视牌** → 请选 [柱] 模式
+        - 🛖 **单独的雨棚/挑檐** → 请选 [梁] + [悬挑]
+        - 🛤️ **廊架檩条/格栅** → 请选 [梁] + [简支]
+        """)
+    # 👆👆👆 插入结束 👆👆👆
+
+# --- 4. 结果输出 (通用UI) ---
+col1, col2 = st.columns([3, 2])
+# ...
 col1, col2 = st.columns([3, 2])
 
 with col1:
@@ -222,4 +240,5 @@ with col2:
     b64 = base64.b64encode(report.encode("utf-8")).decode()
     href = f'<a href="data:text/html;base64,{b64}" download="结构计算书.html">📥 下载简报</a>'
     st.markdown(href, unsafe_allow_html=True)
+
 
