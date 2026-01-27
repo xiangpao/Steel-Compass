@@ -5,6 +5,10 @@ from datetime import datetime
 
 # --- 1. 基础配置 ---
 st.set_page_config(page_title="结构罗盘 Steel-Compass", layout="wide")
+# 🔐 安全检查：如果没登录，踢回首页
+if 'logged_in' not in st.session_state or not st.session_state.logged_in:
+    st.warning("⚠️ 未授权访问，请先登录！")
+    st.stop()
 st.title("🔩 结构罗盘 (Steel-Compass) | v1.1")
 
 # --- 2. 侧边栏：核心参数 ---
@@ -218,3 +222,4 @@ with col2:
     b64 = base64.b64encode(report.encode("utf-8")).decode()
     href = f'<a href="data:text/html;base64,{b64}" download="结构计算书.html">📥 下载简报</a>'
     st.markdown(href, unsafe_allow_html=True)
+
