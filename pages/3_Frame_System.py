@@ -4,6 +4,10 @@ import base64
 
 # --- 页面配置 ---
 st.set_page_config(page_title="整体刚架 Frame-System", layout="wide")
+# 🔐 安全检查：如果没登录，踢回首页
+if 'logged_in' not in st.session_state or not st.session_state.logged_in:
+    st.warning("⚠️ 未授权访问，请先登录！")
+    st.stop()
 st.title("⛩️ 整体刚架系统 (Portal Frame)")
 
 st.markdown("""
