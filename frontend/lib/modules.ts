@@ -1,0 +1,589 @@
+import type { LoadItem, Module } from "./types";
+
+export interface FieldDefinition {
+  key: string;
+  label: string;
+  type: "number" | "select" | "boolean" | "text";
+  unit?: string;
+  min?: number;
+  step?: number;
+  options?: Array<{ value: string; label: string }>;
+  visible?: (values: Record<string, unknown>) => boolean;
+}
+
+export interface ModuleDefinition {
+  id: Module;
+  short: string;
+  title: string;
+  material: "steel" | "concrete" | "timber";
+  description: string;
+  fields: FieldDefinition[];
+  defaults: Record<string, unknown>;
+  defaultLoads: LoadItem[];
+}
+
+const sectionFields: FieldDefinition[] = [
+  {
+    key: "section_type",
+    label: "截面类型",
+    type: "select",
+    options: [
+      { value: "RHS", label: "矩形钢管 RHS" },
+      { value: "SHS", label: "方钢管 SHS" },
+      { value: "CHS", label: "圆钢管 CHS" },
+      { value: "H", label: "H 型钢" },
+    ],
+  },
+  {
+    key: "h_mm",
+    label: "截面高度",
+    type: "number",
+    unit: "mm",
+    min: 20,
+    step: 10,
+    visible: (v) => ["RHS", "H"].includes(String(v.section_type)),
+  },
+  {
+    key: "b_mm",
+    label: "截面宽度",
+    type: "number",
+    unit: "mm",
+    min: 20,
+    step: 10,
+    visible: (v) => ["RHS", "SHS", "H"].includes(String(v.section_type)),
+  },
+  {
+    key: "diameter_mm",
+    label: "外径",
+    type: "number",
+    unit: "mm",
+    min: 20,
+    step: 10,
+    visible: (v) => v.section_type === "CHS",
+  },
+  {
+    key: "t_mm",
+    label: "壁厚",
+    type: "number",
+    unit: "mm",
+    min: 1,
+    step: 0.5,
+    visible: (v) => ["RHS", "SHS", "CHS"].includes(String(v.section_type)),
+  },
+  {
+    key: "tw_mm",
+    label: "腹板厚度",
+    type: "number",
+    unit: "mm",
+    min: 2,
+    step: 0.5,
+    visible: (v) => v.section_type === "H",
+  },
+  {
+    key: "tf_mm",
+    label: "翼缘厚度",
+    type: "number",
+    unit: "mm",
+    min: 2,
+    step: 0.5,
+    visible: (v) => v.section_type === "H",
+  },
+];
+
+const steelGrade: FieldDefinition = {
+  key: "steel_grade",
+  label: "钢材牌号",
+  type: "select",
+  options: [
+    { value: "Q235B", label: "Q235B" },
+    { value: "Q355B", label: "Q355B" },
+  ],
+};
+
+const concreteMaterials: FieldDefinition[] = [
+  {
+    key: "concrete_grade",
+    label: "混凝土强度等级",
+    type: "select",
+    options: ["C25", "C30", "C35", "C40"].map((value) => ({
+      value,
+      label: value,
+    })),
+  },
+  {
+    key: "rebar_grade",
+    label: "纵筋等级",
+    type: "select",
+    options: [
+      "HPB300",
+      "HRB400",
+      "HRBF400",
+      "HRB400E",
+      "HRBF400E",
+      "HRB500",
+      "HRBF500",
+      "HRB500E",
+      "HRBF500E",
+      "RRB400",
+    ].map((value) => ({
+      value,
+      label: value,
+    })),
+  },
+  {
+    key: "stirrup_grade",
+    label: "箍筋等级",
+    type: "select",
+    options: [
+      "HPB300",
+      "HRB400",
+      "HRBF400",
+      "HRB500",
+      "HRBF500",
+    ].map((value) => ({ value, label: value })),
+  },
+];
+
+const commonConcreteRebar: FieldDefinition[] = [
+  { key: "cover_mm", label: "保护层厚度", type: "number", unit: "mm", min: 10, step: 5 },
+  { key: "bar_dia_mm", label: "纵筋直径", type: "number", unit: "mm", min: 6, step: 2 },
+  { key: "stirrup_dia_mm", label: "箍筋直径", type: "number", unit: "mm", min: 6, step: 2 },
+  { key: "stirrup_legs", label: "箍筋肢数", type: "number", min: 2, step: 1 },
+  { key: "stirrup_spacing_mm", label: "箍筋间距", type: "number", unit: "mm", min: 50, step: 10 },
+];
+
+export const MODULES: ModuleDefinition[] = [
+  {
+    id: "steel_beam",
+    short: "SB",
+    title: "钢梁",
+    material: "steel",
+    description: "简支与悬挑钢构件",
+    fields: [
+      steelGrade,
+      ...sectionFields,
+      { key: "span_m", label: "计算跨度", type: "number", unit: "m", min: 0.2, step: 0.1 },
+      {
+        key: "support",
+        label: "支承形式",
+        type: "select",
+        options: [
+          { value: "simple", label: "简支" },
+          { value: "cantilever", label: "悬挑" },
+        ],
+      },
+      { key: "tributary_width_m", label: "从属宽度", type: "number", unit: "m", min: 0.05, step: 0.1 },
+      { key: "include_self_weight", label: "自动计入自重", type: "boolean" },
+      { key: "lateral_restrained", label: "具有可靠侧向约束", type: "boolean" },
+    ],
+    defaults: {
+      steel_grade: "Q355B",
+      section_type: "RHS",
+      h_mm: 200,
+      b_mm: 100,
+      t_mm: 6,
+      diameter_mm: 140,
+      tw_mm: 6,
+      tf_mm: 10,
+      span_m: 3,
+      support: "simple",
+      tributary_width_m: 1,
+      include_self_weight: true,
+      lateral_restrained: true,
+    },
+    defaultLoads: [
+      { kind: "dead", value: 0.8, unit: "kN/m", source: "" },
+      { kind: "live", value: 0.5, unit: "kN/m", source: "" },
+    ],
+  },
+  {
+    id: "steel_column",
+    short: "SC",
+    title: "钢柱",
+    material: "steel",
+    description: "轴压与单向压弯筛查",
+    fields: [
+      steelGrade,
+      ...sectionFields,
+      { key: "height_m", label: "柱计算高度", type: "number", unit: "m", min: 0.2, step: 0.1 },
+      { key: "effective_length_factor", label: "计算长度系数", type: "number", min: 0.2, step: 0.1 },
+      { key: "design_moment_kn_m", label: "设计弯矩", type: "number", unit: "kN·m", min: 0, step: 1 },
+    ],
+    defaults: {
+      steel_grade: "Q355B",
+      section_type: "SHS",
+      b_mm: 180,
+      h_mm: 180,
+      t_mm: 8,
+      diameter_mm: 180,
+      tw_mm: 6,
+      tf_mm: 10,
+      height_m: 3,
+      effective_length_factor: 1,
+      design_moment_kn_m: 0,
+    },
+    defaultLoads: [{ kind: "dead", value: 30, unit: "kN", source: "" }],
+  },
+  {
+    id: "portal_frame",
+    short: "PF",
+    title: "单跨刚架",
+    material: "steel",
+    description: "二维矩阵位移法",
+    fields: [
+      steelGrade,
+      { key: "span_m", label: "刚架跨度", type: "number", unit: "m", min: 1, step: 0.5 },
+      { key: "height_m", label: "柱高", type: "number", unit: "m", min: 1, step: 0.1 },
+      {
+        key: "base_support",
+        label: "柱脚形式",
+        type: "select",
+        options: [
+          { value: "fixed", label: "固定" },
+          { value: "pinned", label: "铰接" },
+        ],
+      },
+      { key: "wind_area_m2", label: "迎风面积", type: "number", unit: "m²", min: 0.1, step: 0.5 },
+      { key: "tributary_width_m", label: "竖向从属宽度", type: "number", unit: "m", min: 0.1, step: 0.1 },
+      { key: "beam_h_mm", label: "梁高", type: "number", unit: "mm", min: 50, step: 10 },
+      { key: "beam_b_mm", label: "梁宽", type: "number", unit: "mm", min: 40, step: 10 },
+      { key: "beam_t_mm", label: "梁壁厚", type: "number", unit: "mm", min: 1, step: 0.5 },
+      { key: "column_b_mm", label: "柱边宽", type: "number", unit: "mm", min: 40, step: 10 },
+      { key: "column_t_mm", label: "柱壁厚", type: "number", unit: "mm", min: 1, step: 0.5 },
+    ],
+    defaults: {
+      steel_grade: "Q355B",
+      span_m: 5,
+      height_m: 3.2,
+      base_support: "fixed",
+      wind_area_m2: 16,
+      tributary_width_m: 1,
+      beam_h_mm: 300,
+      beam_b_mm: 150,
+      beam_t_mm: 6,
+      column_b_mm: 180,
+      column_t_mm: 8,
+    },
+    defaultLoads: [
+      { kind: "dead", value: 0.8, unit: "kN/m", source: "" },
+      { kind: "live", value: 0.5, unit: "kN/m", source: "" },
+      { kind: "wind", value: 0.5, unit: "kN/m2", source: "" },
+    ],
+  },
+  {
+    id: "concrete_beam",
+    short: "CB",
+    title: "混凝土梁",
+    material: "concrete",
+    description: "受弯、受剪与正常使用",
+    fields: [
+      ...concreteMaterials,
+      { key: "b_mm", label: "梁宽", type: "number", unit: "mm", min: 100, step: 50 },
+      { key: "h_mm", label: "梁高", type: "number", unit: "mm", min: 100, step: 50 },
+      ...commonConcreteRebar.slice(0, 2),
+      { key: "bar_count", label: "纵筋根数", type: "number", min: 2, step: 1 },
+      ...commonConcreteRebar.slice(2),
+      { key: "span_m", label: "计算跨度", type: "number", unit: "m", min: 0.3, step: 0.1 },
+      {
+        key: "support",
+        label: "支承形式",
+        type: "select",
+        options: [
+          { value: "simple", label: "简支" },
+          { value: "cantilever", label: "悬挑" },
+        ],
+      },
+      { key: "tributary_width_m", label: "从属宽度", type: "number", unit: "m", min: 0.05, step: 0.1 },
+    ],
+    defaults: {
+      concrete_grade: "C30",
+      rebar_grade: "HRB400",
+      stirrup_grade: "HPB300",
+      b_mm: 250,
+      h_mm: 450,
+      cover_mm: 30,
+      bar_dia_mm: 18,
+      bar_count: 3,
+      stirrup_dia_mm: 8,
+      stirrup_legs: 2,
+      stirrup_spacing_mm: 200,
+      span_m: 3,
+      support: "simple",
+      tributary_width_m: 1,
+    },
+    defaultLoads: [
+      { kind: "dead", value: 1, unit: "kN/m", source: "" },
+      { kind: "live", value: 2, unit: "kN/m", source: "" },
+    ],
+  },
+  {
+    id: "concrete_slab",
+    short: "CS",
+    title: "单向板",
+    material: "concrete",
+    description: "1 m 宽板带验算",
+    fields: [
+      ...concreteMaterials,
+      { key: "h_mm", label: "板厚", type: "number", unit: "mm", min: 80, step: 10 },
+      ...commonConcreteRebar.slice(0, 2),
+      { key: "bar_spacing_mm", label: "纵筋间距", type: "number", unit: "mm", min: 50, step: 10 },
+      ...commonConcreteRebar.slice(2),
+      { key: "span_m", label: "计算跨度", type: "number", unit: "m", min: 0.3, step: 0.1 },
+      {
+        key: "support",
+        label: "支承形式",
+        type: "select",
+        options: [
+          { value: "simple", label: "简支" },
+          { value: "cantilever", label: "悬挑" },
+        ],
+      },
+    ],
+    defaults: {
+      concrete_grade: "C30",
+      rebar_grade: "HRB400",
+      stirrup_grade: "HPB300",
+      h_mm: 150,
+      cover_mm: 20,
+      bar_dia_mm: 12,
+      bar_spacing_mm: 150,
+      stirrup_dia_mm: 8,
+      stirrup_legs: 2,
+      stirrup_spacing_mm: 200,
+      span_m: 2.5,
+      support: "simple",
+    },
+    defaultLoads: [
+      { kind: "dead", value: 1, unit: "kN/m2", source: "" },
+      { kind: "live", value: 3.5, unit: "kN/m2", source: "" },
+    ],
+  },
+  {
+    id: "concrete_column",
+    short: "CC",
+    title: "混凝土柱",
+    material: "concrete",
+    description: "轴压与偏压 Beta",
+    fields: [
+      ...concreteMaterials.filter((field) => field.key !== "stirrup_grade"),
+      {
+        key: "shape",
+        label: "截面形状",
+        type: "select",
+        options: [
+          { value: "rectangular", label: "矩形" },
+          { value: "circular", label: "圆形" },
+        ],
+      },
+      { key: "b_mm", label: "截面宽度", type: "number", unit: "mm", min: 150, step: 50, visible: (v) => v.shape === "rectangular" },
+      { key: "h_mm", label: "截面高度", type: "number", unit: "mm", min: 150, step: 50, visible: (v) => v.shape === "rectangular" },
+      { key: "diameter_mm", label: "截面直径", type: "number", unit: "mm", min: 150, step: 50, visible: (v) => v.shape === "circular" },
+      { key: "reinforcement_area_mm2", label: "纵筋面积", type: "number", unit: "mm²", min: 100, step: 100 },
+      { key: "height_m", label: "柱计算高度", type: "number", unit: "m", min: 0.3, step: 0.1 },
+      { key: "effective_length_factor", label: "计算长度系数", type: "number", min: 0.2, step: 0.1 },
+      { key: "design_moment_kn_m", label: "设计弯矩", type: "number", unit: "kN·m", min: 0, step: 1 },
+    ],
+    defaults: {
+      concrete_grade: "C30",
+      rebar_grade: "HRB400",
+      shape: "rectangular",
+      b_mm: 300,
+      h_mm: 300,
+      diameter_mm: 350,
+      reinforcement_area_mm2: 1608,
+      height_m: 3,
+      effective_length_factor: 1,
+      design_moment_kn_m: 0,
+    },
+    defaultLoads: [{ kind: "dead", value: 400, unit: "kN", source: "" }],
+  },
+  {
+    id: "spread_footing",
+    short: "IF",
+    title: "柱下独立基础",
+    material: "concrete",
+    description: "地基压力、稳定、剪切、冲切与双向配筋",
+    fields: [
+      { key: "length_m", label: "基础长度", type: "number", unit: "m", min: 0.5, step: 0.1 },
+      { key: "width_m", label: "基础宽度", type: "number", unit: "m", min: 0.5, step: 0.1 },
+      { key: "thickness_mm", label: "基础厚度", type: "number", unit: "mm", min: 200, step: 50 },
+      { key: "column_x_mm", label: "柱/墩 X 向尺寸", type: "number", unit: "mm", min: 150, step: 50 },
+      { key: "column_y_mm", label: "柱/墩 Y 向尺寸", type: "number", unit: "mm", min: 150, step: 50 },
+      { key: "embedment_m", label: "基础埋深", type: "number", unit: "m", min: 0, step: 0.1 },
+      { key: "soil_cover_m", label: "基础顶覆土", type: "number", unit: "m", min: 0, step: 0.1 },
+      ...concreteMaterials.filter((field) => field.key !== "stirrup_grade"),
+      { key: "cover_mm", label: "底筋保护层", type: "number", unit: "mm", min: 35, step: 5 },
+      { key: "bar_dia_x_mm", label: "X 向底筋直径", type: "number", unit: "mm", min: 6, step: 2 },
+      { key: "bar_spacing_x_mm", label: "X 向底筋间距", type: "number", unit: "mm", min: 50, step: 10 },
+      { key: "bar_dia_y_mm", label: "Y 向底筋直径", type: "number", unit: "mm", min: 6, step: 2 },
+      { key: "bar_spacing_y_mm", label: "Y 向底筋间距", type: "number", unit: "mm", min: 50, step: 10 },
+      { key: "soil_capacity_kpa", label: "地基承载力特征值", type: "number", unit: "kPa", min: 10, step: 10 },
+      { key: "soil_source", label: "勘察/承载力来源", type: "text" },
+      { key: "base_friction_coefficient", label: "基底摩擦系数", type: "number", min: 0, step: 0.05 },
+      { key: "groundwater_known", label: "已确认地下水条件", type: "boolean" },
+      { key: "horizontal_x_kn", label: "X 向水平力", type: "number", unit: "kN", step: 1 },
+      { key: "horizontal_y_kn", label: "Y 向水平力", type: "number", unit: "kN", step: 1 },
+      { key: "moment_x_kn_m", label: "绕 X 轴弯矩", type: "number", unit: "kN·m", step: 1 },
+      { key: "moment_y_kn_m", label: "绕 Y 轴弯矩", type: "number", unit: "kN·m", step: 1 },
+      { key: "uplift_kn", label: "上拔力", type: "number", unit: "kN", min: 0, step: 1 },
+    ],
+    defaults: {
+      length_m: 2,
+      width_m: 2,
+      thickness_mm: 500,
+      column_x_mm: 300,
+      column_y_mm: 300,
+      embedment_m: 1,
+      soil_cover_m: 0.5,
+      concrete_grade: "C30",
+      rebar_grade: "HRB400",
+      cover_mm: 50,
+      bar_dia_x_mm: 14,
+      bar_spacing_x_mm: 150,
+      bar_dia_y_mm: 14,
+      bar_spacing_y_mm: 150,
+      soil_capacity_kpa: 120,
+      soil_source: "",
+      base_friction_coefficient: 0.3,
+      groundwater_known: false,
+      horizontal_x_kn: 0,
+      horizontal_y_kn: 0,
+      moment_x_kn_m: 0,
+      moment_y_kn_m: 0,
+      uplift_kn: 0,
+    },
+    defaultLoads: [
+      { kind: "dead", value: 80, unit: "kN", source: "" },
+    ],
+  },
+  {
+    id: "strip_footing",
+    short: "SF",
+    title: "墙下条形基础",
+    material: "concrete",
+    description: "每延米承载力、稳定、剪切与横向配筋",
+    fields: [
+      { key: "width_m", label: "基础宽度", type: "number", unit: "m", min: 0.4, step: 0.1 },
+      { key: "thickness_mm", label: "基础厚度", type: "number", unit: "mm", min: 200, step: 50 },
+      { key: "wall_width_mm", label: "墙体厚度", type: "number", unit: "mm", min: 100, step: 20 },
+      { key: "wall_eccentricity_mm", label: "墙体偏心", type: "number", unit: "mm", step: 10 },
+      ...concreteMaterials.filter((field) => field.key !== "stirrup_grade"),
+      { key: "cover_mm", label: "底筋保护层", type: "number", unit: "mm", min: 35, step: 5 },
+      { key: "bar_dia_mm", label: "横向底筋直径", type: "number", unit: "mm", min: 6, step: 2 },
+      { key: "bar_spacing_mm", label: "横向底筋间距", type: "number", unit: "mm", min: 50, step: 10 },
+      { key: "soil_capacity_kpa", label: "地基承载力特征值", type: "number", unit: "kPa", min: 10, step: 10 },
+      { key: "soil_source", label: "勘察/承载力来源", type: "text" },
+      { key: "base_friction_coefficient", label: "基底摩擦系数", type: "number", min: 0, step: 0.05 },
+      { key: "groundwater_known", label: "已确认地下水条件", type: "boolean" },
+      { key: "horizontal_load_kn_m", label: "水平线荷载", type: "number", unit: "kN/m", step: 1 },
+      { key: "moment_kn_m_per_m", label: "每延米倾覆弯矩", type: "number", unit: "kN·m/m", step: 1 },
+    ],
+    defaults: {
+      width_m: 1.2,
+      thickness_mm: 400,
+      wall_width_mm: 240,
+      wall_eccentricity_mm: 0,
+      concrete_grade: "C30",
+      rebar_grade: "HRB400",
+      cover_mm: 50,
+      bar_dia_mm: 12,
+      bar_spacing_mm: 150,
+      soil_capacity_kpa: 120,
+      soil_source: "",
+      base_friction_coefficient: 0.3,
+      groundwater_known: false,
+      horizontal_load_kn_m: 0,
+      moment_kn_m_per_m: 0,
+    },
+    defaultLoads: [
+      { kind: "dead", value: 45, unit: "kN/m", source: "" },
+    ],
+  },
+  {
+    id: "timber_beam",
+    short: "TB",
+    title: "木梁",
+    material: "timber",
+    description: "矩形木梁基础验算",
+    fields: [
+      {
+        key: "timber_grade",
+        label: "木材等级",
+        type: "select",
+        options: ["TC13", "TC15", "GL24"].map((value) => ({ value, label: value })),
+      },
+      { key: "b_mm", label: "截面宽度", type: "number", unit: "mm", min: 40, step: 10 },
+      { key: "h_mm", label: "截面高度", type: "number", unit: "mm", min: 60, step: 10 },
+      { key: "span_m", label: "计算跨度", type: "number", unit: "m", min: 0.3, step: 0.1 },
+      {
+        key: "support",
+        label: "支承形式",
+        type: "select",
+        options: [
+          { value: "simple", label: "简支" },
+          { value: "cantilever", label: "悬挑" },
+        ],
+      },
+      { key: "tributary_width_m", label: "从属宽度", type: "number", unit: "m", min: 0.05, step: 0.1 },
+    ],
+    defaults: { timber_grade: "TC13", b_mm: 100, h_mm: 220, span_m: 3, support: "simple", tributary_width_m: 1 },
+    defaultLoads: [
+      { kind: "dead", value: 0.4, unit: "kN/m", source: "" },
+      { kind: "live", value: 0.5, unit: "kN/m", source: "" },
+    ],
+  },
+  {
+    id: "timber_column",
+    short: "TC",
+    title: "木柱",
+    material: "timber",
+    description: "矩形轴压木柱",
+    fields: [
+      {
+        key: "timber_grade",
+        label: "木材等级",
+        type: "select",
+        options: ["TC13", "TC15", "GL24"].map((value) => ({ value, label: value })),
+      },
+      { key: "b_mm", label: "截面宽度", type: "number", unit: "mm", min: 40, step: 10 },
+      { key: "h_mm", label: "截面高度", type: "number", unit: "mm", min: 40, step: 10 },
+      { key: "height_m", label: "柱计算高度", type: "number", unit: "m", min: 0.3, step: 0.1 },
+      { key: "effective_length_factor", label: "计算长度系数", type: "number", min: 0.2, step: 0.1 },
+    ],
+    defaults: { timber_grade: "TC13", b_mm: 120, h_mm: 120, height_m: 2.8, effective_length_factor: 1 },
+    defaultLoads: [{ kind: "dead", value: 20, unit: "kN", source: "" }],
+  },
+];
+
+export const MODULE_MAP = Object.fromEntries(
+  MODULES.map((item) => [item.id, item]),
+) as Record<Module, ModuleDefinition>;
+
+export function normalizeInputs(
+  module: Module,
+  values: Record<string, unknown>,
+): Record<string, unknown> {
+  if (module !== "portal_frame") return values;
+  const {
+    beam_h_mm,
+    beam_b_mm,
+    beam_t_mm,
+    column_b_mm,
+    column_t_mm,
+    ...rest
+  } = values;
+  return {
+    ...rest,
+    beam_section: {
+      section_type: "RHS",
+      h_mm: beam_h_mm,
+      b_mm: beam_b_mm,
+      t_mm: beam_t_mm,
+    },
+    column_section: {
+      section_type: "SHS",
+      b_mm: column_b_mm,
+      t_mm: column_t_mm,
+    },
+  };
+}

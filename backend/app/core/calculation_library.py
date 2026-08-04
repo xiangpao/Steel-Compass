@@ -1,0 +1,289 @@
+from __future__ import annotations
+
+from typing import Any
+
+
+CALCULATION_LIBRARY_VERSION = "CN-CALC-LIB-2026.1"
+
+
+CALCULATION_LIBRARY: list[dict[str, Any]] = [
+    {
+        "id": "load-combinations",
+        "title": "恒活载与作用组合",
+        "task": "loads_environment",
+        "task_title": "荷载与环境",
+        "material": None,
+        "module": None,
+        "maturity": "beta",
+        "description": "恒载、活载、有利/不利作用与 ULS/SLS 组合。",
+        "presets": ["步道与平台", "景亭与廊架", "人员聚集", "检修荷载"],
+    },
+    {
+        "id": "wind-snow",
+        "title": "风雪荷载向导",
+        "task": "loads_environment",
+        "task_title": "荷载与环境",
+        "material": None,
+        "module": None,
+        "maturity": "beta",
+        "description": "基于已复核城市数据生成风雪作用参数，不替代项目专项资料。",
+        "presets": ["导视牌风荷载", "雨棚风荷载", "廊架风雪荷载"],
+    },
+    {
+        "id": "soil-water",
+        "title": "土压力、水压力与浮力",
+        "task": "loads_environment",
+        "task_title": "荷载与环境",
+        "material": None,
+        "module": None,
+        "maturity": "planned",
+        "description": "静止/主动土压力、水压力和抗浮作用包。",
+        "presets": [],
+    },
+    {
+        "id": "steel-beam",
+        "title": "钢梁",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "steel",
+        "module": "steel_beam",
+        "maturity": "beta",
+        "description": "简支梁、悬挑梁；弯曲、剪切、稳定与挠度。",
+        "presets": ["廊架檩条", "雨棚次梁", "平台主梁"],
+    },
+    {
+        "id": "steel-column",
+        "title": "钢柱",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "steel",
+        "module": "steel_column",
+        "maturity": "beta",
+        "description": "轴压与压弯构件验算。",
+        "presets": ["导视牌立柱", "门楼立柱", "廊架立柱"],
+    },
+    {
+        "id": "portal-frame",
+        "title": "参数化二维框架",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "steel",
+        "module": "portal_frame",
+        "maturity": "beta",
+        "description": "单跨刚架已可计算，多跨及不同柱高继续扩展。",
+        "presets": ["单跨廊架", "入口门楼"],
+    },
+    {
+        "id": "continuous-beam",
+        "title": "连续梁",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": None,
+        "module": None,
+        "maturity": "planned",
+        "description": "参数化多跨连续梁与反力包。",
+        "presets": [],
+    },
+    {
+        "id": "planar-truss",
+        "title": "平面桁架",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "steel",
+        "module": None,
+        "maturity": "planned",
+        "description": "节点荷载、杆件内力与位移。",
+        "presets": [],
+    },
+    {
+        "id": "concrete-beam",
+        "title": "混凝土梁",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "concrete",
+        "module": "concrete_beam",
+        "maturity": "beta",
+        "description": "受弯、受剪与建议配筋。",
+        "presets": ["坐凳梁", "平台梁"],
+    },
+    {
+        "id": "concrete-slab",
+        "title": "混凝土单向板",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "concrete",
+        "module": "concrete_slab",
+        "maturity": "beta",
+        "description": "单向板受弯、受剪与建议配筋。",
+        "presets": ["栈道板", "坐凳座板"],
+    },
+    {
+        "id": "two-way-slab",
+        "title": "混凝土双向板",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "concrete",
+        "module": None,
+        "maturity": "planned",
+        "description": "规则边界的双向板内力与配筋。",
+        "presets": [],
+    },
+    {
+        "id": "concrete-column",
+        "title": "混凝土柱",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "concrete",
+        "module": "concrete_column",
+        "maturity": "beta",
+        "description": "矩形柱、圆柱轴压与偏压。",
+        "presets": ["平台柱墩", "景亭柱"],
+    },
+    {
+        "id": "masonry-wall",
+        "title": "混凝土/砌体墙",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "concrete",
+        "module": None,
+        "maturity": "planned",
+        "description": "景墙和围墙的平面外作用验算。",
+        "presets": [],
+    },
+    {
+        "id": "timber-beam",
+        "title": "木梁",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "timber",
+        "module": "timber_beam",
+        "maturity": "beta",
+        "description": "简支/悬挑木梁受弯、受剪与挠度。",
+        "presets": ["木廊架梁", "木栈道搁栅"],
+    },
+    {
+        "id": "timber-column",
+        "title": "木柱",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "timber",
+        "module": "timber_column",
+        "maturity": "beta",
+        "description": "轴压木柱稳定验算。",
+        "presets": ["木廊架柱"],
+    },
+    {
+        "id": "steel-base-plate",
+        "title": "钢柱脚、底板与锚栓",
+        "task": "connections_supports",
+        "task_title": "连接与支承",
+        "material": "steel",
+        "module": None,
+        "maturity": "planned",
+        "description": "柱底反力、底板承压、锚栓拉剪与构造检查。",
+        "presets": ["导视牌柱脚", "廊架柱脚", "门楼柱脚"],
+    },
+    {
+        "id": "timber-base",
+        "title": "木柱脚",
+        "task": "connections_supports",
+        "task_title": "连接与支承",
+        "material": "timber",
+        "module": None,
+        "maturity": "planned",
+        "description": "木柱脚金属连接件与锚固边界检查。",
+        "presets": [],
+    },
+    {
+        "id": "spread-footing",
+        "title": "柱下独立基础",
+        "task": "foundations_geotechnical",
+        "task_title": "基础与地基",
+        "material": "concrete",
+        "module": "spread_footing",
+        "maturity": "beta",
+        "description": "地基压力、稳定、冲切、剪切与双向配筋。",
+        "presets": ["导视牌基础", "廊架柱基础", "门楼柱基础"],
+    },
+    {
+        "id": "strip-footing",
+        "title": "墙下条形基础",
+        "task": "foundations_geotechnical",
+        "task_title": "基础与地基",
+        "material": "concrete",
+        "module": "strip_footing",
+        "maturity": "beta",
+        "description": "按每延米验算承载力、偏心、稳定、剪切与配筋。",
+        "presets": ["景墙条形基础", "围墙条形基础"],
+    },
+    {
+        "id": "pile-foundation",
+        "title": "桩基与群桩承台",
+        "task": "foundations_geotechnical",
+        "task_title": "基础与地基",
+        "material": "concrete",
+        "module": None,
+        "maturity": "planned",
+        "description": "地勘承载力驱动的灌注桩、预制管桩/方桩与承台验算。",
+        "presets": [],
+    },
+    {
+        "id": "retaining-wall",
+        "title": "挡土墙",
+        "task": "retaining_pool",
+        "task_title": "挡土与池体",
+        "material": "concrete",
+        "module": None,
+        "maturity": "planned",
+        "description": "悬臂式和重力式挡土墙稳定与构件验算。",
+        "presets": [],
+    },
+    {
+        "id": "pool-structure",
+        "title": "池壁、池底板与抗浮",
+        "task": "retaining_pool",
+        "task_title": "挡土与池体",
+        "material": "concrete",
+        "module": None,
+        "maturity": "planned",
+        "description": "参数化池体的水土压力、裂缝和抗浮验算。",
+        "presets": [],
+    },
+]
+
+
+def calculation_library(
+    task: str = "", material: str = "", query: str = ""
+) -> dict[str, Any]:
+    normalized_query = query.strip().lower()
+    items = [
+        item
+        for item in CALCULATION_LIBRARY
+        if (not task or item["task"] == task)
+        and (not material or item["material"] in {None, material})
+        and (
+            not normalized_query
+            or normalized_query
+            in " ".join(
+                [
+                    item["id"],
+                    item["title"],
+                    item["description"],
+                    " ".join(item["presets"]),
+                ]
+            ).lower()
+        )
+    ]
+    return {
+        "version": CALCULATION_LIBRARY_VERSION,
+        "items": [
+            {
+                **item,
+                "availability": (
+                    "development" if item["maturity"] == "planned" else "public"
+                ),
+                "verification_status": "unverified",
+            }
+            for item in items
+        ],
+    }
