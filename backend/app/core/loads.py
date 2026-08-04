@@ -278,3 +278,138 @@ def axial_load_envelope(loads: list[LoadItem]) -> LoadEnvelope:
     }
     combinations = _build_combinations(grouped, "kN")
     return LoadEnvelope(totals=totals, combinations=combinations)
+
+
+def transferred_line_load_envelope(
+    raw_envelopes: list[dict], *, automatic_self_weight_kn_m: float = 0.0
+) -> LoadEnvelope:
+    """Rehydrate a combination-consistent line-load packet.
+
+    ``transferred_line_load`` is already factored at the upstream node.  Only
+    the receiving member's own self weight is added here, using the same
+    factors as the original combination.  No upstream factor is applied a
+    second time.
+    """
+
+    combinations: list[LoadCombinationResult] = []
+    for index, raw in enumerate(raw_envelopes, start=1):
+        transferred = raw.get("transferred_line_load")
+        if not isinstance(transferred, dict) or transferred.get("unit") != "kN/m":
+            raise CalculationInputError(
+                "missing_transferred_line_load",
+                "上游反力包必须提供 kN/m 组合线荷载。",
+                field="upstream_reaction_envelopes",
+            )
+        name = str(raw.get("combination_name") or f"upstream-{index}")
+        limit_state = str(raw.get("limit_state") or "")
+        if limit_state not in {"ULS", "SLS"}:
+            raise CalculationInputError(
+                "invalid_upstream_limit_state",
+                "上游组合必须明确 ULS 或 SLS。",
+                field="upstream_reaction_envelopes",
+            )
+        factor_row = next(
+            (row[2] for row in FACTOR_SETS if name.startswith(row[0])), None
+        )
+        if factor_row is None:
+            raise CalculationInputError(
+                "unknown_upstream_combination",
+                "上游组合名称无法映射接收构件自重系数。",
+                field="upstream_reaction_envelopes",
+            )
+        transferred_value = float(transferred.get("value", 0.0))
+        self_weight = automatic_self_weight_kn_m * factor_row["self_weight"]
+        total = transferred_value + self_weight
+        direction = LoadDirection(raw.get("direction") or ("uplift" if transferred_value < 0 else "gravity"))
+        sls_type = "standard" if "标准组合" in name else "frequent" if "频遇组合" in name else "quasi_permanent" if "准永久组合" in name else None
+        leading = "live" if "活荷载控制" in name else "wind" if "风荷载控制" in name else "snow" if "雪荷载控制" in name else "uplift" if "上拔控制" in name else None
+        combinations.append(
+            LoadCombinationResult(
+                name=name,
+                limit_state=limit_state,  # type: ignore[arg-type]
+                combination_id=raw.get("combination_id") or f"upstream-{index}",
+                sls_type=sls_type,  # type: ignore[arg-type]
+                leading_action=leading,
+                factors={"self_weight": factor_row["self_weight"]},
+                factored_by_kind={
+                    "upstream_line_load": Quantity(value=transferred_value, unit="kN/m"),
+                    "self_weight": Quantity(value=self_weight, unit="kN/m"),
+                },
+                directions_by_kind={
+                    "upstream_line_load": [direction],
+                    "self_weight": [LoadDirection.GRAVITY],
+                },
+                total=Quantity(value=total, unit="kN/m"),
+                effect_components={
+                    "N": Quantity(value=0.0, unit="kN"),
+                    "Vx": Quantity(value=0.0, unit="kN"),
+                    "Vy": Quantity(value=total, unit="kN/m"),
+                    "Mx": Quantity(value=0.0, unit="kN·m"),
+                    "My": Quantity(value=0.0, unit="kN·m"),
+                    "T": Quantity(value=0.0, unit="kN·m"),
+                },
+            )
+        )
+    if not combinations:
+        raise CalculationInputError(
+            "empty_transferred_reaction_envelopes",
+            "上游反力包不能为空。",
+            field="upstream_reaction_envelopes",
+        )
+    totals = {"transferred": sum(item.total.value for item in combinations)}
+    return LoadEnvelope(totals=totals, combinations=combinations)
+
+
+def transferred_axial_load_envelope(raw_envelopes: list[dict]) -> LoadEnvelope:
+    """Rehydrate combination-consistent axial effects without refactoring."""
+
+    combinations: list[LoadCombinationResult] = []
+    for index, raw in enumerate(raw_envelopes, start=1):
+        components = raw.get("components") or {}
+        axial = components.get("N")
+        if axial is None or abs(float(axial.get("value", 0.0))) < 1e-12:
+            axial = components.get("Vy")
+        if not isinstance(axial, dict) or axial.get("unit") not in {"kN", "kN/m"}:
+            raise CalculationInputError(
+                "missing_axial_reaction_component",
+                "上游反力包必须包含 N 或 Vy。",
+                field="upstream_reaction_envelopes",
+            )
+        name = str(raw.get("combination_name") or f"upstream-{index}")
+        limit_state = str(raw.get("limit_state") or "")
+        if limit_state not in {"ULS", "SLS"}:
+            raise CalculationInputError(
+                "invalid_upstream_limit_state",
+                "上游组合必须明确 ULS 或 SLS。",
+                field="upstream_reaction_envelopes",
+            )
+        value = float(axial["value"])
+        direction = LoadDirection(raw.get("direction") or ("uplift" if value < 0 else "gravity"))
+        sls_type = "standard" if "标准组合" in name else "frequent" if "频遇组合" in name else "quasi_permanent" if "准永久组合" in name else None
+        leading = "live" if "活荷载控制" in name else "wind" if "风荷载控制" in name else "snow" if "雪荷载控制" in name else "uplift" if "上拔控制" in name else None
+        source_moment = components.get("My") or components.get("Mx") or {}
+        components_out = {
+            "N": Quantity(value=value, unit="kN"),
+            "Vx": Quantity(value=float((components.get("Vx") or {}).get("value", 0.0)), unit="kN"),
+            "Vy": Quantity(value=float((components.get("Vy") or {}).get("value", 0.0)), unit="kN"),
+            "Mx": Quantity(value=float((components.get("Mx") or {}).get("value", 0.0)), unit="kN·m"),
+            "My": Quantity(value=float(source_moment.get("value", 0.0)), unit="kN·m"),
+            "T": Quantity(value=float((components.get("T") or {}).get("value", 0.0)), unit="kN·m"),
+        }
+        combinations.append(
+            LoadCombinationResult(
+                name=name,
+                limit_state=limit_state,  # type: ignore[arg-type]
+                combination_id=raw.get("combination_id") or f"upstream-{index}",
+                sls_type=sls_type,  # type: ignore[arg-type]
+                leading_action=leading,
+                factors={},
+                factored_by_kind={"upstream_reaction": Quantity(value=value, unit="kN")},
+                directions_by_kind={"upstream_reaction": [direction]},
+                total=Quantity(value=value, unit="kN"),
+                effect_components=components_out,  # type: ignore[arg-type]
+            )
+        )
+    if not combinations:
+        raise CalculationInputError("empty_upstream_reaction_envelopes", "上游反力包不能为空。", field="upstream_reaction_envelopes")
+    return LoadEnvelope(totals={"upstream_reaction": sum(item.total.value for item in combinations)}, combinations=combinations)

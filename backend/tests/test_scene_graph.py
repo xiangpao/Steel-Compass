@@ -47,6 +47,9 @@ def test_scene_catalog_has_five_public_families_and_valid_variant_dags() -> None
         "signage-billboard",
         "landscape-wall-fence",
         "entrance-frame",
+        "boardwalk-platform",
+        "bench-planter",
+        "retaining-facility",
     }
     for family in SCENE_FAMILIES:
         for variant in family.variants:
@@ -444,9 +447,10 @@ def test_boardwalk_and_pool_publish_dependencies_but_remain_blocked() -> None:
     straight = get_scene_variant(boardwalk, "straight")
     buried = get_scene_variant(pool, "rect-buried")
     assert straight is not None and buried is not None
-    assert straight.availability == buried.availability == "development"
+    assert straight.availability == "public"
+    assert buried.availability == "development"
     assert straight.material_systems == ["木面板+钢构"]
-    assert "钢次梁与主梁多级反力包" in straight.missing_capabilities
+    assert "柱脚混凝土锚固破坏" in straight.missing_capabilities
     assert "地下水浮力与抗浮组合" in buried.missing_capabilities
 
 

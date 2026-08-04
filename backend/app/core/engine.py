@@ -3,6 +3,13 @@ from __future__ import annotations
 from uuid import uuid4
 
 from .baseplate import calculate_steel_baseplate_anchor
+from .advanced import (
+    calculate_masonry_wall,
+    calculate_rc_wall,
+    calculate_retaining_wall,
+    calculate_steel_cantilever_post,
+    calculate_timber_deck_panel,
+)
 from .concrete import calculate_concrete_column, calculate_concrete_member
 from .errors import CalculationInputError
 from .frame import calculate_portal_frame
@@ -107,6 +114,7 @@ def _validate_load_directions(request: CalculationRequest) -> None:
         CalculationModule.TIMBER_BEAM,
         CalculationModule.TIMBER_COLUMN,
         CalculationModule.STEEL_BASEPLATE_ANCHOR,
+        CalculationModule.TIMBER_DECK_PANEL,
     }
     if request.module not in one_dimensional_modules:
         return
@@ -143,6 +151,11 @@ def calculate(request: CalculationRequest) -> CalculationResult:
         CalculationModule.TIMBER_BEAM: calculate_timber_beam,
         CalculationModule.TIMBER_COLUMN: calculate_timber_column,
         CalculationModule.STEEL_BASEPLATE_ANCHOR: calculate_steel_baseplate_anchor,
+        CalculationModule.TIMBER_DECK_PANEL: calculate_timber_deck_panel,
+        CalculationModule.STEEL_CANTILEVER_POST: calculate_steel_cantilever_post,
+        CalculationModule.MASONRY_WALL: calculate_masonry_wall,
+        CalculationModule.RC_WALL: calculate_rc_wall,
+        CalculationModule.RETAINING_WALL: calculate_retaining_wall,
     }
     result = handlers[request.module](request, trace_id)
     result.load_provenance = [item.model_copy(deep=True) for item in request.loads]

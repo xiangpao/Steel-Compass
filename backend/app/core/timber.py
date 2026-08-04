@@ -10,7 +10,7 @@ from .common import (
     quantity_summary,
     result_status,
 )
-from .loads import axial_load_envelope, line_load_envelope
+from .loads import axial_load_envelope, line_load_envelope, transferred_line_load_envelope
 from .schemas import (
     CalculationRequest,
     CalculationResult,
@@ -54,11 +54,21 @@ def calculate_timber_beam(
     inertia = b * h**3 / 12
     section_modulus = b * h**2 / 6
     self_weight = area * 1e-6 * material["density"]
-    envelope = line_load_envelope(
-        request.loads,
-        tributary_width_m=tributary_width,
-        automatic_self_weight_kn_m=self_weight,
-    )
+    upstream_lines = request.inputs.get("upstream_reaction_envelopes")
+    if isinstance(upstream_lines, list) and upstream_lines:
+        if request.loads:
+            from .errors import CalculationInputError
+
+            raise CalculationInputError("duplicate_member_load_source", "接收上游组合线荷载后不得再次提交普通荷载。", field="loads")
+        envelope = transferred_line_load_envelope(
+            upstream_lines, automatic_self_weight_kn_m=self_weight
+        )
+    else:
+        envelope = line_load_envelope(
+            request.loads,
+            tributary_width_m=tributary_width,
+            automatic_self_weight_kn_m=self_weight,
+        )
     q_uls_signed = envelope.governing_uls.total.value
     q_sls_signed = envelope.governing_sls.total.value
     q_uls = abs(q_uls_signed)

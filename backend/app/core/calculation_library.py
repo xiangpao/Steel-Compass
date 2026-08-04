@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 
-CALCULATION_LIBRARY_VERSION = "CN-CALC-LIB-2026.1"
+CALCULATION_LIBRARY_VERSION = "CN-CALC-LIB-2026.2"
 
 
 CALCULATION_LIBRARY: list[dict[str, Any]] = [
@@ -145,8 +145,8 @@ CALCULATION_LIBRARY: list[dict[str, Any]] = [
         "task": "superstructure",
         "task_title": "上部构件",
         "material": "concrete",
-        "module": None,
-        "maturity": "planned",
+        "module": "masonry_wall",
+        "maturity": "beta",
         "description": "景墙和围墙的平面外作用验算。",
         "presets": [],
     },
@@ -160,6 +160,39 @@ CALCULATION_LIBRARY: list[dict[str, Any]] = [
         "maturity": "beta",
         "description": "简支/悬挑木梁受弯、受剪与挠度。",
         "presets": ["木廊架梁", "木栈道搁栅"],
+    },
+    {
+        "id": "timber-deck-panel",
+        "title": "木铺板条带",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "timber",
+        "module": "timber_deck_panel",
+        "maturity": "beta",
+        "description": "直线栈道木面板单向分配和支座反力。",
+        "presets": ["直线栈道面板"],
+    },
+    {
+        "id": "steel-cantilever-post",
+        "title": "钢悬臂立柱",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "steel",
+        "module": "steel_cantilever_post",
+        "maturity": "beta",
+        "description": "单柱导视/广告面板风荷载至柱底六分量反力。",
+        "presets": ["单柱导视牌"],
+    },
+    {
+        "id": "rc-wall",
+        "title": "现浇混凝土墙",
+        "task": "superstructure",
+        "task_title": "上部构件",
+        "material": "concrete",
+        "module": "rc_wall",
+        "maturity": "beta",
+        "description": "小型景墙墙身一米条带受弯受剪筛查。",
+        "presets": ["现浇景墙"],
     },
     {
         "id": "timber-column",
@@ -233,8 +266,8 @@ CALCULATION_LIBRARY: list[dict[str, Any]] = [
         "task": "retaining_pool",
         "task_title": "挡土与池体",
         "material": "concrete",
-        "module": None,
-        "maturity": "planned",
+        "module": "retaining_wall",
+        "maturity": "beta",
         "description": "悬臂式和重力式挡土墙稳定与构件验算。",
         "presets": [],
     },

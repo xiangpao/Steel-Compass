@@ -145,6 +145,18 @@ function loadRange(item: SceneLoadCase) {
   return `${item.recommended_default ?? item.adopted_value} ${item.unit}`;
 }
 
+function foundationTypeForGraph(graph: SceneGraphTemplate | undefined): string {
+  const modules = new Set(
+    (graph?.nodes ?? [])
+      .map((node) => node.calculation_module)
+      .filter((module): module is string => Boolean(module)),
+  );
+  if (modules.has("strip_footing") && !modules.has("spread_footing")) {
+    return "条形基础";
+  }
+  return "独立基础";
+}
+
 export function SceneWorkspace({
   family,
   projects,
@@ -203,9 +215,17 @@ export function SceneWorkspace({
       ),
     [graph],
   );
-  const hasFoundation = visibleNodes.some(
-    (node) => node.role === "foundation" || node.role === "geotechnical",
+  const foundationModules = useMemo(
+    () =>
+      new Set(
+        visibleNodes
+          .filter((node) => node.role === "foundation")
+          .map((node) => node.calculation_module)
+          .filter((module): module is string => Boolean(module)),
+      ),
+    [visibleNodes],
   );
+  const hasFoundation = foundationModules.size > 0;
   const stale = Boolean(revision && inputVersion !== calculatedVersion);
   const allLoadsConfirmed =
     loadCases.length > 0 && loadCases.every((item) => item.confirmed);
@@ -259,7 +279,20 @@ export function SceneWorkspace({
         setLoadCases(
           savedLoads ?? copiedLoadCases(family, nextVariant, nextGraph),
         );
-        setFoundationType(draft.foundationType ?? "独立基础");
+        const defaultFoundationType = foundationTypeForGraph(nextGraph);
+        const storedFoundationType = draft.foundationType;
+        const supportsSpread = nextGraph.nodes.some(
+          (node) => node.calculation_module === "spread_footing",
+        );
+        const supportsStrip = nextGraph.nodes.some(
+          (node) => node.calculation_module === "strip_footing",
+        );
+        const storedTypeIsSupported =
+          (storedFoundationType === "独立基础" && supportsSpread) ||
+          (storedFoundationType === "条形基础" && supportsStrip);
+        setFoundationType(
+          storedTypeIsSupported ? storedFoundationType! : defaultFoundationType,
+        );
         setBearingCapacity(draft.bearingCapacity ?? "");
         setGroundwaterKnown(draft.groundwaterKnown ?? false);
         setSceneTitle(draft.sceneTitle ?? family.title);
@@ -369,8 +402,19 @@ export function SceneWorkspace({
       restoredLoads ??
         copiedLoadCases(family, selectedVariant, graphFor(family, selectedVariant)),
     );
+    const selectedGraph = graphFor(family, selectedVariant);
+    const storedFoundationType = state.foundation_type as string | undefined;
+    const storedTypeIsSupported = selectedGraph.nodes.some(
+      (node) =>
+        (storedFoundationType === "独立基础" &&
+          node.calculation_module === "spread_footing") ||
+        (storedFoundationType === "条形基础" &&
+          node.calculation_module === "strip_footing"),
+    );
     setFoundationType(
-      (state.foundation_type as string | undefined) ?? "独立基础",
+      storedTypeIsSupported
+        ? storedFoundationType!
+        : foundationTypeForGraph(selectedGraph),
     );
     setBearingCapacity(
       (state.allowable_bearing_kpa as number | "" | undefined) ?? "",
@@ -434,7 +478,7 @@ export function SceneWorkspace({
     setMaterial(next.material_systems[0] ?? "");
     setParameters(initialValues(family, nextVariantId));
     setLoadCases(copiedLoadCases(family, next, nextGraph));
-    setFoundationType("独立基础");
+    setFoundationType(foundationTypeForGraph(nextGraph));
     setBearingCapacity("");
     setGroundwaterKnown(false);
     setInputVersion((current) => current + 1);
@@ -587,7 +631,17 @@ export function SceneWorkspace({
     )?.calculation_module as Module | undefined;
     const acceptedUnits = new Set<string>(
       calculationModule &&
-      ["steel_beam", "portal_frame", "concrete_beam", "concrete_slab", "timber_beam"].includes(calculationModule)
+      [
+        "steel_beam",
+        "portal_frame",
+        "concrete_beam",
+        "concrete_slab",
+        "timber_beam",
+        "timber_deck_panel",
+        "masonry_wall",
+        "rc_wall",
+        "steel_cantilever_post",
+      ].includes(calculationModule)
         ? ["kN/m", "kN/m2"]
         : ["kN"],
     );
@@ -603,7 +657,9 @@ export function SceneWorkspace({
         connection.target_node_id === nodeId &&
         (connection.transfer === "reaction" ||
           connection.transfer === "reaction_envelope" ||
-          connection.transfer === "combination_package"),
+          connection.transfer === "combination_package" ||
+          connection.transfer === "reaction_package" ||
+          connection.transfer === "reaction_to_line"),
     );
     if (!targeted.length && incomingReaction) {
       return [];
@@ -632,7 +688,9 @@ export function SceneWorkspace({
         }
       }
       return {
-        kind: item.kind,
+        // Structural calculation requests use the narrower LoadItem enum;
+        // scene-only provenance kinds (soil/water/custom) target manual nodes.
+        kind: item.kind as LoadItem["kind"],
         value,
         unit,
         source: item.project_source || item.label,
@@ -701,15 +759,30 @@ export function SceneWorkspace({
       nextInputs.horizontal_load_kn_m = windPressure * wallHeight;
       nextInputs.moment_kn_m_per_m = windPressure * wallHeight ** 2 / 2;
     }
+    const inputUnits = Object.fromEntries(
+      definition.fields.map((field) => [field.key, field.unit ?? "1"]),
+    );
+    const typedValues: Record<string, unknown> = {};
+    Object.entries(nextInputs).forEach(([key, value]) => {
+      if (typeof value === "number" && Number.isFinite(value)) {
+        typedValues[key] = { value, unit: inputUnits[key] ?? "1" };
+      } else if (typeof value === "string" || typeof value === "boolean") {
+        typedValues[key] = value;
+      }
+    });
     return {
       node_id: nodeId,
       calculation: {
-        schema_version: "3.0",
+        schema_version: "3.1",
         mode,
         module: calculationModule,
         project_name: `${sceneTitle} · ${nodeId}`,
         standard_profile: "CN-2024",
         confirmed_assumptions: true,
+        typed_inputs: {
+          module: calculationModule,
+          values: typedValues,
+        },
         inputs: normalizeInputs(calculationModule, nextInputs),
         loads: calculationLoads(nodeId),
       },
@@ -1105,8 +1178,12 @@ export function SceneWorkspace({
                               );
                             }}
                           >
-                            <option>独立基础</option>
-                            <option>条形基础</option>
+                            {foundationModules.has("spread_footing") && (
+                              <option>独立基础</option>
+                            )}
+                            {foundationModules.has("strip_footing") && (
+                              <option>条形基础</option>
+                            )}
                           </select>
                         </label>
                         <label>
@@ -1348,6 +1425,10 @@ export function SceneWorkspace({
                                 <option value="live">活荷载</option>
                                 <option value="wind">风荷载</option>
                                 <option value="snow">雪荷载</option>
+                                <option value="soil">土压力</option>
+                                <option value="water">水压力</option>
+                                <option value="buoyancy">浮力</option>
+                                <option value="custom">项目资料 / 其他</option>
                               </select>
                             </label>
                             <label>

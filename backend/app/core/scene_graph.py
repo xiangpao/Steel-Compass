@@ -158,9 +158,9 @@ def _apply_reaction(
     horizontal = _reaction_value(source, connection.support, "horizontal") or 0.0
     moment = _reaction_value(source, connection.support, "moment") or 0.0
     if connection.support == "left":
-        envelope_names = {"left_support", "left_base"}
+        envelope_names = {"left_support", "left_base", "left_wall_support"}
     elif connection.support == "right":
-        envelope_names = {"right_support", "right_base"}
+        envelope_names = {"right_support", "right_base", "right_wall_support"}
     else:
         envelope_names = {"base", "fixed_support", "footing_base"}
     upstream_envelopes = [
@@ -203,7 +203,9 @@ def _apply_reaction(
             )
         for envelope in converted_envelopes:
             components = envelope.get("components", {})
-            vertical_component = components.get("Vy") or components.get("N")
+            vertical_component = components.get("Vy")
+            if vertical_component is None or abs(float(vertical_component.get("value", 0.0))) < 1e-12:
+                vertical_component = components.get("N")
             if vertical_component is None:
                 raise CalculationInputError(
                     "missing_vertical_reaction_component",
@@ -369,8 +371,10 @@ def _apply_scene_loads(
     for node_id, scene_loads in by_target.items():
         calculation = calculations.get(node_id)
         if calculation is None:
-            if any(item.confirmed and item.adopted_value is not None for item in scene_loads):
-                missing_mappings.extend(item.id for item in scene_loads if item.confirmed)
+            # Load records targeting a confirmed manual/environment node are
+            # provenance entries, not member actions.  They are carried into
+            # the immutable revision and consumed by that node's parameter
+            # contract rather than forced into CalculationRequest.loads.
             continue
         mapped: list[LoadItem] = []
         existing_by_preset = {

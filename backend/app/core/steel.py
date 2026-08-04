@@ -12,7 +12,12 @@ from .common import (
     result_status,
 )
 from .errors import CalculationInputError
-from .loads import axial_load_envelope, line_load_envelope
+from .loads import (
+    axial_load_envelope,
+    line_load_envelope,
+    transferred_axial_load_envelope,
+    transferred_line_load_envelope,
+)
 from .schemas import (
     CalculationRequest,
     CalculationResult,
@@ -207,11 +212,20 @@ def calculate_steel_beam(
             field="lateral_restrained",
         )
 
-    envelope = line_load_envelope(
-        request.loads,
-        tributary_width_m=tributary_width,
-        automatic_self_weight_kn_m=section.self_weight_kn_m if include_self_weight else 0,
-    )
+    upstream_lines = request.inputs.get("upstream_reaction_envelopes")
+    if isinstance(upstream_lines, list) and upstream_lines:
+        if request.loads:
+            raise CalculationInputError("duplicate_member_load_source", "接收上游组合线荷载后不得再次提交普通荷载。", field="loads")
+        envelope = transferred_line_load_envelope(
+            upstream_lines,
+            automatic_self_weight_kn_m=section.self_weight_kn_m if include_self_weight else 0,
+        )
+    else:
+        envelope = line_load_envelope(
+            request.loads,
+            tributary_width_m=tributary_width,
+            automatic_self_weight_kn_m=section.self_weight_kn_m if include_self_weight else 0,
+        )
     q_uls_signed = envelope.governing_uls.total.value
     q_sls_signed = envelope.governing_sls.total.value
     q_uls = abs(q_uls_signed)
@@ -377,10 +391,25 @@ def calculate_steel_column(
     effective_length_factor = mode_number(
         request, "effective_length_factor", quick_default=1.0, minimum=0.2, maximum=3
     )
-    moment_kn_m = mode_number(
-        request, "design_moment_kn_m", quick_default=0.0, minimum=0
+    raw_upstream = request.inputs.get("upstream_reaction_envelopes")
+    if isinstance(raw_upstream, list) and raw_upstream:
+        if request.loads:
+            raise CalculationInputError("duplicate_member_load_source", "接收上游组合反力后不得再次提交普通轴力荷载。", field="loads")
+        envelope = transferred_axial_load_envelope(raw_upstream)
+        upstream_moment = max(
+            [
+                abs(float(((item.get("components") or {}).get("My") or (item.get("components") or {}).get("Mx") or {}).get("value", 0.0)))
+                for item in raw_upstream
+            ],
+            default=0.0,
+        )
+    else:
+        envelope = axial_load_envelope(request.loads)
+        upstream_moment = 0.0
+    moment_kn_m = max(
+        mode_number(request, "design_moment_kn_m", quick_default=0.0, minimum=0),
+        upstream_moment,
     )
-    envelope = axial_load_envelope(request.loads)
     axial_kn = abs(envelope.governing_uls.total.value)
     slenderness = height_m * 1000 * effective_length_factor / min(section.rx_mm, section.ry_mm)
     phi = _column_phi(slenderness, grade["fy"])

@@ -77,7 +77,9 @@ def _reaction_component(
 
 
 def _reaction_vertical(envelope: ReactionEnvelope) -> float:
-    value = _reaction_component(envelope, "N", "Vy")
+    value = _reaction_component(envelope, "N")
+    if abs(value) < 1e-12:
+        value = _reaction_component(envelope, "Vy")
     if envelope.direction is LoadDirection.UPLIFT:
         return -abs(value)
     return abs(value)

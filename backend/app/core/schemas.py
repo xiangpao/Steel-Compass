@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from enum import Enum
+from math import isfinite
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from . import ENGINE_VERSION, SCHEMA_VERSION
 
@@ -25,6 +26,11 @@ class CalculationModule(str, Enum):
     TIMBER_BEAM = "timber_beam"
     TIMBER_COLUMN = "timber_column"
     STEEL_BASEPLATE_ANCHOR = "steel_baseplate_anchor"
+    TIMBER_DECK_PANEL = "timber_deck_panel"
+    STEEL_CANTILEVER_POST = "steel_cantilever_post"
+    MASONRY_WALL = "masonry_wall"
+    RC_WALL = "rc_wall"
+    RETAINING_WALL = "retaining_wall"
 
 
 class LoadKind(str, Enum):
@@ -49,6 +55,73 @@ class Quantity(BaseModel):
     unit: str
 
 
+class TypedInputValue(BaseModel):
+    """Schema 3.1 numeric input at the API boundary.
+
+    Legacy calculations still consume ``inputs`` internally.  The adapter
+    below converts these values while preserving their declared units for
+    validation and reporting.
+    """
+
+    value: float
+    unit: str = Field(min_length=1, max_length=24)
+
+    @field_validator("value")
+    @classmethod
+    def require_finite_value(cls, value: float) -> float:
+        if not isfinite(value):
+            raise ValueError("typed input value 必须是有限数值")
+        return value
+
+    @field_validator("unit")
+    @classmethod
+    def normalize_unit(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("typed input unit 不能为空")
+        return normalized
+
+
+class TypedModuleInputs(BaseModel):
+    module: CalculationModule
+    values: dict[str, TypedInputValue | str | bool] = Field(default_factory=dict)
+
+
+def _canonical_unit(unit: str) -> str:
+    return (
+        unit.strip()
+        .replace("²", "2")
+        .replace("³", "3")
+        .replace("·", ".")
+        .replace("，", ".")
+        .lower()
+    )
+
+
+def _expected_unit_for_input(key: str) -> set[str] | None:
+    """Infer only unambiguous units from public 3.1 input key suffixes."""
+
+    suffix_units = (
+        ("_kn_m_per_m", {"kn.m/m", "kn/m*m"}),
+        ("_kn_m2", {"kn/m2"}),
+        ("_kn_m3", {"kn/m3"}),
+        ("_mm4", {"mm4"}),
+        ("_m2", {"m2"}),
+        ("_m3", {"m3"}),
+        ("_kpa", {"kpa"}),
+        ("_mpa", {"mpa"}),
+        ("_kn_m", {"kn.m"}),
+        ("_kn", {"kn"}),
+        ("_mm", {"mm"}),
+        ("_m", {"m"}),
+        ("_deg", {"deg", "°"}),
+    )
+    for suffix, units in suffix_units:
+        if key.lower().endswith(suffix):
+            return units
+    return None
+
+
 class LoadItem(BaseModel):
     kind: LoadKind
     value: float = Field(ge=0)
@@ -70,11 +143,27 @@ class CalculationRequest(BaseModel):
     project_name: str = Field(default="未命名项目", min_length=1, max_length=120)
     standard_profile: Literal["CN-2024"] = "CN-2024"
     confirmed_assumptions: bool = False
+    typed_inputs: TypedModuleInputs | None = None
+    # Compatibility read path for schema 3.0 and earlier snapshots. New
+    # clients should send typed_inputs; the engine normalizes both forms.
     inputs: dict[str, Any] = Field(default_factory=dict)
     loads: list[LoadItem] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_mode_contract(self) -> "CalculationRequest":
+        if self.typed_inputs is not None:
+            if self.typed_inputs.module is not self.module:
+                raise ValueError("typed_inputs.module 必须与 module 一致")
+            normalized: dict[str, Any] = {}
+            for key, value in self.typed_inputs.values.items():
+                if isinstance(value, TypedInputValue):
+                    expected_units = _expected_unit_for_input(key)
+                    if expected_units and _canonical_unit(value.unit) not in expected_units:
+                        raise ValueError(
+                            f"typed input {key} expects unit {sorted(expected_units)}, got {value.unit}"
+                        )
+                normalized[key] = value.value if isinstance(value, TypedInputValue) else value
+            self.inputs = {**self.inputs, **normalized}
         if self.mode is CalculationMode.QUICK and not self.confirmed_assumptions:
             raise ValueError("快算模式必须确认场景假定")
         if self.mode is CalculationMode.PROFESSIONAL:

@@ -11,7 +11,12 @@ from .common import (
     result_status,
 )
 from .catalogs import MATERIAL_CATALOG_VERSION, REBAR_MATERIALS
-from .loads import axial_load_envelope, line_load_envelope
+from .loads import (
+    axial_load_envelope,
+    line_load_envelope,
+    transferred_axial_load_envelope,
+    transferred_line_load_envelope,
+)
 from .schemas import (
     CalculationRequest,
     CalculationResult,
@@ -100,11 +105,26 @@ def calculate_concrete_member(
     )
     density = 25.0
     self_weight = density * b / 1000 * h / 1000
-    envelope = line_load_envelope(
-        request.loads,
-        tributary_width_m=tributary_width,
-        automatic_self_weight_kn_m=self_weight,
-    )
+    upstream_lines = request.inputs.get("upstream_reaction_envelopes")
+    if isinstance(upstream_lines, list) and upstream_lines:
+        if request.loads:
+            from .errors import CalculationInputError
+
+            raise CalculationInputError(
+                "duplicate_member_load_source",
+                "接收上游组合线荷载后不得再次提交普通荷载。",
+                field="loads",
+            )
+        envelope = transferred_line_load_envelope(
+            upstream_lines,
+            automatic_self_weight_kn_m=self_weight,
+        )
+    else:
+        envelope = line_load_envelope(
+            request.loads,
+            tributary_width_m=tributary_width,
+            automatic_self_weight_kn_m=self_weight,
+        )
     q_uls_signed = envelope.governing_uls.total.value
     q_sls_signed = envelope.governing_sls.total.value
     q_uls = abs(q_uls_signed)
@@ -344,7 +364,19 @@ def calculate_concrete_column(
     length_m = mode_number(request, "height_m", quick_default=3.0, minimum=0.3)
     k = mode_number(request, "effective_length_factor", quick_default=1.0, minimum=0.2, maximum=3)
     moment_kn_m = mode_number(request, "design_moment_kn_m", quick_default=0.0, minimum=0)
-    envelope = axial_load_envelope(request.loads)
+    upstream_axial = request.inputs.get("upstream_reaction_envelopes")
+    if isinstance(upstream_axial, list) and upstream_axial:
+        if request.loads:
+            from .errors import CalculationInputError
+
+            raise CalculationInputError(
+                "duplicate_member_load_source",
+                "接收上游组合反力后不得再次提交普通荷载。",
+                field="loads",
+            )
+        envelope = transferred_axial_load_envelope(upstream_axial)
+    else:
+        envelope = axial_load_envelope(request.loads)
     axial_kn = abs(envelope.governing_uls.total.value)
     slenderness = length_m * 1000 * k / radius
     phi = max(0.65, min(1.0, 1.0 - max(slenderness - 20, 0) / 300))

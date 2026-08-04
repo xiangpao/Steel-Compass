@@ -111,6 +111,9 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
             "signage-billboard",
             "landscape-wall-fence",
             "entrance-frame",
+            "boardwalk-platform",
+            "bench-planter",
+            "retaining-facility",
         }
         canopy_family = next(
             item for item in families.json() if item["id"] == "canopy"
@@ -199,7 +202,7 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
         assert scene_result["completed_nodes"] == 1
         assert scene_result["total_required_nodes"] == 7
         assert "左柱脚 / 底板锚栓" in scene_result["missing_nodes"]
-        assert scene_revision.json()["snapshot_schema_version"] == "3.0"
+        assert scene_revision.json()["snapshot_schema_version"] == "3.1"
         stale_after_result = client.patch(
             (
                 f"/api/v2/projects/{project_id}/scene-instances/"

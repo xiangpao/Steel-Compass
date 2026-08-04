@@ -11,7 +11,12 @@ export type Module =
   | "spread_footing"
   | "strip_footing"
   | "timber_beam"
-  | "timber_column";
+  | "timber_column"
+  | "timber_deck_panel"
+  | "steel_cantilever_post"
+  | "masonry_wall"
+  | "rc_wall"
+  | "retaining_wall";
 
 export interface LoadItem {
   kind: "self_weight" | "dead" | "live" | "wind" | "snow";
@@ -97,7 +102,13 @@ export interface SceneGraphTemplate {
 export interface SceneLoadCase {
   id: string;
   label: string;
-  kind: LoadItem["kind"];
+  kind:
+    | LoadItem["kind"]
+    | "soil"
+    | "water"
+    | "buoyancy"
+    | "temperature"
+    | "custom";
   value_type: "fixed" | "reference_range" | "calculated" | "project_defined";
   recommended_min?: number;
   recommended_default?: number;

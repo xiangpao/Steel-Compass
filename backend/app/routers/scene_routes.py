@@ -383,7 +383,7 @@ def create_scene_revision(
     revision = ProjectRevision(
         project_id=project.id,
         revision_number=next_revision,
-        snapshot_schema_version="3.0",
+        snapshot_schema_version="3.1",
         snapshot={
             "scene_context": {
                 "scene_instance_id": instance.id,
