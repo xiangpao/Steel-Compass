@@ -24,6 +24,7 @@ class CalculationModule(str, Enum):
     STRIP_FOOTING = "strip_footing"
     TIMBER_BEAM = "timber_beam"
     TIMBER_COLUMN = "timber_column"
+    STEEL_BASEPLATE_ANCHOR = "steel_baseplate_anchor"
 
 
 class LoadKind(str, Enum):
@@ -77,7 +78,11 @@ class CalculationRequest(BaseModel):
         if self.mode is CalculationMode.QUICK and not self.confirmed_assumptions:
             raise ValueError("快算模式必须确认场景假定")
         if self.mode is CalculationMode.PROFESSIONAL:
-            if not self.loads:
+            has_upstream_effects = bool(
+                isinstance(self.inputs.get("upstream_reaction_envelopes"), list)
+                and self.inputs.get("upstream_reaction_envelopes")
+            )
+            if not self.loads and not has_upstream_effects:
                 raise ValueError("专业模式必须明确提供荷载及来源")
             if any(item.source.strip().lower() in {"", "default", "默认"} for item in self.loads):
                 raise ValueError("专业模式荷载必须填写可复核来源")
@@ -107,15 +112,22 @@ class CheckResult(BaseModel):
     passed: bool
     reference: str
     note: str | None = None
+    governing_combination: str | None = None
 
 
 class LoadCombinationResult(BaseModel):
     name: str
     limit_state: Literal["ULS", "SLS"]
+    combination_id: str | None = None
+    sls_type: Literal["standard", "frequent", "quasi_permanent"] | None = None
+    leading_action: str | None = None
     factors: dict[str, float]
     factored_by_kind: dict[str, Quantity]
     directions_by_kind: dict[str, list[LoadDirection]] = Field(default_factory=dict)
     total: Quantity
+    effect_components: dict[
+        Literal["N", "Vx", "Vy", "Mx", "My", "T"], Quantity
+    ] = Field(default_factory=dict)
 
 
 class DiagramPoint(BaseModel):
@@ -142,6 +154,11 @@ class CalculationResult(BaseModel):
     module: CalculationModule
     mode: CalculationMode
     status: Literal["passed", "failed", "incomplete", "not_applicable"]
+    workflow_status: Literal[
+        "ready", "stale", "missing_inputs", "capability_unavailable"
+    ] | None = None
+    engineering_status: Literal["passed", "failed", "incomplete"] | None = None
+    quick_outcome: Literal["screening_passed", "screening_failed"] | None = None
     result_class: Literal["quick_estimate", "professional_check"] | None = None
     verification_status: Literal[
         "unverified", "independently_verified"
@@ -154,6 +171,7 @@ class CalculationResult(BaseModel):
     diagrams: list[DiagramSeries] = Field(default_factory=list)
     steps: list[CalculationStep] = Field(default_factory=list)
     checks: list[CheckResult] = Field(default_factory=list)
+    provisional_checks: list[CheckResult] = Field(default_factory=list)
     governing_check: str | None = None
     warnings: list[CalculationWarning] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
@@ -166,9 +184,40 @@ class CalculationResult(BaseModel):
 class ReactionEnvelope(BaseModel):
     name: str
     limit_state: Literal["ULS", "SLS"]
+    combination_id: str | None = None
     combination_name: str | None = None
+    sls_type: Literal["standard", "frequent", "quasi_permanent"] | None = None
+    leading_action: str | None = None
     direction: LoadDirection | None = None
     components: dict[Literal["N", "Vx", "Vy", "Mx", "My", "T"], Quantity]
+
+    @model_validator(mode="after")
+    def complete_six_component_contract(self) -> "ReactionEnvelope":
+        """Normalize legacy 2.x partial envelopes to the six-component contract."""
+
+        force_unit = next(
+            (
+                value.unit
+                for key, value in self.components.items()
+                if key in {"N", "Vx", "Vy"}
+            ),
+            "kN",
+        )
+        moment_unit = next(
+            (
+                value.unit
+                for key, value in self.components.items()
+                if key in {"Mx", "My", "T"}
+            ),
+            "kN·m",
+        )
+        completed = dict(self.components)
+        for key in ("N", "Vx", "Vy"):
+            completed.setdefault(key, Quantity(value=0, unit=force_unit))
+        for key in ("Mx", "My", "T"):
+            completed.setdefault(key, Quantity(value=0, unit=moment_unit))
+        self.components = completed  # type: ignore[assignment]
+        return self
 
 
 class ScenarioTemplate(BaseModel):

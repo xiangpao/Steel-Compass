@@ -35,11 +35,63 @@ FACTOR_SETS: tuple[tuple[str, str, dict[str, float]], ...] = (
         {"self_weight": 0.9, "dead": 0.9, "live": 0.0, "wind": 1.5, "snow": 0.0},
     ),
     (
-        "SLS-标准组合",
+        "SLS-标准组合-活荷载控制",
         "SLS",
-        {"self_weight": 1.0, "dead": 1.0, "live": 1.0, "wind": 1.0, "snow": 1.0},
+        {"self_weight": 1.0, "dead": 1.0, "live": 1.0, "wind": 0.6, "snow": 0.7},
+    ),
+    (
+        "SLS-标准组合-风荷载控制",
+        "SLS",
+        {"self_weight": 1.0, "dead": 1.0, "live": 0.7, "wind": 1.0, "snow": 0.7},
+    ),
+    (
+        "SLS-标准组合-雪荷载控制",
+        "SLS",
+        {"self_weight": 1.0, "dead": 1.0, "live": 0.7, "wind": 0.6, "snow": 1.0},
+    ),
+    (
+        "SLS-频遇组合-活荷载控制",
+        "SLS",
+        {"self_weight": 1.0, "dead": 1.0, "live": 0.7, "wind": 0.0, "snow": 0.2},
+    ),
+    (
+        "SLS-频遇组合-风荷载控制",
+        "SLS",
+        {"self_weight": 1.0, "dead": 1.0, "live": 0.4, "wind": 0.6, "snow": 0.2},
+    ),
+    (
+        "SLS-频遇组合-雪荷载控制",
+        "SLS",
+        {"self_weight": 1.0, "dead": 1.0, "live": 0.4, "wind": 0.0, "snow": 0.6},
+    ),
+    (
+        "SLS-准永久组合",
+        "SLS",
+        {"self_weight": 1.0, "dead": 1.0, "live": 0.4, "wind": 0.0, "snow": 0.2},
     ),
 )
+
+
+def _combination_metadata(name: str) -> tuple[str | None, str | None]:
+    sls_type: str | None = None
+    if "标准组合" in name:
+        sls_type = "standard"
+    elif "频遇组合" in name:
+        sls_type = "frequent"
+    elif "准永久组合" in name:
+        sls_type = "quasi_permanent"
+
+    leading_action = None
+    for label, kind in (
+        ("活荷载控制", "live"),
+        ("风荷载控制", "wind"),
+        ("雪荷载控制", "snow"),
+        ("上拔控制", "uplift"),
+    ):
+        if label in name:
+            leading_action = kind
+            break
+    return sls_type, leading_action
 
 
 @dataclass(frozen=True)
@@ -119,7 +171,7 @@ def _build_combinations(
         branch_count *= len(choice)
 
     combinations: list[LoadCombinationResult] = []
-    for selected in product(*choices):
+    for branch_index, selected in enumerate(product(*choices), start=1):
         selected_by_kind = dict(zip(kinds, selected, strict=True))
         suffix_parts = [
             f"{kind}:{direction.value}"
@@ -143,10 +195,14 @@ def _build_combinations(
             combination_name = name
             if branch_count > 1 and suffix_parts:
                 combination_name += "（" + ",".join(suffix_parts) + "）"
+            sls_type, leading_action = _combination_metadata(name)
             combinations.append(
                 LoadCombinationResult(
                     name=combination_name,
                     limit_state=limit_state,  # type: ignore[arg-type]
+                    combination_id=f"{limit_state.lower()}-{branch_index}-{len(combinations) + 1}",
+                    sls_type=sls_type,  # type: ignore[arg-type]
+                    leading_action=leading_action,
                     factors=factors,
                     factored_by_kind=by_kind,
                     directions_by_kind=directions,

@@ -224,10 +224,52 @@ def test_professional_result_is_gated_until_independently_verified() -> None:
     assert result.status == "incomplete"
     assert result.result_class == "professional_check"
     assert result.verification_status == "unverified"
+    assert result.engineering_status == "incomplete"
+    assert result.workflow_status == "capability_unavailable"
     assert any(
         warning.code == "independent_verification_pending"
         for warning in result.warnings
     )
+
+
+def test_quick_result_exposes_screening_outcome_without_engineering_status() -> None:
+    result = calculate(scenario_request(0))
+    assert result.workflow_status == "ready"
+    assert result.quick_outcome in {"screening_passed", "screening_failed"}
+    assert result.engineering_status is None
+
+
+def test_horizontal_wind_is_rejected_by_one_dimensional_beam() -> None:
+    request = CalculationRequest(
+        mode=CalculationMode.QUICK,
+        module=CalculationModule.STEEL_BEAM,
+        project_name="direction-contract",
+        confirmed_assumptions=True,
+        inputs={
+            "steel_grade": "Q355B",
+            "section_type": "RHS",
+            "h_mm": 200,
+            "b_mm": 100,
+            "t_mm": 6,
+            "span_m": 4,
+            "support": "simple",
+            "tributary_width_m": 1,
+            "include_self_weight": False,
+            "lateral_restrained": True,
+        },
+        loads=[
+            LoadItem(
+                kind=LoadKind.WIND,
+                value=1,
+                unit="kN/m",
+                source="horizontal wind",
+                direction=LoadDirection.X_POSITIVE,
+            )
+        ],
+    )
+    with pytest.raises(CalculationInputError) as error:
+        calculate(request)
+    assert error.value.code == "unsupported_load_direction"
 
 
 def test_thicker_steel_uses_lower_design_strength_band() -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from copy import deepcopy
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -125,13 +126,17 @@ def get_calculation_library(
 )
 def list_scene_instances(
     project_id: int,
+    include_archived: bool = Query(default=False),
     db: Session = Depends(get_db),
     user: User = Depends(require_ready_user),
 ) -> list[SceneInstanceView]:
     _owned_project(db, project_id, user.id)
     instances = db.scalars(
         select(SceneInstance)
-        .where(SceneInstance.project_id == project_id)
+        .where(
+            SceneInstance.project_id == project_id,
+            *([] if include_archived else [SceneInstance.archived.is_(False)]),
+        )
         .order_by(SceneInstance.updated_at.desc())
     ).all()
     return [_instance_view(item) for item in instances]
@@ -200,23 +205,134 @@ def update_scene_instance(
         instance.mode = payload.mode.value
     if payload.draft_state is not None:
         instance.draft_state = payload.draft_state
+    if payload.archived is not None:
+        instance.archived = payload.archived
     if payload.changed_node_ids:
-        instance.stale_node_ids = list(
-            dict.fromkeys(
-                [
-                    *instance.stale_node_ids,
-                    *downstream_node_ids(
-                        family,
-                        payload.changed_node_ids,
-                        instance.variant_id,
-                    ),
-                ]
-            )
+        has_saved_result = any(
+            item.snapshot.get("scene_context", {}).get("scene_instance_id")
+            == instance.id
+            for item in db.scalars(
+                select(ProjectRevision).where(
+                    ProjectRevision.project_id == project_id
+                )
+            ).all()
         )
+        if has_saved_result:
+            instance.stale_node_ids = list(
+                dict.fromkeys(
+                    [
+                        *instance.stale_node_ids,
+                        *downstream_node_ids(
+                            family,
+                            payload.changed_node_ids,
+                            instance.variant_id,
+                        ),
+                    ]
+                )
+            )
     instance.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(instance)
     return _instance_view(instance)
+
+
+@router.post(
+    "/projects/{project_id}/scene-instances/{scene_instance_id}/duplicate",
+    response_model=SceneInstanceView,
+    status_code=status.HTTP_201_CREATED,
+)
+def duplicate_scene_instance(
+    project_id: int,
+    scene_instance_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_ready_user),
+) -> SceneInstanceView:
+    project = _owned_project(db, project_id, user.id)
+    source = _owned_scene_instance(db, project_id, scene_instance_id, user.id)
+    duplicate = SceneInstance(
+        project_id=project.id,
+        family_id=source.family_id,
+        variant_id=source.variant_id,
+        title=f"{source.title}（副本）",
+        mode=source.mode,
+        template_version=source.template_version,
+        draft_state=deepcopy(source.draft_state),
+        stale_node_ids=list(source.stale_node_ids),
+        archived=False,
+    )
+    project.updated_at = datetime.now(timezone.utc)
+    db.add(duplicate)
+    db.flush()
+    source_revisions = db.scalars(
+        select(ProjectRevision)
+        .where(ProjectRevision.project_id == project_id)
+        .order_by(ProjectRevision.revision_number.desc())
+    ).all()
+    latest = next(
+        (
+            item
+            for item in source_revisions
+            if item.snapshot.get("scene_context", {}).get("scene_instance_id")
+            == source.id
+        ),
+        None,
+    )
+    if latest is not None:
+        current_revision = db.scalar(
+            select(func.max(ProjectRevision.revision_number)).where(
+                ProjectRevision.project_id == project.id
+            )
+        )
+        next_revision = (current_revision or 0) + 1
+        copied_snapshot = deepcopy(latest.snapshot)
+        copied_snapshot["scene_context"]["scene_instance_id"] = duplicate.id
+        copied_snapshot["scene_context"]["title"] = duplicate.title
+        db.add(
+            ProjectRevision(
+                project_id=project.id,
+                revision_number=next_revision,
+                snapshot_schema_version=latest.snapshot_schema_version,
+                snapshot=copied_snapshot,
+                result_bundle=deepcopy(latest.result_bundle),
+                catalog_versions=deepcopy(latest.catalog_versions),
+                engine_version=latest.engine_version,
+                report_number=f"SC-{project.id:06d}-R{next_revision:03d}",
+            )
+        )
+    db.commit()
+    db.refresh(duplicate)
+    return _instance_view(duplicate)
+
+
+@router.get(
+    "/projects/{project_id}/scene-revisions",
+    response_model=list[SceneRevisionView],
+)
+def list_scene_revisions(
+    project_id: int,
+    scene_instance_id: int | None = Query(default=None, ge=1),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_ready_user),
+) -> list[SceneRevisionView]:
+    _owned_project(db, project_id, user.id)
+    if scene_instance_id is not None:
+        _owned_scene_instance(db, project_id, scene_instance_id, user.id)
+    revisions = db.scalars(
+        select(ProjectRevision)
+        .where(ProjectRevision.project_id == project_id)
+        .order_by(ProjectRevision.revision_number.desc())
+    ).all()
+    scene_revisions = [
+        item
+        for item in revisions
+        if "scene_context" in item.snapshot
+        and (
+            scene_instance_id is None
+            or item.snapshot["scene_context"].get("scene_instance_id")
+            == scene_instance_id
+        )
+    ]
+    return [_scene_revision_view(item) for item in scene_revisions]
 
 
 @router.post(
@@ -267,7 +383,7 @@ def create_scene_revision(
     revision = ProjectRevision(
         project_id=project.id,
         revision_number=next_revision,
-        snapshot_schema_version="2.1",
+        snapshot_schema_version="3.0",
         snapshot={
             "scene_context": {
                 "scene_instance_id": instance.id,

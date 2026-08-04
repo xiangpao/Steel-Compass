@@ -10,10 +10,12 @@ from app.core.scene_catalog import (
     instantiate_scene_graph,
 )
 from app.core.scene_graph import (
+    _apply_reaction,
     downstream_node_ids,
     execute_scene,
     validate_scene_graph,
 )
+from app.core.engine import calculate
 from app.core.scene_schemas import (
     SceneConnection,
     SceneNodeCalculation,
@@ -21,10 +23,7 @@ from app.core.scene_schemas import (
 )
 from app.core.scenarios import SCENARIOS
 from app.core.schemas import (
-    CalculationModule,
     CalculationRequest,
-    LoadItem,
-    LoadKind,
 )
 
 
@@ -55,6 +54,64 @@ def test_scene_catalog_has_five_public_families_and_valid_variant_dags() -> None
             graph = instantiate_scene_graph(family, variant.id)
             assert "load" in {node.role for node in graph.nodes}
             assert len(order) == len(graph.nodes)
+
+
+def test_only_equal_height_flat_single_steel_pergola_is_public() -> None:
+    family = get_scene_family("pergola-pavilion")
+    assert family is not None
+    public_variants = [item for item in family.variants if item.availability == "public"]
+    assert [item.id for item in public_variants] == ["flat-single"]
+
+    variant = public_variants[0]
+    assert variant.material_systems == ["钢"]
+    capability_by_material = {
+        item.material_system: item for item in variant.capabilities
+    }
+    assert capability_by_material["钢"].availability == "public"
+    assert capability_by_material["钢"].graph_template_id == (
+        "pergola-flat-single-steel-chain"
+    )
+    assert capability_by_material["木"].availability == "development"
+    assert capability_by_material["木"].missing_capabilities
+    assert capability_by_material["钢木混合"].availability == "development"
+
+    for variant_id in ("mono-pitch", "dual-pitch", "multi-bay"):
+        item = get_scene_variant(family, variant_id)
+        assert item is not None
+        assert item.availability == "development"
+        assert item.missing_capabilities
+
+
+def test_steel_single_span_pergola_has_split_support_chain() -> None:
+    family = get_scene_family("pergola-pavilion")
+    assert family is not None
+    graph = instantiate_scene_graph(family, "flat-single")
+    assert [node.id for node in graph.nodes] == [
+        "environment",
+        "roof_members",
+        "main_frame",
+        "base_left",
+        "base_right",
+        "foundation_left",
+        "foundation_right",
+    ]
+    assert graph.nodes[1].input_bindings == {
+        "span_m": "frame_spacing_m",
+        "tributary_width_m": "purlin_spacing_m",
+    }
+    assert graph.nodes[3].calculation_module == "steel_baseplate_anchor"
+    assert graph.nodes[4].calculation_module == "steel_baseplate_anchor"
+    assert [item.transfer for item in graph.connections] == [
+        "area_to_line",
+        "reaction_to_line",
+        "reaction_package",
+        "reaction_package",
+        "reaction_package",
+        "reaction_package",
+    ]
+    assert all(
+        item.requires_source_trace for item in graph.connections[1:]
+    )
 
 
 def test_wall_canopy_has_no_foundation_and_column_canopy_has_full_support_chain() -> None:
@@ -188,124 +245,209 @@ def _canopy_calculation(mode: str) -> SceneNodeCalculation:
     )
 
 
-def test_wall_canopy_quick_estimate_closes_but_professional_is_gated() -> None:
+def test_unclosed_legacy_scene_variants_are_blocked_as_development() -> None:
     family = get_scene_family("canopy")
     assert family is not None
-    confirmed_nodes = ["environment", "wall_substrate", "wall_anchor"]
-    quick = execute_scene(
-        family,
-        "wall-cantilever",
-        "quick",
-        [_canopy_calculation("quick")],
-        confirmed_nodes,
-        load_cases=_confirmed_canopy_loads(),
-    )
-    assert quick.workflow_status == "ready"
-    assert quick.engineering_status == "passed"
-    assert quick.result_class == "quick_estimate"
-    assert quick.completed_nodes == quick.total_required_nodes == 4
-
-    professional = execute_scene(
-        family,
-        "wall-cantilever",
-        "professional",
-        [_canopy_calculation("professional")],
-        confirmed_nodes,
-        load_cases=_confirmed_canopy_loads(),
-    )
-    assert professional.engineering_status == "incomplete"
-    assert professional.workflow_status == "capability_unavailable"
-    assert professional.result_class == "professional_check"
-
-
-def test_all_five_public_default_scenes_close_as_quick_estimates() -> None:
-    for family in SCENE_FAMILIES:
-        if family.availability != "public":
-            continue
-        variant = get_scene_variant(family, family.default_variant_id)
-        assert variant is not None and variant.load_package is not None
-        graph = instantiate_scene_graph(family, variant.id)
-        load_cases = [
-            item.model_copy(
-                update={
-                    "adopted_value": (
-                        item.adopted_value
-                        if item.adopted_value is not None
-                        else 0.5
-                    ),
-                    "confirmed": True,
-                    "override_reason": (
-                        "风雪向导计算值"
-                        if item.value_type == "calculated"
-                        else item.override_reason
-                    ),
-                },
-                deep=True,
-            )
-            for item in variant.load_package.items
-        ]
-        node_calculations: list[SceneNodeCalculation] = []
-        for node in graph.nodes:
-            if not node.calculation_module:
-                continue
-            module = CalculationModule(node.calculation_module)
-            scenario = next(item for item in SCENARIOS if item.module == module)
-            calculation_loads = [
-                item.model_copy(update={"confirmed": True}, deep=True)
-                for item in scenario.loads
-            ]
-            direct_units = {
-                CalculationModule.SPREAD_FOOTING: {"kN"},
-                CalculationModule.STRIP_FOOTING: {"kN/m"},
-                CalculationModule.STEEL_COLUMN: {"kN"},
-                CalculationModule.CONCRETE_COLUMN: {"kN"},
-                CalculationModule.TIMBER_COLUMN: {"kN"},
-            }.get(module, {"kN/m", "kN/m2"})
-            for scene_load in load_cases:
-                if (
-                    scene_load.application_target != node.id
-                    or scene_load.unit in direct_units
-                ):
-                    continue
-                calculation_loads.append(
-                    LoadItem(
-                        kind=LoadKind.DEAD,
-                        value=0,
-                        unit=(
-                            "kN/m"
-                            if module is CalculationModule.STRIP_FOOTING
-                            else "kN"
-                        ),
-                        source=scene_load.label,
-                        preset_id=scene_load.id,
-                        source_reference=f"scene-load:{scene_load.id}",
-                        confirmed=True,
-                    )
-                )
-            node_calculations.append(
-                SceneNodeCalculation(
-                    node_id=node.id,
-                    calculation=CalculationRequest(
-                        mode="quick",
-                        module=module,
-                        project_name=family.title,
-                        confirmed_assumptions=True,
-                        inputs=scenario.inputs,
-                        loads=calculation_loads,
-                    ),
-                )
-            )
-        result = execute_scene(
+    variant = get_scene_variant(family, "wall-cantilever")
+    assert variant is not None
+    assert variant.availability == "development"
+    assert variant.missing_capabilities == [
+        "既有墙体承载力",
+        "锚栓组",
+        "墙体基材破坏",
+    ]
+    with pytest.raises(CalculationInputError) as caught:
+        execute_scene(
             family,
-            variant.id,
+            "wall-cantilever",
             "quick",
-            node_calculations,
-            [node.id for node in graph.nodes if not node.calculation_module],
-            load_cases=load_cases,
+            [_canopy_calculation("quick")],
+            ["environment", "wall_substrate", "wall_anchor"],
+            load_cases=_confirmed_canopy_loads(),
         )
-        assert result.engineering_status == "passed", family.id
-        assert result.workflow_status == "ready", family.id
-        assert result.completed_nodes == result.total_required_nodes, family.id
+    assert caught.value.code == "scene_in_development"
+
+
+def test_purlin_reaction_is_traceable_and_converted_without_zero_placeholder() -> None:
+    purlin = next(item for item in SCENARIOS if item.id == "pergola-purlin")
+    source = calculate(
+        CalculationRequest(
+            mode="quick",
+            module=purlin.module,
+            project_name=purlin.title,
+            confirmed_assumptions=True,
+            inputs=purlin.inputs,
+            loads=[item.model_copy(update={"confirmed": True}) for item in purlin.loads],
+        )
+    )
+    frame = next(item for item in SCENARIOS if item.id == "pergola-frame")
+    target = CalculationRequest(
+        mode="quick",
+        module=frame.module,
+        project_name=frame.title,
+        confirmed_assumptions=True,
+        inputs={**frame.inputs, "purlin_spacing_m": 1.0},
+        loads=[],
+    )
+    family = get_scene_family("pergola-pavilion")
+    assert family is not None
+    connection = instantiate_scene_graph(family, "flat-single").connections[1]
+    transferred = _apply_reaction(target, connection, source)
+
+    assert transferred.inputs["reaction_source_trace_id"] == source.trace_id
+    assert transferred.inputs["reaction_source_node_id"] == "roof_members"
+    assert transferred.inputs["reaction_transfer"] == "reaction_to_line"
+    assert transferred.inputs["upstream_reaction_envelopes"]
+    assert all(
+        envelope["transferred_line_load"]["value"] != 0
+        for envelope in transferred.inputs["upstream_reaction_envelopes"]
+    )
+    assert transferred.loads == []
+
+
+def test_steel_single_span_pergola_executes_full_traceable_chain() -> None:
+    family = get_scene_family("pergola-pavilion")
+    assert family is not None
+    purlin = next(item for item in SCENARIOS if item.id == "pergola-purlin")
+    frame = next(item for item in SCENARIOS if item.id == "pergola-frame")
+    footing = next(item for item in SCENARIOS if item.id == "sign-spread-footing")
+    calculations = [
+        SceneNodeCalculation(
+            node_id="roof_members",
+            calculation=CalculationRequest(
+                mode="quick",
+                module=purlin.module,
+                project_name="pergola purlin",
+                confirmed_assumptions=True,
+                inputs={
+                    **purlin.inputs,
+                    "span_m": 3.0,
+                    "tributary_width_m": 1.0,
+                },
+                loads=[],
+            ),
+        ),
+        SceneNodeCalculation(
+            node_id="main_frame",
+            calculation=CalculationRequest(
+                mode="quick",
+                module=frame.module,
+                project_name="pergola frame",
+                confirmed_assumptions=True,
+                inputs={
+                    **frame.inputs,
+                    "span_m": 4.0,
+                    "height_m": 3.0,
+                    "purlin_spacing_m": 1.0,
+                },
+                loads=[],
+            ),
+        ),
+        *[
+            SceneNodeCalculation(
+                node_id=node_id,
+                calculation=CalculationRequest(
+                    mode="quick",
+                    module="steel_baseplate_anchor",
+                    project_name=f"pergola {node_id}",
+                    confirmed_assumptions=True,
+                    inputs={},
+                    loads=[],
+                ),
+            )
+            for node_id in ("base_left", "base_right")
+        ],
+        *[
+            SceneNodeCalculation(
+                node_id=node_id,
+                calculation=CalculationRequest(
+                    mode="quick",
+                    module=footing.module,
+                    project_name=f"pergola {node_id}",
+                    confirmed_assumptions=True,
+                    inputs=footing.inputs,
+                    loads=[],
+                ),
+            )
+            for node_id in ("foundation_left", "foundation_right")
+        ],
+    ]
+    variant = get_scene_variant(family, "flat-single")
+    assert variant is not None and variant.load_package is not None
+    load_cases = [
+        item.model_copy(
+            update={
+                "adopted_value": (
+                    item.adopted_value
+                    if item.adopted_value is not None
+                    else 0.30
+                ),
+                "confirmed": True,
+                "override_reason": (
+                    "测试风雪向导值"
+                    if item.value_type == "calculated"
+                    else item.override_reason
+                ),
+            },
+            deep=True,
+        )
+        for item in variant.load_package.items
+    ]
+    result = execute_scene(
+        family,
+        "flat-single",
+        "quick",
+        calculations,
+        ["environment"],
+        load_cases=load_cases,
+    )
+
+    assert result.workflow_status == "ready", result.model_dump_json(indent=2)
+    assert result.engineering_status is None
+    assert result.quick_outcome in {"screening_passed", "screening_failed"}
+    assert result.completed_nodes == result.total_required_nodes == 7
+    assert result.missing_nodes == []
+    for node_id in (
+        "main_frame",
+        "base_left",
+        "base_right",
+        "foundation_left",
+        "foundation_right",
+    ):
+        calculation = result.node_results[node_id].calculation_result
+        assert calculation is not None
+        assert calculation.reaction_envelopes
+    frame_result = result.node_results["main_frame"].calculation_result
+    assert frame_result is not None
+    uls = next(item for item in frame_result.combinations if item.limit_state == "ULS")
+    assert uls.factored_by_kind["upstream_line_load"].value != 0
+    left = next(
+        item
+        for item in frame_result.reaction_envelopes
+        if item.name == "left_base" and item.combination_id == uls.combination_id
+    )
+    right = next(
+        item
+        for item in frame_result.reaction_envelopes
+        if item.name == "right_base" and item.combination_id == uls.combination_id
+    )
+    assert left.components["N"].value + right.components["N"].value == pytest.approx(
+        uls.total.value * 4,
+        rel=1e-6,
+    )
+
+
+def test_boardwalk_and_pool_publish_dependencies_but_remain_blocked() -> None:
+    boardwalk = get_scene_family("boardwalk-platform")
+    pool = get_scene_family("water-feature-pool")
+    assert boardwalk is not None and pool is not None
+    straight = get_scene_variant(boardwalk, "straight")
+    buried = get_scene_variant(pool, "rect-buried")
+    assert straight is not None and buried is not None
+    assert straight.availability == buried.availability == "development"
+    assert straight.material_systems == ["木面板+钢构"]
+    assert "钢次梁与主梁多级反力包" in straight.missing_capabilities
+    assert "地下水浮力与抗浮组合" in buried.missing_capabilities
 
 
 def test_legacy_scene_result_remains_readable_without_recalculation() -> None:

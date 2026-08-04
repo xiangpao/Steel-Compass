@@ -406,15 +406,14 @@ def download_revision_report(
         CalculationResult.model_validate(value)
         for value in revision.result_bundle.values()
     ]
-    if revision.snapshot_schema_version in {"2.0", "2.1"} and revision.snapshot.get(
-        "scene_result"
-    ):
+    if revision.snapshot.get("scene_result"):
         scene_context = revision.snapshot.get("scene_context", {})
         pdf = build_scene_project_pdf(
             SceneRevisionResult.model_validate(revision.snapshot["scene_result"]),
             results,
             revision.report_number,
             scene_context.get("title", "完整场景"),
+            scene_context,
         )
     else:
         pdf = build_project_pdf(results, revision.report_number)

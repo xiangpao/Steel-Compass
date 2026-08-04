@@ -2709,6 +2709,24 @@ button {
   white-space: nowrap;
 }
 
+.load-na-button {
+  min-height: 36px;
+  margin-top: 9px;
+  padding: 0 11px;
+  color: #75490f;
+  font-size: 10px;
+  font-weight: 750;
+  background: #fff4da;
+  border: 1px solid #ead29a;
+  border-radius: 6px;
+}
+
+.load-na-button[aria-pressed="true"] {
+  color: var(--teal-dark);
+  background: var(--teal-pale);
+  border-color: #9dc8bd;
+}
+
 .load-card-fields,
 .custom-load-fields {
   display: grid;
@@ -2817,6 +2835,72 @@ button {
   border-radius: 6px;
 }
 
+.revision-selector {
+  display: flex;
+  max-width: 420px;
+  gap: 5px;
+  flex-direction: column;
+}
+
+.revision-selector > span {
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.result-detail-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.result-detail-grid article {
+  min-width: 0;
+  padding: 14px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.result-detail-grid h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.result-detail-grid p {
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
+.result-detail-grid .missing-data {
+  color: #8a5715;
+}
+
+.result-data-row {
+  display: flex;
+  min-height: 32px;
+  padding: 6px 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.result-data-row span {
+  min-width: 0;
+  color: var(--ink-soft);
+}
+
+.result-data-row span small {
+  display: block;
+  color: var(--ink-faint);
+}
+
+.result-data-row strong {
+  white-space: nowrap;
+}
+
 .comparison-section {
   padding: 18px;
   background: var(--white);
@@ -2839,6 +2923,35 @@ button {
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 7px;
+}
+
+.comparison-grid article.active {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 1px var(--teal-pale);
+}
+
+.comparison-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.comparison-card-heading > span {
+  display: flex;
+  gap: 4px;
+}
+
+.comparison-card-heading button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  place-items: center;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
 }
 
 .comparison-grid article > span,
@@ -2966,6 +3079,7 @@ button {
   .climate-guide-grid,
   .load-card-fields,
   .custom-load-fields,
+  .result-detail-grid,
   .comparison-grid {
     grid-template-columns: 1fr;
   }
@@ -3008,5 +3122,12 @@ button {
   .result-action-row button {
     min-height: 44px;
     width: 100%;
+  }
+
+  .result-action-row a,
+  .load-na-button,
+  .comparison-grid button,
+  .revision-selector select {
+    min-height: 44px;
   }
 }

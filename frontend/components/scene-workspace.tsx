@@ -2,12 +2,14 @@
 
 import {
   AlertTriangle,
+  Archive,
   Check,
   ChevronDown,
   CircleDot,
   Copy,
   FileClock,
   GitCompare,
+  Pencil,
   RotateCcw,
   Save,
   Sparkles,
@@ -45,17 +47,6 @@ type Props = {
 };
 
 type WorkspaceTab = "settings" | "results";
-
-type Alternative = {
-  id: string;
-  label: string;
-  revisionNumber: number;
-  status: string;
-  utilization: number | null;
-  material: string;
-  parameters: Record<string, unknown>;
-  reportNumber: string;
-};
 
 function initialValues(family: SceneFamily, variantId: string) {
   const variant =
@@ -128,6 +119,19 @@ function controllingUtilization(revision: SceneRevision): number | null {
   return values.length ? Math.max(...values) : null;
 }
 
+function resultStatus(revision: SceneRevision): string {
+  if (revision.scene_result.result_class === "quick_estimate") {
+    return revision.scene_result.quick_outcome === "screening_failed"
+      ? "方案快算需调整"
+      : "方案快算完成";
+  }
+  return revision.scene_result.engineering_status === "passed"
+    ? "专业检查通过"
+    : revision.scene_result.engineering_status === "failed"
+      ? "专业检查不满足"
+      : "专业检查待补齐";
+}
+
 function loadRange(item: SceneLoadCase) {
   if (item.value_type === "calculated") return "按几何与材料自动计算";
   if (item.value_type === "project_defined") return "项目资料取值";
@@ -172,13 +176,18 @@ export function SceneWorkspace({
   const [sceneTitle, setSceneTitle] = useState(family.title);
   const [instance, setInstance] = useState<SceneInstance | null>(null);
   const [revision, setRevision] = useState<SceneRevision | null>(null);
-  const [alternatives, setAlternatives] = useState<Alternative[]>([]);
+  const [projectInstances, setProjectInstances] = useState<SceneInstance[]>([]);
+  const [instanceRevisions, setInstanceRevisions] = useState<
+    Record<number, SceneRevision[]>
+  >({});
   const [inputVersion, setInputVersion] = useState(0);
   const [calculatedVersion, setCalculatedVersion] = useState(-1);
   const [changedNodeIds, setChangedNodeIds] = useState<string[]>([]);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const hydrated = useRef(false);
+  const projectLoadSequence = useRef(0);
+  const suppressNextProjectLoad = useRef(false);
 
   const variant = useMemo(
     () =>
@@ -201,6 +210,7 @@ export function SceneWorkspace({
   const allLoadsConfirmed =
     loadCases.length > 0 && loadCases.every((item) => item.confirmed);
   const loadPackageTitle = variant?.load_package?.title ?? "场景荷载包";
+  const comparisonInstances = projectInstances.slice(0, 3);
 
   useEffect(() => {
     if (!climateLocationId && climateCatalog?.items.length) {
@@ -228,7 +238,7 @@ export function SceneWorkspace({
           bearingCapacity?: number | "";
           groundwaterKnown?: boolean;
           sceneTitle?: string;
-          alternatives?: Alternative[];
+          selectedProject?: number | "new";
         };
         if (family.variants.some((item) => item.id === draft.variantId)) {
           nextVariantId = draft.variantId!;
@@ -253,7 +263,9 @@ export function SceneWorkspace({
         setBearingCapacity(draft.bearingCapacity ?? "");
         setGroundwaterKnown(draft.groundwaterKnown ?? false);
         setSceneTitle(draft.sceneTitle ?? family.title);
-        setAlternatives(draft.alternatives ?? []);
+        if (typeof draft.selectedProject === "number") {
+          setSelectedProject(draft.selectedProject);
+        }
       } catch {
         window.localStorage.removeItem(storageKey);
       }
@@ -272,6 +284,8 @@ export function SceneWorkspace({
     setTab("settings");
     setInstance(null);
     setRevision(null);
+    setProjectInstances([]);
+    setInstanceRevisions({});
     setInputVersion(0);
     setCalculatedVersion(-1);
     setChangedNodeIds([]);
@@ -295,11 +309,10 @@ export function SceneWorkspace({
         bearingCapacity,
         groundwaterKnown,
         sceneTitle,
-        alternatives,
+        selectedProject,
       }),
     );
   }, [
-    alternatives,
     bearingCapacity,
     family.id,
     foundationType,
@@ -309,8 +322,103 @@ export function SceneWorkspace({
     mode,
     parameters,
     sceneTitle,
+    selectedProject,
     variantId,
   ]);
+
+  useEffect(() => {
+    if (suppressNextProjectLoad.current) {
+      suppressNextProjectLoad.current = false;
+      return;
+    }
+    if (selectedProject === "new") {
+      setProjectInstances([]);
+      setInstanceRevisions({});
+      return;
+    }
+    void loadProjectWorkspace(selectedProject, instance?.project_id === selectedProject ? instance.id : undefined);
+    // Loading is keyed by explicit project/family selection. Instance changes are
+    // handled by the action that created or selected the instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProject, family.id]);
+
+  function hydrateFromInstance(
+    selected: SceneInstance,
+    revisions: SceneRevision[],
+  ) {
+    const selectedVariant = family.variants.find(
+      (item) => item.id === selected.variant_id,
+    );
+    if (!selectedVariant) return;
+    const state = selected.draft_state ?? {};
+    const restoredLoads = state.load_cases as SceneLoadCase[] | undefined;
+    setInstance(selected);
+    setVariantId(selected.variant_id);
+    setMode(selected.mode);
+    setSceneTitle(selected.title);
+    setMaterial(
+      (state.material_system as string | undefined) ??
+        selectedVariant.material_systems[0] ??
+        "",
+    );
+    setParameters(
+      (state.geometry as Record<string, unknown> | undefined) ??
+        initialValues(family, selected.variant_id),
+    );
+    setLoadCases(
+      restoredLoads ??
+        copiedLoadCases(family, selectedVariant, graphFor(family, selectedVariant)),
+    );
+    setFoundationType(
+      (state.foundation_type as string | undefined) ?? "独立基础",
+    );
+    setBearingCapacity(
+      (state.allowable_bearing_kpa as number | "" | undefined) ?? "",
+    );
+    setGroundwaterKnown(Boolean(state.groundwater_known));
+    const latest = revisions[0] ?? null;
+    setRevision(latest);
+    setInputVersion(0);
+    setCalculatedVersion(latest ? 0 : -1);
+    setChangedNodeIds([]);
+    setTab(state.workspace_tab === "results" && latest ? "results" : "settings");
+  }
+
+  async function loadProjectWorkspace(
+    projectId: number,
+    preferredInstanceId?: number,
+  ) {
+    const sequence = ++projectLoadSequence.current;
+    try {
+      const allInstances = await api<SceneInstance[]>(
+        `/api/v2/projects/${projectId}/scene-instances`,
+      );
+      const matching = allInstances.filter((item) => item.family_id === family.id);
+      const histories = await Promise.all(
+        matching.map(async (item) => [
+          item.id,
+          await api<SceneRevision[]>(
+            `/api/v2/projects/${projectId}/scene-revisions?scene_instance_id=${item.id}`,
+          ),
+        ] as const),
+      );
+      if (sequence !== projectLoadSequence.current) return;
+      const historyMap = Object.fromEntries(histories) as Record<number, SceneRevision[]>;
+      setProjectInstances(matching);
+      setInstanceRevisions(historyMap);
+      const selected =
+        matching.find((item) => item.id === preferredInstanceId) ?? matching[0];
+      if (selected) {
+        hydrateFromInstance(selected, historyMap[selected.id] ?? []);
+      } else {
+        setInstance(null);
+        setRevision(null);
+        setCalculatedVersion(-1);
+      }
+    } catch (caught) {
+      if (sequence === projectLoadSequence.current) setError(errorMessage(caught));
+    }
+  }
 
   function markChanged(nodeIds: string[]) {
     setInputVersion((current) => current + 1);
@@ -427,6 +535,7 @@ export function SceneWorkspace({
       method: "POST",
       body: JSON.stringify({ name: sceneTitle, description: family.description }),
     });
+    suppressNextProjectLoad.current = true;
     setSelectedProject(created.id);
     onProjectsChange([created, ...projects]);
     return created.id;
@@ -449,6 +558,9 @@ export function SceneWorkspace({
         },
       );
       setInstance(updated);
+      setProjectInstances((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
       return updated;
     }
     const created = await api<SceneInstance>(
@@ -465,6 +577,7 @@ export function SceneWorkspace({
       },
     );
     setInstance(created);
+    setProjectInstances((current) => [created, ...current]);
     return created;
   }
 
@@ -493,17 +606,7 @@ export function SceneWorkspace({
           connection.transfer === "combination_package"),
     );
     if (!targeted.length && incomingReaction) {
-      return [
-        {
-          kind: "dead",
-          value: 0,
-          unit: calculationModule === "strip_footing" ? "kN/m" : "kN",
-          source: "上游构件反力包",
-          direction: "gravity",
-          source_reference: `scene-reaction:${incomingReaction.source_node_id}`,
-          confirmed: true,
-        } satisfies LoadItem,
-      ];
+      return [];
     }
     if (!targeted.length) return [];
     return targeted.map<LoadItem>((item) => {
@@ -523,10 +626,9 @@ export function SceneWorkspace({
             Number(parameters.panel_height_m ?? 1);
           direction = "gravity";
         } else {
-          // 非轴向场景荷载已转换到模块的弯矩/水平力输入；
-          // 保留带追踪编号的零值条目，让后端能验证映射而不重复施加。
-          value = 0;
-          direction = "gravity";
+          throw new Error(
+            `荷载“${item.label}”的单位 ${item.unit} 与节点 ${nodeId} 不兼容，请调整作用节点或分布形式。`,
+          );
         }
       }
       return {
@@ -545,11 +647,21 @@ export function SceneWorkspace({
 
   function nodeCalculationPayload(nodeId: string, calculationModule: Module) {
     const definition = MODULE_MAP[calculationModule];
+    const node = visibleNodes.find((item) => item.id === nodeId);
+    const boundInputs = Object.fromEntries(
+      Object.entries(node?.input_bindings ?? {}).flatMap(
+        ([targetInput, sceneParameter]) =>
+          parameters[sceneParameter] === undefined
+            ? []
+            : [[targetInput, parameters[sceneParameter]]],
+      ),
+    );
     const nextInputs = {
       ...definition.defaults,
       ...Object.fromEntries(
         Object.entries(parameters).filter(([key]) => key in definition.defaults),
       ),
+      ...boundInputs,
     };
     if (calculationModule === "spread_footing" || calculationModule === "strip_footing") {
       Object.assign(nextInputs, {
@@ -592,7 +704,7 @@ export function SceneWorkspace({
     return {
       node_id: nodeId,
       calculation: {
-        schema_version: "2.0",
+        schema_version: "3.0",
         mode,
         module: calculationModule,
         project_name: `${sceneTitle} · ${nodeId}`,
@@ -674,6 +786,10 @@ export function SceneWorkspace({
         },
       );
       setRevision(calculated);
+      setInstanceRevisions((current) => ({
+        ...current,
+        [saved.id]: [calculated, ...(current[saved.id] ?? [])],
+      }));
       setCalculatedVersion(inputVersion);
       setChangedNodeIds([]);
       setTab("results");
@@ -700,24 +816,58 @@ export function SceneWorkspace({
     }
   }
 
-  function saveAlternative() {
-    if (!revision || stale || alternatives.length >= 3) return;
-    const index = alternatives.length;
-    const label = `方案 ${String.fromCharCode(65 + index)}`;
-    setAlternatives((current) => [
-      ...current,
-      {
-        id: `${revision.id}-${Date.now()}`,
-        label,
-        revisionNumber: revision.revision_number,
-        status:
-          revision.scene_result.engineering_status ?? revision.scene_result.status,
-        utilization: controllingUtilization(revision),
-        material,
-        parameters: { ...parameters },
-        reportNumber: revision.report_number,
-      },
-    ]);
+  async function duplicateAlternative() {
+    if (!instance || !revision || stale || selectedProject === "new") return;
+    setWorking(true);
+    setError("");
+    try {
+      const copied = await api<SceneInstance>(
+        `/api/v2/projects/${selectedProject}/scene-instances/${instance.id}/duplicate`,
+        { method: "POST" },
+      );
+      await loadProjectWorkspace(selectedProject, copied.id);
+      setTab("results");
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function renameInstance(target: SceneInstance) {
+    const title = window.prompt("方案名称", target.title)?.trim();
+    if (!title || title === target.title) return;
+    try {
+      const updated = await api<SceneInstance>(
+        `/api/v2/projects/${target.project_id}/scene-instances/${target.id}`,
+        { method: "PATCH", body: JSON.stringify({ title }) },
+      );
+      setProjectInstances((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      if (instance?.id === updated.id) {
+        setInstance(updated);
+        setSceneTitle(updated.title);
+      }
+    } catch (caught) {
+      setError(errorMessage(caught));
+    }
+  }
+
+  async function archiveInstance(target: SceneInstance) {
+    if (selectedProject === "new") return;
+    try {
+      await api<SceneInstance>(
+        `/api/v2/projects/${target.project_id}/scene-instances/${target.id}`,
+        { method: "PATCH", body: JSON.stringify({ archived: true }) },
+      );
+      await loadProjectWorkspace(
+        selectedProject,
+        target.id === instance?.id ? undefined : instance?.id,
+      );
+    } catch (caught) {
+      setError(errorMessage(caught));
+    }
   }
 
   function resultTitle() {
@@ -726,7 +876,9 @@ export function SceneWorkspace({
     const status =
       revision.scene_result.engineering_status ?? revision.scene_result.status;
     if (revision.scene_result.result_class === "quick_estimate") {
-      return status === "failed" ? "方案快算存在不满足项" : "方案快算已完成";
+      return revision.scene_result.quick_outcome === "screening_failed"
+        ? "方案快算需调整"
+        : "方案快算已完成";
     }
     if (status === "passed") return "当前输入和适用范围内通过";
     if (status === "failed") return "存在不满足项";
@@ -1087,6 +1239,25 @@ export function SceneWorkspace({
                             已确认
                           </label>
                         </div>
+                        {item.kind === "snow" && (
+                          <button
+                            type="button"
+                            className="load-na-button"
+                            aria-pressed={item.notes?.startsWith("不适用：") ?? false}
+                            onClick={() =>
+                              updateLoadCase(index, {
+                                value_type: "project_defined",
+                                adopted_value: 0,
+                                project_source: "",
+                                source_reference: "",
+                                notes: "不适用：请填写项目所在地或专项资料依据",
+                                confirmed: false,
+                              })
+                            }
+                          >
+                            本项目雪荷载不适用
+                          </button>
+                        )}
                         <div className="load-card-fields">
                           <label>
                             <span>最终采用值</span>
@@ -1202,6 +1373,39 @@ export function SceneWorkspace({
                               </select>
                             </label>
                             <label>
+                              <span>作用目标</span>
+                              <select
+                                value={item.application_target}
+                                onChange={(event) =>
+                                  updateLoadCase(index, {
+                                    application_target: event.target.value,
+                                    confirmed: false,
+                                  })
+                                }
+                              >
+                                {visibleNodes.map((node) => (
+                                  <option key={node.id} value={node.id}>{node.label}</option>
+                                ))}
+                              </select>
+                            </label>
+                            <label>
+                              <span>分布形式</span>
+                              <select
+                                value={item.distribution}
+                                onChange={(event) =>
+                                  updateLoadCase(index, {
+                                    distribution: event.target.value as SceneLoadCase["distribution"],
+                                    confirmed: false,
+                                  })
+                                }
+                              >
+                                <option value="point">集中荷载</option>
+                                <option value="line">线荷载</option>
+                                <option value="area">面荷载</option>
+                                <option value="pressure">压力</option>
+                              </select>
+                            </label>
+                            <label>
                               <span>资料名称</span>
                               <input
                                 value={item.project_source ?? ""}
@@ -1286,6 +1490,27 @@ export function SceneWorkspace({
                     ))}
                   </select>
                 </label>
+                {selectedProject !== "new" && projectInstances.length > 0 && (
+                  <label>
+                    <span>当前方案</span>
+                    <select
+                      value={instance?.id ?? ""}
+                      onChange={(event) => {
+                        const selected = projectInstances.find(
+                          (item) => item.id === Number(event.target.value),
+                        );
+                        if (selected) hydrateFromInstance(
+                          selected,
+                          instanceRevisions[selected.id] ?? [],
+                        );
+                      }}
+                    >
+                      {projectInstances.map((item) => (
+                        <option key={item.id} value={item.id}>{item.title}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </div>
             </div>
           ) : (
@@ -1315,7 +1540,7 @@ export function SceneWorkspace({
                     <button className="secondary-button" onClick={() => setTab("settings")}>修改参数</button>
                     <a
                       className="secondary-button"
-                      href={`/api/v2/projects/${revision.project_id}/scene-revisions/${revision.id}/report.pdf`}
+                      href={`/api/v2/projects/${revision.project_id}/revisions/${revision.id}/report.pdf`}
                       target="_blank"
                       rel="noreferrer"
                     >
@@ -1323,10 +1548,10 @@ export function SceneWorkspace({
                     </a>
                     <button
                       className="secondary-button"
-                      disabled={stale || alternatives.length >= 3}
-                      onClick={saveAlternative}
+                      disabled={stale || comparisonInstances.length >= 3 || working}
+                      onClick={duplicateAlternative}
                     >
-                      <Copy size={16} /> 保存为方案 {String.fromCharCode(65 + alternatives.length)}
+                      <Copy size={16} /> 复制为方案 {String.fromCharCode(65 + comparisonInstances.length)}
                     </button>
                     <button className="primary-button" disabled={working} onClick={evaluateScene}>
                       {working ? "计算中…" : "重新计算"}
@@ -1337,6 +1562,71 @@ export function SceneWorkspace({
                       <p key={warning}><AlertTriangle size={15} />{warning}</p>
                     ))}
                   </div>
+                  {instanceRevisions[instance?.id ?? -1]?.length > 1 && (
+                    <label className="revision-selector">
+                      <span>查看历史修订</span>
+                      <select
+                        value={revision.id}
+                        onChange={(event) => {
+                          const selected = instanceRevisions[instance?.id ?? -1]?.find(
+                            (item) => item.id === Number(event.target.value),
+                          );
+                          if (selected) setRevision(selected);
+                        }}
+                      >
+                        {instanceRevisions[instance?.id ?? -1]?.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            修订 {item.revision_number} · {item.report_number}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <section className="result-detail-grid" aria-label="计算结果详情">
+                    <article>
+                      <h3>控制验算</h3>
+                      {Object.entries(revision.result_bundle).flatMap(([nodeId, result]) =>
+                        result.checks.map((check) => ({ nodeId, check })),
+                      ).sort((a, b) => b.check.utilization - a.check.utilization).slice(0, 8).map(({ nodeId, check }) => (
+                        <div className="result-data-row" key={`${nodeId}-${check.name}`}>
+                          <span>{check.name}<small>{nodeId}</small></span>
+                          <strong>{(check.utilization * 100).toFixed(1)}%</strong>
+                        </div>
+                      ))}
+                    </article>
+                    <article>
+                      <h3>控制组合与反力</h3>
+                      {Object.entries(revision.result_bundle).flatMap(([nodeId, result]) => [
+                        ...result.combinations.slice(0, 2).map((combination) => ({
+                          key: `${nodeId}-${combination.name}`,
+                          label: combination.name,
+                          value: `${combination.total.value.toFixed(3)} ${combination.total.unit}`,
+                        })),
+                        ...Object.entries(result.reactions).slice(0, 4).map(([name, value]) => ({
+                          key: `${nodeId}-${name}`,
+                          label: `${nodeId} · ${name}`,
+                          value: `${value.value.toFixed(3)} ${value.unit}`,
+                        })),
+                      ]).slice(0, 10).map((item) => (
+                        <div className="result-data-row" key={item.key}>
+                          <span>{item.label}</span><strong>{item.value}</strong>
+                        </div>
+                      ))}
+                    </article>
+                    <article>
+                      <h3>覆盖范围与缺失资料</h3>
+                      <p>{revision.scene_result.completed_nodes}/{revision.scene_result.total_required_nodes} 个必选节点已处理</p>
+                      {Object.values(revision.scene_result.node_results).map((node) => (
+                        <div className="result-data-row" key={node.node_id}>
+                          <span>{node.label}</span>
+                          <strong>{node.applicability === "not_applicable" ? "不适用" : STATUS_LABELS[node.status]}</strong>
+                        </div>
+                      ))}
+                      {revision.scene_result.missing_nodes.map((item) => (
+                        <p className="missing-data" key={item}>缺失：{item}</p>
+                      ))}
+                    </article>
+                  </section>
                 </>
               ) : (
                 <div className="empty-result">
@@ -1350,22 +1640,35 @@ export function SceneWorkspace({
               <section className="comparison-section">
                 <div className="panel-heading">
                   <div><span className="eyebrow">OPTION COMPARISON</span><h2>方案对比</h2></div>
-                  <span>{alternatives.length}/3</span>
+                  <span>{comparisonInstances.length}/3</span>
                 </div>
-                {alternatives.length ? (
+                {comparisonInstances.length ? (
                   <div className="comparison-grid">
-                    {alternatives.map((alternative) => (
-                      <article key={alternative.id}>
-                        <strong>{alternative.label}</strong>
-                        <span>修订 {alternative.revisionNumber}</span>
+                    {comparisonInstances.map((alternative) => {
+                      const comparedRevision = instanceRevisions[alternative.id]?.[0];
+                      const comparedMaterial = alternative.draft_state.material_system as string | undefined;
+                      return (
+                      <article key={alternative.id} className={alternative.id === instance?.id ? "active" : ""}>
+                        <div className="comparison-card-heading">
+                          <strong>{alternative.title}</strong>
+                          <span>
+                            <button aria-label={`重命名${alternative.title}`} onClick={() => renameInstance(alternative)}><Pencil size={14} /></button>
+                            <button aria-label={`归档${alternative.title}`} onClick={() => archiveInstance(alternative)}><Archive size={14} /></button>
+                          </span>
+                        </div>
+                        <span>{comparedRevision ? `修订 ${comparedRevision.revision_number}` : "尚未计算"}</span>
                         <dl>
-                          <div><dt>控制利用率</dt><dd>{alternative.utilization?.toFixed(3) ?? "—"}</dd></div>
-                          <div><dt>材料体系</dt><dd>{alternative.material}</dd></div>
-                          <div><dt>结论</dt><dd>{alternative.status}</dd></div>
+                          <div><dt>控制利用率</dt><dd>{comparedRevision ? controllingUtilization(comparedRevision)?.toFixed(3) ?? "—" : "—"}</dd></div>
+                          <div><dt>材料体系</dt><dd>{comparedMaterial ?? "—"}</dd></div>
+                          <div><dt>结论</dt><dd>{comparedRevision ? resultStatus(comparedRevision) : "待计算"}</dd></div>
                         </dl>
-                        <small>{alternative.reportNumber}</small>
+                        <small>{comparedRevision?.report_number ?? "草稿"}</small>
+                        <button
+                          className="quiet-button"
+                          onClick={() => hydrateFromInstance(alternative, instanceRevisions[alternative.id] ?? [])}
+                        >打开方案</button>
                       </article>
-                    ))}
+                    )})}
                   </div>
                 ) : (
                   <p className="panel-description">计算后可复制为方案 A/B/C，并排比较控制利用率和主要参数。</p>

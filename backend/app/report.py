@@ -205,6 +205,7 @@ def build_scene_project_pdf(
     results: list[CalculationResult],
     report_number: str,
     project_title: str,
+    scene_context: dict | None = None,
 ) -> bytes:
     cover_buffer = BytesIO()
     document = SimpleDocTemplate(
@@ -245,6 +246,8 @@ def build_scene_project_pdf(
         "failed": "存在不满足节点",
         "incomplete": "场景计算链不完整，禁止形成整体通过结论",
     }[scene_result.status]
+    scene_context = scene_context or {}
+    draft_state = scene_context.get("draft_state", {})
     story = [
         Paragraph("Steel-Compass V2 完整场景计算报告", title),
         Spacer(1, 6 * mm),
@@ -273,6 +276,24 @@ def build_scene_project_pdf(
         ),
         Paragraph("传力链与节点状态", heading),
     ]
+    geometry = draft_state.get("geometry", {})
+    project_rows = [
+        ["项目输入", "保存值"],
+        ["材料体系", str(draft_state.get("material_system") or "未记录")],
+        ["支承 / 基础", str(draft_state.get("foundation_type") or "不适用或未记录")],
+        [
+            "地基承载力",
+            (
+                f"{draft_state.get('allowable_bearing_kpa')} kPa"
+                if draft_state.get("allowable_bearing_kpa") not in (None, "")
+                else "不适用或未记录"
+            ),
+        ],
+        ["几何参数", "；".join(f"{key}={value}" for key, value in geometry.items()) or "未记录"],
+    ]
+    project_table = Table(project_rows, colWidths=[40 * mm, 120 * mm], repeatRows=1)
+    project_table.setStyle(_table_style())
+    story.extend([Paragraph("保存输入摘要", heading), project_table])
     node_rows = [["节点", "成熟度", "状态", "说明"]]
     for node_result in scene_result.node_results.values():
         node_rows.append(

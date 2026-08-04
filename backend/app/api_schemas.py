@@ -115,6 +115,7 @@ class SceneInstanceUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=120)
     mode: CalculationMode | None = None
     draft_state: dict | None = None
+    archived: bool | None = None
     changed_node_ids: list[str] = Field(default_factory=list, max_length=50)
 
 
@@ -130,6 +131,7 @@ class SceneInstanceView(BaseModel):
     template_version: str
     draft_state: dict
     stale_node_ids: list[str]
+    archived: bool
     created_at: datetime
     updated_at: datetime
 

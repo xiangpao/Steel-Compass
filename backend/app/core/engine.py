@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from .baseplate import calculate_steel_baseplate_anchor
 from .concrete import calculate_concrete_column, calculate_concrete_member
+from .errors import CalculationInputError
 from .frame import calculate_portal_frame
 from .foundation import calculate_spread_footing, calculate_strip_footing
 from .schemas import (
@@ -11,6 +13,7 @@ from .schemas import (
     CalculationRequest,
     CalculationResult,
     CalculationWarning,
+    LoadDirection,
 )
 from .steel import calculate_steel_beam, calculate_steel_column
 from .timber import calculate_timber_beam, calculate_timber_column
@@ -39,14 +42,38 @@ def _apply_result_contract(
     critical_warning = any(
         warning.severity == "critical" for warning in result.warnings
     )
-    if hard_failure:
-        result.status = "failed"
-    elif request.mode is CalculationMode.PROFESSIONAL and (
-        verification != "independently_verified" or critical_warning
-    ):
-        result.status = "incomplete"
-    elif result.status not in {"incomplete", "not_applicable"}:
-        result.status = "passed"
+    result.workflow_status = "ready"
+    if request.mode is CalculationMode.QUICK:
+        result.quick_outcome = (
+            "screening_failed"
+            if hard_failure or critical_warning
+            else "screening_passed"
+        )
+        result.engineering_status = None
+        if result.status not in {"incomplete", "not_applicable"}:
+            result.status = "failed" if hard_failure or critical_warning else "passed"
+    else:
+        result.quick_outcome = None
+        if verification != "independently_verified":
+            # Failed checks remain useful screening evidence, but an unverified
+            # method must not emit a formal engineering failure or pass.
+            result.provisional_checks = [
+                check.model_copy(deep=True)
+                for check in result.checks
+                if not check.passed
+            ]
+            result.status = "incomplete"
+            result.engineering_status = "incomplete"
+            result.workflow_status = "capability_unavailable"
+        elif hard_failure:
+            result.status = "failed"
+            result.engineering_status = "failed"
+        elif critical_warning or result.status == "incomplete":
+            result.status = "incomplete"
+            result.engineering_status = "incomplete"
+        elif result.status != "not_applicable":
+            result.status = "passed"
+            result.engineering_status = "passed"
 
     if (
         request.mode is CalculationMode.PROFESSIONAL
@@ -66,8 +93,44 @@ def _apply_result_contract(
     return result
 
 
+def _validate_load_directions(request: CalculationRequest) -> None:
+    """Reject load directions that the selected solver cannot resolve."""
+
+    one_dimensional_modules = {
+        CalculationModule.STEEL_BEAM,
+        CalculationModule.STEEL_COLUMN,
+        CalculationModule.CONCRETE_BEAM,
+        CalculationModule.CONCRETE_SLAB,
+        CalculationModule.CONCRETE_COLUMN,
+        CalculationModule.SPREAD_FOOTING,
+        CalculationModule.STRIP_FOOTING,
+        CalculationModule.TIMBER_BEAM,
+        CalculationModule.TIMBER_COLUMN,
+        CalculationModule.STEEL_BASEPLATE_ANCHOR,
+    }
+    if request.module not in one_dimensional_modules:
+        return
+    invalid = [
+        item
+        for item in request.loads
+        if item.direction
+        not in {LoadDirection.GRAVITY, LoadDirection.UPLIFT}
+    ]
+    if invalid:
+        raise CalculationInputError(
+            "unsupported_load_direction",
+            "当前模块只接受重力或上拔方向；水平作用必须传给可解析该方向的刚架或反力包。",
+            field="loads",
+            details={
+                "module": request.module.value,
+                "directions": sorted({item.direction.value for item in invalid}),
+            },
+        )
+
+
 def calculate(request: CalculationRequest) -> CalculationResult:
     trace_id = str(uuid4())
+    _validate_load_directions(request)
     handlers = {
         CalculationModule.STEEL_BEAM: calculate_steel_beam,
         CalculationModule.STEEL_COLUMN: calculate_steel_column,
@@ -79,6 +142,7 @@ def calculate(request: CalculationRequest) -> CalculationResult:
         CalculationModule.STRIP_FOOTING: calculate_strip_footing,
         CalculationModule.TIMBER_BEAM: calculate_timber_beam,
         CalculationModule.TIMBER_COLUMN: calculate_timber_column,
+        CalculationModule.STEEL_BASEPLATE_ANCHOR: calculate_steel_baseplate_anchor,
     }
     result = handlers[request.module](request, trace_id)
     result.load_provenance = [item.model_copy(deep=True) for item in request.loads]

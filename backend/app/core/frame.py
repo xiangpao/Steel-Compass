@@ -15,7 +15,7 @@ from .common import (
     result_status,
 )
 from .errors import CalculationInputError
-from .loads import FACTOR_SETS, direction_sign
+from .loads import FACTOR_SETS, _combination_metadata, direction_sign
 from .schemas import (
     CalculationRequest,
     CalculationResult,
@@ -328,8 +328,83 @@ def calculate_portal_frame(
         if item.direction not in directions_by_kind[item.kind.value]:
             directions_by_kind[item.kind.value].append(item.direction)
     directions_by_kind.setdefault("self_weight", [LoadDirection.GRAVITY])
+    raw_upstream = request.inputs.get("upstream_reaction_envelopes")
+    transferred_combinations: list[tuple[LoadCombinationResult, float, float]] = []
+    if isinstance(raw_upstream, list) and raw_upstream:
+        if request.loads:
+            raise CalculationInputError(
+                "duplicate_frame_load_source",
+                "刚架收到上游已组合线荷载后，不得再提交普通竖向荷载重复组合。",
+                field="loads",
+            )
+        for index, raw in enumerate(raw_upstream, start=1):
+            if not isinstance(raw, dict):
+                raise CalculationInputError(
+                    "invalid_upstream_reaction_envelope",
+                    "刚架上游组合反力包格式无效。",
+                    field="upstream_reaction_envelopes",
+                )
+            transferred = raw.get("transferred_line_load")
+            if not isinstance(transferred, dict) or transferred.get("unit") != "kN/m":
+                raise CalculationInputError(
+                    "missing_transferred_line_load",
+                    "檩条至刚架连接必须提供按组合换算的 kN/m 线荷载。",
+                    field="upstream_reaction_envelopes",
+                )
+            name = str(raw.get("combination_name") or f"upstream-{index}")
+            limit_state = str(raw.get("limit_state") or "")
+            if limit_state not in {"ULS", "SLS"}:
+                raise CalculationInputError(
+                    "invalid_upstream_limit_state",
+                    "上游组合必须明确 ULS 或 SLS。",
+                    field="upstream_reaction_envelopes",
+                )
+            factor_match = next(
+                (factors for factor_name, _, factors in FACTOR_SETS if name.startswith(factor_name)),
+                None,
+            )
+            if factor_match is None:
+                raise CalculationInputError(
+                    "unknown_upstream_combination",
+                    "上游组合名称无法映射刚架自重分项系数。",
+                    field="upstream_reaction_envelopes",
+                    details={"combination_name": name},
+                )
+            transferred_q = float(transferred.get("value", 0.0))
+            q = transferred_q + beam.self_weight_kn_m * factor_match["self_weight"]
+            direction_raw = raw.get("direction") or (
+                "uplift" if transferred_q < 0 else "gravity"
+            )
+            direction = LoadDirection(direction_raw)
+            combination = LoadCombinationResult(
+                name=name,
+                combination_id=raw.get("combination_id") or f"upstream-{index}",
+                limit_state=limit_state,  # type: ignore[arg-type]
+                sls_type=raw.get("sls_type"),
+                leading_action=raw.get("leading_action"),
+                factors={"self_weight": factor_match["self_weight"]},
+                factored_by_kind={
+                    "upstream_line_load": Quantity(value=transferred_q, unit="kN/m"),
+                    "self_weight": Quantity(
+                        value=beam.self_weight_kn_m * factor_match["self_weight"],
+                        unit="kN/m",
+                    ),
+                },
+                directions_by_kind={
+                    "upstream_line_load": [direction],
+                    "self_weight": [LoadDirection.GRAVITY],
+                },
+                total=Quantity(value=q, unit="kN/m"),
+            )
+            transferred_combinations.append((combination, q, 0.0))
+
     wind_branches = list(wind_by_direction.items()) or [(LoadDirection.X_POSITIVE, 0.0)]
-    for name, limit_state, factors in FACTOR_SETS:
+    if transferred_combinations:
+        prepared_combinations = transferred_combinations
+        combinations.extend(item[0] for item in transferred_combinations)
+    else:
+        prepared_combinations = []
+    for name, limit_state, factors in (() if transferred_combinations else FACTOR_SETS):
         for wind_direction, base_wind_kn in wind_branches:
             q = sum(vertical[kind] * factors[kind] for kind in vertical)
             wind = base_wind_kn * factors["wind"]
@@ -343,10 +418,13 @@ def calculate_portal_frame(
             }
             if wind_by_direction:
                 combination_directions["wind"] = [wind_direction]
-            combinations.append(
-                LoadCombinationResult(
+            sls_type, leading_action = _combination_metadata(name)
+            combination = LoadCombinationResult(
                     name=combination_name,
                     limit_state=limit_state,  # type: ignore[arg-type]
+                    combination_id=f"frame-{len(prepared_combinations) + 1}",
+                    sls_type=sls_type,  # type: ignore[arg-type]
+                    leading_action=leading_action,
                     factors=factors,
                     factored_by_kind={
                         **{
@@ -361,24 +439,29 @@ def calculate_portal_frame(
                     directions_by_kind=combination_directions,
                     total=Quantity(value=q, unit="kN/m"),
                 )
-            )
-            elements = [
-                Element("左柱", 0, 2, column.area_mm2, column.ix_mm4, column),
-                Element(
-                    "横梁",
-                    2,
-                    3,
-                    beam.area_mm2,
-                    beam.ix_mm4,
-                    beam,
-                    distributed_q_n_mm=-q,
-                ),
-                Element("右柱", 1, 3, column.area_mm2, column.ix_mm4, column),
-            ]
-            solution = solve_portal(
-                coordinates, elements, support=support, horizontal_force_kn=wind
-            )
-            solved.append((combination_name, limit_state, q, wind, solution))
+            combinations.append(combination)
+            prepared_combinations.append((combination, q, wind))
+
+    for combination, q, wind in prepared_combinations:
+        combination_name = combination.name
+        limit_state = combination.limit_state
+        elements = [
+            Element("左柱", 0, 2, column.area_mm2, column.ix_mm4, column),
+            Element(
+                "横梁",
+                2,
+                3,
+                beam.area_mm2,
+                beam.ix_mm4,
+                beam,
+                distributed_q_n_mm=-q,
+            ),
+            Element("右柱", 1, 3, column.area_mm2, column.ix_mm4, column),
+        ]
+        solution = solve_portal(
+            coordinates, elements, support=support, horizontal_force_kn=wind
+        )
+        solved.append((combination_name, limit_state, q, wind, solution))
 
     uls_solutions = [entry for entry in solved if entry[1] == "ULS"]
     worst_solution: FrameSolution | None = None
@@ -499,7 +582,9 @@ def calculate_portal_frame(
         "right_moment": Quantity(value=service_solution.reactions[5] / 1e6, unit="kN·m"),
     }
     reaction_envelopes: list[ReactionEnvelope] = []
+    combination_by_name = {item.name: item for item in combinations}
     for combination_name, limit_state, q, wind, solution in solved:
+        combination_meta = combination_by_name[combination_name]
         if wind < 0:
             direction = LoadDirection.X_NEGATIVE
         elif wind > 0:
@@ -513,7 +598,10 @@ def calculate_portal_frame(
                 ReactionEnvelope(
                     name=side,
                     limit_state=limit_state,  # type: ignore[arg-type]
+                    combination_id=combination_meta.combination_id,
                     combination_name=combination_name,
+                    sls_type=combination_meta.sls_type,
+                    leading_action=combination_meta.leading_action,
                     direction=direction,
                     components={
                         "N": Quantity(
@@ -581,7 +669,7 @@ def calculate_portal_frame(
         governing_check=governing.name,
         warnings=[
             CalculationWarning(
-                severity="critical",
+                severity="warning",
                 code="linear_frame_beta",
                 message="刚架为二维线弹性一阶分析，不覆盖二阶效应、节点半刚性、空间作用与抗震。",
             ),

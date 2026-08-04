@@ -74,7 +74,8 @@ def test_large_eccentricity_is_reported_as_partial_contact() -> None:
     assert any(item.code == "partial_contact" for item in result.warnings)
     contact = next(item for item in result.checks if item.name == "基底全截面接触")
     assert not contact.passed
-    assert result.status == "failed"
+    assert result.status == "incomplete"
+    assert contact in result.provisional_checks
 
 
 def test_professional_foundation_without_geotechnical_confirmation_is_incomplete() -> None:
@@ -159,7 +160,8 @@ def test_uplift_failure_is_an_explicit_hard_failure() -> None:
     result = calculate(spread_request(uplift_kn=200))
     uplift = next(item for item in result.checks if item.name == "抗浮稳定")
     assert not uplift.passed
-    assert result.status == "failed"
+    assert result.status == "incomplete"
+    assert uplift in result.provisional_checks
 
 
 def test_strip_footing_preserves_eccentricity_sign_and_cancellation() -> None:
@@ -221,3 +223,10 @@ def test_upstream_uls_reaction_is_not_factored_a_second_time() -> None:
         item.name == "ULS-活荷载控制" and item.total.value == pytest.approx(210)
         for item in result.combinations
     )
+    base_uls = next(
+        item
+        for item in result.reaction_envelopes
+        if item.combination_name == "ULS-活荷载控制"
+    )
+    assert base_uls.components["N"].value == pytest.approx(210)
+    assert set(base_uls.components) == {"N", "Vx", "Vy", "Mx", "My", "T"}

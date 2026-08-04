@@ -186,6 +186,9 @@ const calculationLibrary = {
 };
 
 async function mockWorkspace(page: Page) {
+  const baseInstance = { id: 11, project_id: 9, family_id: "pergola-pavilion", variant_id: "flat-single", title: "测试场景", mode: "quick", template_version: "test-scenes-2.1", draft_state: {}, stale_node_ids: [], archived: false, created_at: "2026-07-31", updated_at: "2026-07-31" };
+  const copiedInstance = { ...baseInstance, id: 12, title: "测试场景（副本）" };
+  let instances = [baseInstance];
   await page.route("**/api/v1/auth/me", (route) => route.fulfill({ json: { id: 1, username: "tester", display_name: "测试用户", is_admin: false, must_change_password: false } }));
   await page.route("**/api/v2/scenario-families", (route) => route.fulfill({ json: families }));
   await page.route("**/api/v2/calculation-library", (route) => route.fulfill({ json: calculationLibrary }));
@@ -195,14 +198,28 @@ async function mockWorkspace(page: Page) {
     }
     return route.fulfill({ json: [] });
   });
-  await page.route("**/api/v2/projects/9/scene-instances", (route) => route.fulfill({ json: { id: 11, project_id: 9, family_id: "pergola-pavilion", variant_id: "flat-single", title: "测试场景", mode: "quick", template_version: "test-scenes-2.1", draft_state: {}, stale_node_ids: [], created_at: "2026-07-31", updated_at: "2026-07-31" } }));
-  await page.route("**/api/v2/projects/9/scene-instances/11", (route) => route.fulfill({ json: { id: 11, project_id: 9, family_id: "pergola-pavilion", variant_id: "flat-single", title: "测试场景", mode: "quick", template_version: "test-scenes-2.1", draft_state: {}, stale_node_ids: [], created_at: "2026-07-31", updated_at: "2026-07-31" } }));
-  await page.route("**/api/v2/projects/9/scene-revisions", (route) => route.fulfill({ json: {
+  await page.route("**/api/v2/projects/9/scene-instances", (route) => {
+    if (route.request().method() === "GET") return route.fulfill({ json: instances });
+    return route.fulfill({ json: baseInstance });
+  });
+  await page.route("**/api/v2/projects/9/scene-instances/11", (route) => route.fulfill({ json: baseInstance }));
+  await page.route("**/api/v2/projects/9/scene-instances/11/duplicate", (route) => {
+    instances = [copiedInstance, baseInstance];
+    return route.fulfill({ json: copiedInstance });
+  });
+  const revision = {
     id: 21, project_id: 9, revision_number: 1, snapshot_schema_version: "2.1", scene_instance_id: 11,
     scene_result: { scene_family_id: "pergola-pavilion", scene_variant_id: "flat-single", mode: "quick", status: "passed", workflow_status: "ready", engineering_status: "passed", result_class: "quick_estimate", verification_status: "unverified", completed_nodes: 4, total_required_nodes: 4, node_results: Object.fromEntries(pergolaGraph.nodes.map((node) => [node.id, { node_id: node.id, label: node.label, status: node.calculation_module ? "passed" : "completed", maturity: node.maturity, stale: false }])), missing_nodes: [], stale_node_ids: [], control_path: pergolaGraph.nodes.map((node) => node.label), warnings: ["柱脚仍需专业复核。"], catalog_versions: { scenes: "test-scenes-2.1" }, load_cases: pergolaLoads.items },
     result_bundle: { roof_members: { schema_version: "2.0", engine_version: "test", trace_id: "trace", project_name: "测试", module: "steel_beam", mode: "quick", status: "passed", result_class: "quick_estimate", verification_status: "independently_verified", standards: [], input_summary: {}, combinations: [], reactions: {}, diagrams: [], steps: [], checks: [{ name: "弯曲", demand: { value: 1, unit: "kN.m" }, capacity: { value: 2, unit: "kN.m" }, utilization: 0.5, passed: true, reference: "test" }], warnings: [], assumptions: [], applicability: [], disclaimer: "" } },
     catalog_versions: {}, engine_version: "test", report_number: "SC-TEST-001", created_at: "2026-07-31",
-  } }));
+  };
+  await page.route("**/api/v2/projects/9/scene-revisions**", (route) => {
+    if (route.request().method() === "GET") {
+      const instanceId = new URL(route.request().url()).searchParams.get("scene_instance_id");
+      return route.fulfill({ json: instanceId === "12" ? [{ ...revision, id: 22, scene_instance_id: 12, report_number: "SC-TEST-002" }] : [revision] });
+    }
+    return route.fulfill({ json: revision });
+  });
   await page.route("**/api/v2/catalogs/materials", (route) => route.fulfill({ json: { version: "test", standard_profile: "CN-2024", source_references: [], items: [] } }));
   await page.route("**/api/v2/catalogs/load-presets", (route) => route.fulfill({ json: { version: "test", confirmation_required: true, items: [] } }));
   await page.route("**/api/v2/catalogs/climate-locations", (route) => route.fulfill({ json: { version: "test-climate", coverage: "test", professional_use_requires_confirmation: true, items: [{ id: "beijing", province: "北京", city: "北京市", station: "北京站", elevation_m: 54, wind_kpa: { "10": 0.3, "50": 0.45, "100": 0.5 }, snow_kpa: { "10": 0.25, "50": 0.4, "100": 0.45 }, snow_zone: "Ⅱ" }] } }));
@@ -257,15 +274,15 @@ test("墙附悬挑雨棚不显示基础和120kPa通用默认值", async ({ page 
   await expect(page.getByText("当前变体通过墙体基材与锚栓组支承")).toBeVisible();
 });
 
-test("结果可保存方案并在修改输入后立即标记过期", async ({ page }) => {
+test("结果可复制为服务端方案并在修改输入后立即标记过期", async ({ page }) => {
   await mockWorkspace(page);
   await page.goto("/");
   await page.getByRole("button", { name: "计算并写入采用值" }).click();
   await page.getByRole("button", { name: "确认全部荷载" }).click();
   await page.getByRole("button", { name: "计算当前方案" }).click();
   await expect(page.getByText("方案快算已完成")).toBeVisible();
-  await page.getByRole("button", { name: /保存为方案 A/ }).click();
-  await expect(page.getByText("方案 A", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /复制为方案 B/ }).click();
+  await expect(page.getByText("测试场景（副本）", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "修改参数" }).click();
   await page.getByLabel("跨度").fill("5");
   await expect(page.getByText("输入已修改，旧结果不再代表当前方案")).toBeVisible();

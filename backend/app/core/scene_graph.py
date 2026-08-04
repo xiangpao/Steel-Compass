@@ -145,10 +145,8 @@ def _apply_reaction(
     connection: SceneConnection,
     source: CalculationResult,
 ) -> CalculationRequest:
-    if calculation.module is not CalculationModule.SPREAD_FOOTING:
-        return calculation
     vertical = _reaction_value(source, connection.support, "vertical")
-    if vertical is None:
+    if vertical is None and not source.reaction_envelopes:
         raise CalculationInputError(
             "missing_source_reaction",
             "上游节点没有可传递的竖向反力。",
@@ -174,37 +172,91 @@ def _apply_reaction(
         {item.name for item in source.reaction_envelopes}
     ) == 1:
         upstream_envelopes = list(source.reaction_envelopes)
+    if connection.requires_source_trace and not upstream_envelopes:
+        raise CalculationInputError(
+            "missing_source_reaction_envelope",
+            "该传力连接要求组合一致的上游反力包。",
+            details={
+                "source_node_id": connection.source_node_id,
+                "target_node_id": connection.target_node_id,
+                "source_trace_id": source.trace_id,
+            },
+        )
+
+    converted_envelopes = [item.model_dump(mode="json") for item in upstream_envelopes]
+    conversion_scale: float | None = None
+    if connection.transfer == "reaction_to_line":
+        key = connection.conversion_input_key
+        if not key:
+            raise CalculationInputError(
+                "missing_reaction_conversion_parameter",
+                "反力转线荷载连接缺少换算参数。",
+                details={"connection_id": connection.id},
+            )
+        conversion_scale = float(calculation.inputs.get(key, 0))
+        if conversion_scale <= 0:
+            raise CalculationInputError(
+                "invalid_reaction_conversion_parameter",
+                "反力转线荷载的间距必须大于零。",
+                field=key,
+                details={"connection_id": connection.id},
+            )
+        for envelope in converted_envelopes:
+            components = envelope.get("components", {})
+            vertical_component = components.get("Vy") or components.get("N")
+            if vertical_component is None:
+                raise CalculationInputError(
+                    "missing_vertical_reaction_component",
+                    "反力转线荷载要求每个组合包含竖向反力分量。",
+                    details={
+                        "connection_id": connection.id,
+                        "combination_name": envelope.get("combination_name"),
+                    },
+                )
+            envelope["transferred_line_load"] = {
+                "value": vertical_component["value"] / conversion_scale,
+                "unit": "kN/m",
+            }
     updated_inputs = {
         **calculation.inputs,
-        "horizontal_x_kn": horizontal,
-        "moment_y_kn_m": moment,
-        "uplift_kn": (
-            abs(vertical)
-            if vertical < 0
-            else calculation.inputs.get("uplift_kn", 0)
-        ),
         "reaction_source_node_id": connection.source_node_id,
         "reaction_source_trace_id": source.trace_id,
-        "upstream_reaction_envelopes": [
-            item.model_dump(mode="json") for item in upstream_envelopes
-        ],
+        "upstream_reaction_envelopes": converted_envelopes,
+        "reaction_transfer": connection.transfer,
     }
+    if conversion_scale is not None:
+        updated_inputs["reaction_conversion_scale_m"] = conversion_scale
+    if calculation.module is CalculationModule.SPREAD_FOOTING:
+        updated_inputs.update(
+            {
+                "horizontal_x_kn": horizontal,
+                "moment_y_kn_m": moment,
+                "uplift_kn": (
+                    abs(vertical)
+                    if vertical is not None and vertical < 0
+                    else calculation.inputs.get("uplift_kn", 0)
+                ),
+            }
+        )
+    updated_loads = calculation.loads
+    if calculation.module is CalculationModule.SPREAD_FOOTING and vertical is not None:
+        updated_loads = [
+            LoadItem(
+                kind=LoadKind.DEAD,
+                value=max(vertical, 0),
+                unit="kN",
+                source=(
+                    f"场景节点 {connection.source_node_id} "
+                    f"的 {connection.support} 支座反力"
+                ),
+                source_reference=f"trace:{source.trace_id}",
+                confirmed=True,
+            )
+        ]
     return calculation.model_copy(
         update={
             "inputs": updated_inputs,
-            "loads": [
-                LoadItem(
-                    kind=LoadKind.DEAD,
-                    value=max(vertical, 0),
-                    unit="kN",
-                    source=(
-                        f"场景节点 {connection.source_node_id} "
-                        f"的 {connection.support} 支座反力"
-                    ),
-                    source_reference=f"trace:{source.trace_id}",
-                    confirmed=True,
-                )
-            ],
+            "loads": updated_loads,
         },
         deep=True,
     )
@@ -452,8 +504,7 @@ def execute_scene(
         blocked_dependencies = [
             connection.source_node_id
             for connection in dependencies
-            if node_results[connection.source_node_id].status
-            not in {"completed", "passed", "not_applicable"}
+            if node_results[connection.source_node_id].workflow_status != "ready"
         ]
         if blocked_dependencies:
             blocked_by_capability = any(
@@ -506,7 +557,7 @@ def execute_scene(
                         maturity=node.maturity,
                         applicability=node.applicability,
                         workflow_status="ready",
-                        engineering_status="passed",
+                        engineering_status=None,
                         verification_status=node.verification_status,
                         message=(
                             node.quick_assumption
@@ -550,7 +601,9 @@ def execute_scene(
                     maturity=node.maturity,
                     applicability=node.applicability,
                     workflow_status="ready",
-                    engineering_status="passed",
+                    engineering_status=(
+                        None if mode is CalculationMode.QUICK else "passed"
+                    ),
                     verification_status=node.verification_status,
                 )
             continue
@@ -585,7 +638,8 @@ def execute_scene(
             source_result = calculated.get(connection.source_node_id)
             if (
                 source_result is not None
-                and connection.transfer in {"reaction_package", "combination_package"}
+                and connection.transfer
+                in {"reaction_to_line", "reaction_package", "combination_package"}
             ):
                 effective_calculation = _apply_reaction(
                     effective_calculation, connection, source_result
@@ -597,13 +651,7 @@ def execute_scene(
             and node.verification_status != "independently_verified"
             and result.status != "failed"
         )
-        calculation_engineering_status = (
-            "passed"
-            if result.status == "passed"
-            else "failed"
-            if result.status == "failed"
-            else "incomplete"
-        )
+        calculation_engineering_status = result.engineering_status
         node_results[node_id] = SceneNodeResult(
             node_id=node.id,
             label=node.label,
@@ -622,6 +670,7 @@ def execute_scene(
                 if professional_gate
                 else calculation_engineering_status
             ),
+            quick_outcome=result.quick_outcome,
             verification_status=node.verification_status,
             calculation_result=result,
             message=(
@@ -637,28 +686,28 @@ def execute_scene(
         for node in graph.nodes
         if node.applicability == "required" and node.required
     ]
-    completed_statuses = {"completed", "passed"}
     completed_count = sum(
-        node_results[node_id].status in completed_statuses
+        node_results[node_id].workflow_status == "ready"
         for node_id in required_ids
     )
     missing = [
         node_results[node_id].label
         for node_id in required_ids
-        if node_results[node_id].status not in completed_statuses
+        if node_results[node_id].workflow_status != "ready"
     ]
     any_failed = any(
         node_results[node_id].engineering_status == "failed"
         for node_id in required_ids
     )
+    any_screening_failed = any(
+        node_results[node_id].quick_outcome == "screening_failed"
+        or (
+            node_results[node_id].calculation_result is not None
+            and node_results[node_id].calculation_result.status == "failed"
+        )
+        for node_id in required_ids
+    )
     load_contract_complete = not unconfirmed_loads and not missing_load_mappings
-    if any_failed:
-        engineering_status = "failed"
-    elif completed_count == len(required_ids) and load_contract_complete:
-        engineering_status = "passed"
-    else:
-        engineering_status = "incomplete"
-
     workflow_states = {
         node_results[node_id].workflow_status for node_id in required_ids
     }
@@ -674,6 +723,32 @@ def execute_scene(
         workflow_status = "missing_inputs"
     else:
         workflow_status = "ready"
+
+    if mode is CalculationMode.QUICK:
+        engineering_status = None
+        quick_outcome = (
+            "screening_failed"
+            if any_screening_failed
+            else "screening_passed"
+            if workflow_status == "ready"
+            else None
+        )
+        legacy_status = (
+            "failed"
+            if quick_outcome == "screening_failed"
+            else "passed"
+            if quick_outcome == "screening_passed"
+            else "incomplete"
+        )
+    else:
+        quick_outcome = None
+        if any_failed:
+            engineering_status = "failed"
+        elif completed_count == len(required_ids) and load_contract_complete:
+            engineering_status = "passed"
+        else:
+            engineering_status = "incomplete"
+        legacy_status = engineering_status
 
     all_verified = all(
         nodes[node_id].verification_status == "independently_verified"
@@ -715,9 +790,10 @@ def execute_scene(
         scene_family_id=family.id,
         scene_variant_id=variant_id,
         mode=mode,
-        status=engineering_status,
+        status=legacy_status,
         workflow_status=workflow_status,
         engineering_status=engineering_status,
+        quick_outcome=quick_outcome,
         result_class=(
             "quick_estimate"
             if mode is CalculationMode.QUICK

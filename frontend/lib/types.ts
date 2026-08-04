@@ -4,6 +4,7 @@ export type Module =
   | "steel_beam"
   | "steel_column"
   | "portal_frame"
+  | "steel_baseplate_anchor"
   | "concrete_beam"
   | "concrete_slab"
   | "concrete_column"
@@ -83,6 +84,7 @@ export interface SceneNode {
   quick_assumption?: string;
   maturity: SceneMaturity;
   description: string;
+  input_bindings?: Record<string, string>;
 }
 
 export interface SceneGraphTemplate {
@@ -173,6 +175,7 @@ export interface SceneInstance {
   template_version: string;
   draft_state: Record<string, unknown>;
   stale_node_ids: string[];
+  archived: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -191,7 +194,8 @@ export interface SceneNodeResult {
   message?: string;
   stale: boolean;
   workflow_status?: WorkflowStatus;
-  engineering_status?: "passed" | "failed" | "incomplete";
+  engineering_status?: "passed" | "failed" | "incomplete" | null;
+  quick_outcome?: "screening_passed" | "screening_failed" | null;
   verification_status?: VerificationStatus;
   applicability?: "required" | "optional" | "not_applicable";
 }
@@ -202,7 +206,8 @@ export interface SceneRevisionResult {
   mode: Mode;
   status: "passed" | "failed" | "incomplete";
   workflow_status?: WorkflowStatus;
-  engineering_status?: "passed" | "failed" | "incomplete";
+  engineering_status?: "passed" | "failed" | "incomplete" | null;
+  quick_outcome?: "screening_passed" | "screening_failed" | null;
   result_class?: "quick_estimate" | "professional_check";
   verification_status?: VerificationStatus;
   completed_nodes: number;

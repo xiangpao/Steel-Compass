@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .scene_schemas import (
+    SceneCapability,
     SceneConnection,
     SceneFamily,
     SceneGraphTemplate,
@@ -52,6 +53,7 @@ def _node(
     verification_status: str = "unverified",
     quick_assumption: str | None = None,
     description: str = "",
+    input_bindings: dict[str, str] | None = None,
 ) -> SceneNode:
     return SceneNode(
         id=node_id,
@@ -64,6 +66,7 @@ def _node(
         verification_status=verification_status,
         quick_assumption=quick_assumption,
         description=description,
+        input_bindings=input_bindings or {},
     )
 
 
@@ -76,6 +79,9 @@ def _connection(
     output_unit: str | None = None,
     input_unit: str | None = None,
     support: str = "base",
+    conversion_input_key: str | None = None,
+    requires_source_trace: bool = False,
+    description: str = "",
 ) -> SceneConnection:
     return SceneConnection(
         id=connection_id,
@@ -85,6 +91,9 @@ def _connection(
         output_unit=output_unit,
         input_unit=input_unit,
         support=support,
+        conversion_input_key=conversion_input_key,
+        requires_source_trace=requires_source_trace,
+        description=description,
     )
 
 
@@ -162,6 +171,8 @@ def _variant(
     load_package: SceneLoadPackage,
     roof_form: str | None = None,
     availability: str = "public",
+    capabilities: list[SceneCapability] | None = None,
+    missing_capabilities: list[str] | None = None,
 ) -> SceneVariant:
     return SceneVariant(
         id=variant_id,
@@ -174,6 +185,18 @@ def _variant(
         roof_form=roof_form,
         graph_template=graph,
         load_package=load_package,
+        capabilities=capabilities
+        or [
+            SceneCapability(
+                material_system=material,
+                support_system=support_system,
+                graph_template_id=graph.id if availability == "public" else None,
+                availability=availability,
+                missing_capabilities=missing_capabilities or [],
+            )
+            for material in material_systems
+        ],
+        missing_capabilities=missing_capabilities or [],
     )
 
 
@@ -182,6 +205,15 @@ COMMON_FRAME_PARAMETERS = [
     _number("height_m", "柱高", "m", 3.0),
     _number("bay_spacing_m", "开间", "m", 3.0),
     _number("roof_width_m", "顶面宽度", "m", 3.0),
+]
+
+STEEL_SINGLE_SPAN_PERGOLA_PARAMETERS = [
+    _number("span_m", "横向跨度", "m", 4.0),
+    _number("height_m", "等高柱高度", "m", 3.0),
+    _number("frame_spacing_m", "纵向框架间距", "m", 3.0),
+    _number("purlin_spacing_m", "檩条间距", "m", 1.0),
+    _choice("roof_form", "顶面形式", ["平顶"], "平顶"),
+    _choice("support_system", "支承形式", ["双柱刚接落地"], "双柱刚接落地"),
 ]
 
 
@@ -421,23 +453,61 @@ WALL_LOAD_PACKAGE = _package(
 )
 
 
-def _pergola_graph(graph_id: str) -> SceneGraphTemplate:
+def _steel_single_span_pergola_graph() -> SceneGraphTemplate:
     return _graph(
-        graph_id,
+        "pergola-flat-single-steel-chain",
         [
-            _node("environment", "顶面恒载、活载与风雪", "load", maturity="verified", verification_status="independently_verified"),
-            _node("roof_members", "檩条 / 椽条", "secondary_member", "steel_beam"),
-            _node("main_frame", "主梁 / 平面刚架", "primary_member", "portal_frame"),
-            _node("base_connection", "柱脚 / 木柱脚", "connection", quick_assumption="快算按刚接柱脚传递上部反力；底板、锚栓和木柱脚连接须专项复核。"),
+            _node(
+                "environment",
+                "顶面恒载、活载与风雪",
+                "load",
+                maturity="beta",
+                verification_status="unverified",
+            ),
+            _node(
+                "roof_members",
+                "钢檩条",
+                "secondary_member",
+                "steel_beam",
+                input_bindings={
+                    "span_m": "frame_spacing_m",
+                    "tributary_width_m": "purlin_spacing_m",
+                },
+            ),
+            _node(
+                "main_frame",
+                "横向门式框架",
+                "primary_member",
+                "portal_frame",
+                input_bindings={
+                    "span_m": "span_m",
+                    "height_m": "height_m",
+                    "purlin_spacing_m": "purlin_spacing_m",
+                },
+            ),
+            _node("base_left", "左柱脚 / 底板锚栓", "connection", "steel_baseplate_anchor"),
+            _node("base_right", "右柱脚 / 底板锚栓", "connection", "steel_baseplate_anchor"),
             _node("foundation_left", "左侧基础", "foundation", "spread_footing"),
             _node("foundation_right", "右侧基础", "foundation", "spread_footing"),
         ],
         [
             _connection("c1", "environment", "roof_members", "area_to_line", output_unit="kN/m", input_unit="kN/m"),
-            _connection("c2", "roof_members", "main_frame", "reaction_package", output_unit="kN", input_unit="kN"),
-            _connection("c3", "main_frame", "base_connection", "reaction_package", output_unit="kN", input_unit="kN"),
-            _connection("c4", "base_connection", "foundation_left", "reaction_package", output_unit="kN", input_unit="kN", support="left"),
-            _connection("c5", "base_connection", "foundation_right", "reaction_package", output_unit="kN", input_unit="kN", support="right"),
+            _connection(
+                "c2",
+                "roof_members",
+                "main_frame",
+                "reaction_to_line",
+                output_unit="kN",
+                input_unit="kN",
+                support="left",
+                conversion_input_key="purlin_spacing_m",
+                requires_source_trace=True,
+                description="代表性檩条支座反力按檩条间距换算为横向框架梁线荷载。",
+            ),
+            _connection("c3", "main_frame", "base_left", "reaction_package", output_unit="kN", input_unit="kN", support="left", requires_source_trace=True),
+            _connection("c4", "main_frame", "base_right", "reaction_package", output_unit="kN", input_unit="kN", support="right", requires_source_trace=True),
+            _connection("c5", "base_left", "foundation_left", "reaction_package", output_unit="kN", input_unit="kN", requires_source_trace=True),
+            _connection("c6", "base_right", "foundation_right", "reaction_package", output_unit="kN", input_unit="kN", requires_source_trace=True),
         ],
     )
 
@@ -548,10 +618,13 @@ def _development_graph(graph_id: str, load_label: str, body_label: str) -> Scene
     )
 
 
-PERGOLA_FLAT_GRAPH = _pergola_graph("pergola-flat-chain")
-PERGOLA_MONO_GRAPH = _pergola_graph("pergola-mono-pitch-chain")
-PERGOLA_DUAL_GRAPH = _pergola_graph("pergola-dual-pitch-chain")
-PERGOLA_MULTI_GRAPH = _pergola_graph("pergola-multi-bay-chain")
+PERGOLA_FLAT_GRAPH = _steel_single_span_pergola_graph()
+PERGOLA_SLOPED_DEVELOPMENT_GRAPH = _development_graph(
+    "pergola-sloped-development-chain", "坡顶荷载", "坡顶钢/木构架"
+)
+PERGOLA_MULTI_DEVELOPMENT_GRAPH = _development_graph(
+    "pergola-multi-bay-development-chain", "多跨顶面荷载", "多跨及不同柱高构架"
+)
 CANOPY_WALL_GRAPH = _wall_canopy_graph()
 CANOPY_SINGLE_GRAPH = _column_canopy_graph("canopy-single-row-chain")
 CANOPY_DOUBLE_GRAPH = _column_canopy_graph("canopy-double-row-chain")
@@ -567,10 +640,76 @@ SCENE_FAMILIES: list[SceneFamily] = [
         availability="public",
         default_variant_id="flat-single",
         variants=[
-            _variant("flat-single", "平顶单跨", "规则平顶单跨构架。", ["钢", "木", "钢木混合"], COMMON_FRAME_PARAMETERS, support_system="双柱落地", roof_form="平顶", graph=PERGOLA_FLAT_GRAPH, load_package=PERGOLA_LOAD_PACKAGE),
-            _variant("mono-pitch", "单坡", "参数化单坡顶。", ["钢", "木", "钢木混合"], COMMON_FRAME_PARAMETERS + [_number("roof_slope_deg", "屋面坡度", "°", 8.0)], support_system="双柱落地", roof_form="单坡", graph=PERGOLA_MONO_GRAPH, load_package=PERGOLA_LOAD_PACKAGE),
-            _variant("dual-pitch", "双坡", "参数化双坡顶。", ["钢", "木", "钢木混合"], COMMON_FRAME_PARAMETERS + [_number("roof_slope_deg", "屋面坡度", "°", 15.0)], support_system="双柱落地", roof_form="双坡", graph=PERGOLA_DUAL_GRAPH, load_package=PERGOLA_LOAD_PACKAGE),
-            _variant("multi-bay", "多跨", "参数化多跨和不同柱高。", ["钢", "木", "钢木混合"], COMMON_FRAME_PARAMETERS + [_number("bay_count", "跨数", "跨", 2.0), _number("right_height_m", "右柱高", "m", 3.0)], support_system="多柱落地", roof_form="平顶", graph=PERGOLA_MULTI_GRAPH, load_package=PERGOLA_LOAD_PACKAGE),
+            _variant(
+                "flat-single",
+                "平顶单跨（等高钢构）",
+                "一个代表性纵向单元：钢檩条、横向门式框架、左右柱脚及独立基础。",
+                ["钢"],
+                STEEL_SINGLE_SPAN_PERGOLA_PARAMETERS,
+                support_system="双柱刚接落地",
+                roof_form="平顶",
+                graph=PERGOLA_FLAT_GRAPH,
+                load_package=PERGOLA_LOAD_PACKAGE,
+                capabilities=[
+                    SceneCapability(
+                        material_system="钢",
+                        support_system="双柱刚接落地",
+                        graph_template_id=PERGOLA_FLAT_GRAPH.id,
+                        availability="public",
+                    ),
+                    SceneCapability(
+                        material_system="木",
+                        support_system="双柱落地",
+                        availability="development",
+                        missing_capabilities=["木框架", "木柱脚", "木构件多级反力传递"],
+                    ),
+                    SceneCapability(
+                        material_system="钢木混合",
+                        support_system="双柱落地",
+                        availability="development",
+                        missing_capabilities=["钢木连接", "木构件反力包", "混合体系验证"],
+                    ),
+                ],
+            ),
+            _variant(
+                "mono-pitch",
+                "单坡",
+                "斜梁几何和坡向风雪映射尚未实现。",
+                ["钢", "木", "钢木混合"],
+                COMMON_FRAME_PARAMETERS + [_number("roof_slope_deg", "屋面坡度", "°", 8.0)],
+                support_system="双柱落地",
+                roof_form="单坡",
+                graph=PERGOLA_SLOPED_DEVELOPMENT_GRAPH,
+                load_package=PERGOLA_LOAD_PACKAGE,
+                availability="development",
+                missing_capabilities=["单坡框架几何", "坡向风雪作用", "斜梁反力映射"],
+            ),
+            _variant(
+                "dual-pitch",
+                "双坡",
+                "双坡屋脊节点和分坡荷载映射尚未实现。",
+                ["钢", "木", "钢木混合"],
+                COMMON_FRAME_PARAMETERS + [_number("roof_slope_deg", "屋面坡度", "°", 15.0)],
+                support_system="双柱落地",
+                roof_form="双坡",
+                graph=PERGOLA_SLOPED_DEVELOPMENT_GRAPH.model_copy(update={"id": "pergola-dual-pitch-development-chain"}, deep=True),
+                load_package=PERGOLA_LOAD_PACKAGE,
+                availability="development",
+                missing_capabilities=["双坡框架几何", "屋脊节点", "分坡风雪作用"],
+            ),
+            _variant(
+                "multi-bay",
+                "多跨 / 不同柱高",
+                "连续多跨、不同柱高和非对称反力分配尚未实现。",
+                ["钢", "木", "钢木混合"],
+                COMMON_FRAME_PARAMETERS + [_number("bay_count", "跨数", "跨", 2.0), _number("right_height_m", "右柱高", "m", 3.0)],
+                support_system="多柱落地",
+                roof_form="平顶",
+                graph=PERGOLA_MULTI_DEVELOPMENT_GRAPH,
+                load_package=PERGOLA_LOAD_PACKAGE,
+                availability="development",
+                missing_capabilities=["参数化多跨框架", "不同柱高", "非对称支座反力"],
+            ),
         ],
         graph_template=PERGOLA_FLAT_GRAPH,
         boundaries=["不支持任意三维自由建模", "连接按快算假定闭合时必须在报告中列明待复核项"],
@@ -584,9 +723,9 @@ SCENE_FAMILIES: list[SceneFamily] = [
         availability="public",
         default_variant_id="wall-cantilever",
         variants=[
-            _variant("wall-cantilever", "墙附悬挑", "墙体锚固的悬挑雨棚，不包含基础。", ["钢"], [_number("cantilever_m", "悬挑长度", "m", 1.8), _number("width_m", "雨棚宽度", "m", 3.0), _choice("wall_substrate", "墙体基材", ["钢筋混凝土", "实心砌体", "其他/待鉴定"], "钢筋混凝土")], support_system="墙体锚固", roof_form="平顶", graph=CANOPY_WALL_GRAPH, load_package=CANOPY_LOAD_PACKAGE),
-            _variant("single-row", "单排柱", "单排柱支承雨棚。", ["钢", "木"], COMMON_FRAME_PARAMETERS, support_system="单排柱", roof_form="平顶", graph=CANOPY_SINGLE_GRAPH, load_package=CANOPY_LOAD_PACKAGE),
-            _variant("double-row", "双排柱", "双排柱平面框架。", ["钢", "木"], COMMON_FRAME_PARAMETERS, support_system="双排柱", roof_form="平顶", graph=CANOPY_DOUBLE_GRAPH, load_package=CANOPY_LOAD_PACKAGE),
+            _variant("wall-cantilever", "墙附悬挑", "墙体与锚栓真实验算尚未实现。", ["钢"], [_number("cantilever_m", "悬挑长度", "m", 1.8), _number("width_m", "雨棚宽度", "m", 3.0), _choice("wall_substrate", "墙体基材", ["钢筋混凝土", "实心砌体", "其他/待鉴定"], "钢筋混凝土")], support_system="墙体锚固", roof_form="平顶", graph=CANOPY_WALL_GRAPH, load_package=CANOPY_LOAD_PACKAGE, availability="development", missing_capabilities=["既有墙体承载力", "锚栓组", "墙体基材破坏"]),
+            _variant("single-row", "单排柱", "柱脚锚栓和单排框架传力尚未闭合。", ["钢", "木"], COMMON_FRAME_PARAMETERS, support_system="单排柱", roof_form="平顶", graph=CANOPY_SINGLE_GRAPH, load_package=CANOPY_LOAD_PACKAGE, availability="development", missing_capabilities=["单排框架", "柱脚锚栓", "材料体系映射"]),
+            _variant("double-row", "双排柱", "双排框架和材料体系尚未真实映射。", ["钢", "木"], COMMON_FRAME_PARAMETERS, support_system="双排柱", roof_form="平顶", graph=CANOPY_DOUBLE_GRAPH, load_package=CANOPY_LOAD_PACKAGE, availability="development", missing_capabilities=["双排框架", "柱脚锚栓", "材料体系映射"]),
         ],
         graph_template=CANOPY_WALL_GRAPH,
         boundaries=["墙附式必须提供墙体基材和锚固资料", "墙附式不生成基础节点或基础输入"],
@@ -600,10 +739,10 @@ SCENE_FAMILIES: list[SceneFamily] = [
         availability="public",
         default_variant_id="single-post",
         variants=[
-            _variant("single-post", "单柱", "单根立柱导视牌。", ["钢"], [_number("panel_width_m", "面板宽度", "m", 1.2), _number("panel_height_m", "面板高度", "m", 0.8), _number("post_height_m", "立柱高度", "m", 2.5)], support_system="单柱落地", graph=SIGN_GRAPH, load_package=SIGN_LOAD_PACKAGE),
-            _variant("double-post", "双柱", "双柱对称或非对称面板。", ["钢"], [_number("panel_width_m", "面板宽度", "m", 2.4), _number("panel_height_m", "面板高度", "m", 1.2), _number("post_spacing_m", "柱间距", "m", 1.6)], support_system="双柱落地", graph=SIGN_GRAPH.model_copy(update={"id": "signage-double-post-chain"}, deep=True), load_package=SIGN_LOAD_PACKAGE),
-            _variant("ground-mounted", "落地式", "低重心落地导视或广告牌。", ["钢", "混凝土"], [_number("panel_width_m", "面板宽度", "m", 2.0), _number("panel_height_m", "面板高度", "m", 1.5)], support_system="底座落地", graph=SIGN_GRAPH.model_copy(update={"id": "signage-ground-mounted-chain"}, deep=True), load_package=SIGN_LOAD_PACKAGE),
-            _variant("eccentric-panel", "偏心 / 倾斜面板", "参数化偏心距和倾角。", ["钢"], [_number("panel_width_m", "面板宽度", "m", 1.5), _number("eccentricity_m", "面板偏心距", "m", 0.3), _number("tilt_deg", "面板倾角", "°", 8.0)], support_system="单柱落地", graph=SIGN_GRAPH.model_copy(update={"id": "signage-eccentric-chain"}, deep=True), load_package=SIGN_LOAD_PACKAGE),
+            _variant("single-post", "单柱", "面板至柱脚锚栓的真实传力尚未闭合。", ["钢"], [_number("panel_width_m", "面板宽度", "m", 1.2), _number("panel_height_m", "面板高度", "m", 0.8), _number("post_height_m", "立柱高度", "m", 2.5)], support_system="单柱落地", graph=SIGN_GRAPH, load_package=SIGN_LOAD_PACKAGE, availability="development", missing_capabilities=["面板风荷载转柱内力", "底板锚栓", "组合一致反力"]),
+            _variant("double-post", "双柱", "双柱分配模型尚未实现。", ["钢"], [_number("panel_width_m", "面板宽度", "m", 2.4), _number("panel_height_m", "面板高度", "m", 1.2), _number("post_spacing_m", "柱间距", "m", 1.6)], support_system="双柱落地", graph=SIGN_GRAPH.model_copy(update={"id": "signage-double-post-chain"}, deep=True), load_package=SIGN_LOAD_PACKAGE, availability="development", missing_capabilities=["双柱荷载分配", "底板锚栓", "双基础反力"]),
+            _variant("ground-mounted", "落地式", "落地底座体系尚未实现。", ["钢", "混凝土"], [_number("panel_width_m", "面板宽度", "m", 2.0), _number("panel_height_m", "面板高度", "m", 1.5)], support_system="底座落地", graph=SIGN_GRAPH.model_copy(update={"id": "signage-ground-mounted-chain"}, deep=True), load_package=SIGN_LOAD_PACKAGE, availability="development", missing_capabilities=["落地底座", "混凝土构件", "抗倾覆传力"]),
+            _variant("eccentric-panel", "偏心 / 倾斜面板", "偏心、倾斜和扭矩传递尚未实现。", ["钢"], [_number("panel_width_m", "面板宽度", "m", 1.5), _number("eccentricity_m", "面板偏心距", "m", 0.3), _number("tilt_deg", "面板倾角", "°", 8.0)], support_system="单柱落地", graph=SIGN_GRAPH.model_copy(update={"id": "signage-eccentric-chain"}, deep=True), load_package=SIGN_LOAD_PACKAGE, availability="development", missing_capabilities=["偏心面板", "倾斜风作用", "扭矩传递"]),
         ],
         graph_template=SIGN_GRAPH,
         boundaries=["底板与锚栓快算仅传递反力，不替代连接设计", "桩基不在首批公开范围"],
@@ -617,10 +756,10 @@ SCENE_FAMILIES: list[SceneFamily] = [
         availability="public",
         default_variant_id="constrained-masonry",
         variants=[
-            _variant("constrained-masonry", "约束砌体景墙", "首选常用构造体系。", ["砌体+混凝土"], [_number("height_m", "墙高", "m", 2.0), _number("thickness_mm", "墙厚", "mm", 240.0), _number("column_spacing_m", "构造柱间距", "m", 3.0)], support_system="地梁+条形基础", graph=WALL_GRAPH, load_package=WALL_LOAD_PACKAGE),
-            _variant("concrete-straight", "现浇混凝土墙", "现浇钢筋混凝土直线景墙。", ["混凝土"], [_number("height_m", "墙高", "m", 2.0), _number("thickness_mm", "墙厚", "mm", 200.0)], support_system="条形基础", graph=WALL_GRAPH.model_copy(update={"id": "rc-landscape-wall-chain"}, deep=True), load_package=WALL_LOAD_PACKAGE),
-            _variant("steel-infill", "钢立柱轻质填充墙", "钢立柱和轻质填充面层。", ["钢", "钢木混合"], [_number("height_m", "墙高", "m", 2.4), _number("post_spacing_m", "柱间距", "m", 2.0)], support_system="立柱独立基础", graph=WALL_GRAPH.model_copy(update={"id": "steel-infill-wall-chain"}, deep=True), load_package=WALL_LOAD_PACKAGE),
-            _variant("plain-masonry", "纯砌体低墙（专业）", "仅作为特殊低墙专业选项，不作为默认。", ["砌体"], [_number("height_m", "墙高", "m", 1.2), _number("thickness_mm", "墙厚", "mm", 240.0)], support_system="条形基础", graph=WALL_GRAPH.model_copy(update={"id": "plain-masonry-wall-chain"}, deep=True), load_package=WALL_LOAD_PACKAGE),
+            _variant("constrained-masonry", "约束砌体景墙", "墙片、构造柱和地梁尚无真实构件验算。", ["砌体+混凝土"], [_number("height_m", "墙高", "m", 2.0), _number("thickness_mm", "墙厚", "mm", 240.0), _number("column_spacing_m", "构造柱间距", "m", 3.0)], support_system="地梁+条形基础", graph=WALL_GRAPH, load_package=WALL_LOAD_PACKAGE, availability="development", missing_capabilities=["砌体墙片", "构造柱", "地梁及压顶梁"]),
+            _variant("concrete-straight", "现浇混凝土墙", "现浇墙面外受弯与裂缝验算尚未实现。", ["混凝土"], [_number("height_m", "墙高", "m", 2.0), _number("thickness_mm", "墙厚", "mm", 200.0)], support_system="条形基础", graph=WALL_GRAPH.model_copy(update={"id": "rc-landscape-wall-chain"}, deep=True), load_package=WALL_LOAD_PACKAGE, availability="development", missing_capabilities=["混凝土墙", "裂缝验算", "墙基传力"]),
+            _variant("steel-infill", "钢立柱轻质填充墙", "填充面层至钢柱和独立基础的传力尚未实现。", ["钢", "钢木混合"], [_number("height_m", "墙高", "m", 2.4), _number("post_spacing_m", "柱间距", "m", 2.0)], support_system="立柱独立基础", graph=WALL_GRAPH.model_copy(update={"id": "steel-infill-wall-chain"}, deep=True), load_package=WALL_LOAD_PACKAGE, availability="development", missing_capabilities=["轻质面层", "钢柱脚", "独立基础链"]),
+            _variant("plain-masonry", "纯砌体低墙（专业）", "砌体稳定与构造适用范围尚未映射。", ["砌体"], [_number("height_m", "墙高", "m", 1.2), _number("thickness_mm", "墙厚", "mm", 240.0)], support_system="条形基础", graph=WALL_GRAPH.model_copy(update={"id": "plain-masonry-wall-chain"}, deep=True), load_package=WALL_LOAD_PACKAGE, availability="development", missing_capabilities=["砌体稳定", "构造限制", "规范适用范围"]),
         ],
         graph_template=WALL_GRAPH,
         boundaries=["不覆盖纵向不均匀沉降、复杂开洞和复杂地基梁效应", "纯砌体仅限专业人员核定的适用范围"],
@@ -634,15 +773,30 @@ SCENE_FAMILIES: list[SceneFamily] = [
         availability="public",
         default_variant_id="single-span",
         variants=[
-            _variant("single-span", "单跨门楼", "规则单跨入口构架。", ["钢", "混凝土"], COMMON_FRAME_PARAMETERS, support_system="双柱落地", graph=ENTRANCE_GRAPH, load_package=ENTRANCE_LOAD_PACKAGE),
-            _variant("multi-span", "多跨门楼", "参数化多跨构架。", ["钢", "混凝土"], COMMON_FRAME_PARAMETERS + [_number("bay_count", "跨数", "跨", 2.0)], support_system="多柱落地", graph=ENTRANCE_GRAPH.model_copy(update={"id": "entrance-multi-span-chain"}, deep=True), load_package=ENTRANCE_LOAD_PACKAGE),
-            _variant("eccentric-lintel", "偏心门楣", "门楣相对柱轴偏心。", ["钢"], COMMON_FRAME_PARAMETERS + [_number("eccentricity_m", "偏心距", "m", 0.5)], support_system="双柱落地", graph=ENTRANCE_GRAPH.model_copy(update={"id": "entrance-eccentric-chain"}, deep=True), load_package=ENTRANCE_LOAD_PACKAGE),
-            _variant("unequal-columns", "不同柱高", "参数化左右柱高。", ["钢"], COMMON_FRAME_PARAMETERS + [_number("right_height_m", "右柱高", "m", 3.6)], support_system="双柱落地", graph=ENTRANCE_GRAPH.model_copy(update={"id": "entrance-unequal-column-chain"}, deep=True), load_package=ENTRANCE_LOAD_PACKAGE),
+            _variant("single-span", "单跨门楼", "面层、柱脚锚栓和材料体系尚未形成真实闭环。", ["钢", "混凝土"], COMMON_FRAME_PARAMETERS, support_system="双柱落地", graph=ENTRANCE_GRAPH, load_package=ENTRANCE_LOAD_PACKAGE, availability="development", missing_capabilities=["面层荷载映射", "柱脚锚栓", "混凝土框架"]),
+            _variant("multi-span", "多跨门楼", "多跨模型尚未实现。", ["钢", "混凝土"], COMMON_FRAME_PARAMETERS + [_number("bay_count", "跨数", "跨", 2.0)], support_system="多柱落地", graph=ENTRANCE_GRAPH.model_copy(update={"id": "entrance-multi-span-chain"}, deep=True), load_package=ENTRANCE_LOAD_PACKAGE, availability="development", missing_capabilities=["多跨框架", "多支座反力", "柱脚锚栓"]),
+            _variant("eccentric-lintel", "偏心门楣", "偏心扭矩传递尚未实现。", ["钢"], COMMON_FRAME_PARAMETERS + [_number("eccentricity_m", "偏心距", "m", 0.5)], support_system="双柱落地", graph=ENTRANCE_GRAPH.model_copy(update={"id": "entrance-eccentric-chain"}, deep=True), load_package=ENTRANCE_LOAD_PACKAGE, availability="development", missing_capabilities=["偏心门楣", "扭矩传递", "柱脚锚栓"]),
+            _variant("unequal-columns", "不同柱高", "非对称框架几何尚未实现。", ["钢"], COMMON_FRAME_PARAMETERS + [_number("right_height_m", "右柱高", "m", 3.6)], support_system="双柱落地", graph=ENTRANCE_GRAPH.model_copy(update={"id": "entrance-unequal-column-chain"}, deep=True), load_package=ENTRANCE_LOAD_PACKAGE, availability="development", missing_capabilities=["不同柱高", "非对称框架", "柱脚锚栓"]),
         ],
         graph_template=ENTRANCE_GRAPH,
         boundaries=["偏心和不同柱高按参数化二维模型处理", "连接快算假定必须在报告中列明"],
     ),
 ]
+
+
+DEVELOPMENT_DEPENDENCIES = {
+    "boardwalk-platform": [
+        "木面板单向分配",
+        "钢次梁与主梁多级反力包",
+        "钢柱脚与独立基础",
+    ],
+    "water-feature-pool": [
+        "水压力与土压力",
+        "地下水浮力与抗浮组合",
+        "钢筋混凝土池壁",
+        "池底板与地基接触",
+    ],
+}
 
 
 for family_id, title, description, icon, variants, load_label, body_label in [
@@ -672,8 +826,12 @@ for family_id, title, description, icon, variants, load_label, body_label in [
                 _variant(
                     variant_id,
                     variant_title,
-                    "该变体正在开发，当前仅展示范围。",
-                    ["待定"],
+                    (
+                        "首版限定为水平直线、木面板、钢次梁/主梁、钢柱、柱脚和独立基础。"
+                        if family_id == "boardwalk-platform" and variant_id == "straight"
+                        else "该变体正在开发，当前仅展示范围。"
+                    ),
+                    (["木面板+钢构"] if family_id == "boardwalk-platform" and variant_id == "straight" else ["待定"]),
                     [],
                     support_system="待验证",
                     graph=graph.model_copy(
@@ -682,11 +840,21 @@ for family_id, title, description, icon, variants, load_label, body_label in [
                     ),
                     load_package=package,
                     availability="development",
+                    missing_capabilities=DEVELOPMENT_DEPENDENCIES.get(
+                        family_id, ["完整计算图", "规范映射", "独立验证"]
+                    ),
                 )
                 for variant_id, variant_title in variants
             ],
             graph_template=graph,
-            boundaries=["当前仅展示规划范围，不允许创建实例或输出结论"],
+            boundaries=[
+                "当前仅展示规划范围，不允许创建实例或输出结论",
+                "依赖：" + "、".join(
+                    DEVELOPMENT_DEPENDENCIES.get(
+                        family_id, ["完整计算图", "规范映射", "独立验证"]
+                    )
+                ),
+            ],
         )
     )
 

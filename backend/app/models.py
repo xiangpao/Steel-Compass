@@ -137,6 +137,7 @@ class SceneInstance(Base):
     template_version: Mapped[str] = mapped_column(String(40))
     draft_state: Mapped[dict] = mapped_column(JSON, default=dict)
     stale_node_ids: Mapped[list] = mapped_column(JSON, default=list)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow

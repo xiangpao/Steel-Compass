@@ -20,6 +20,14 @@ SceneNodeStatus = Literal[
 ]
 
 
+class SceneCapability(BaseModel):
+    material_system: str
+    support_system: str
+    graph_template_id: str | None = None
+    availability: SceneAvailability = "public"
+    missing_capabilities: list[str] = Field(default_factory=list)
+
+
 class SceneParameter(BaseModel):
     key: str
     label: str
@@ -50,6 +58,7 @@ class SceneNode(BaseModel):
     verification_status: VerificationStatus = "unverified"
     quick_assumption: str | None = None
     description: str = ""
+    input_bindings: dict[str, str] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def synchronize_applicability(self) -> "SceneNode":
@@ -67,6 +76,7 @@ class SceneConnection(BaseModel):
     transfer: Literal[
         "area_to_line",
         "line_to_reaction",
+        "reaction_to_line",
         "reaction_package",
         "combination_package",
         "manual",
@@ -74,6 +84,8 @@ class SceneConnection(BaseModel):
     output_unit: str | None = None
     input_unit: str | None = None
     support: Literal["base", "left", "right"] = "base"
+    conversion_input_key: str | None = None
+    requires_source_trace: bool = False
     description: str = ""
 
 
@@ -161,6 +173,30 @@ class SceneVariant(BaseModel):
     roof_form: str | None = None
     graph_template: SceneGraphTemplate | None = None
     load_package: SceneLoadPackage | None = None
+    capabilities: list[SceneCapability] = Field(default_factory=list)
+    missing_capabilities: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_capability_matrix(self) -> "SceneVariant":
+        public_materials = {
+            item.material_system
+            for item in self.capabilities
+            if item.availability == "public"
+        }
+        if self.availability == "public":
+            if not public_materials:
+                raise ValueError("公开场景变体必须至少声明一个可计算材料体系")
+            if public_materials != set(self.material_systems):
+                raise ValueError("material_systems 只能列出当前可计算的材料体系")
+            if any(
+                item.graph_template_id is None
+                for item in self.capabilities
+                if item.availability == "public"
+            ):
+                raise ValueError("公开能力必须绑定计算图")
+        elif public_materials:
+            raise ValueError("开发中场景变体不得包含公开计算能力")
+        return self
 
 
 class SceneFamily(BaseModel):
@@ -188,7 +224,8 @@ class SceneNodeResult(BaseModel):
     maturity: SceneMaturity
     applicability: SceneApplicability = "required"
     workflow_status: WorkflowStatus = "missing_inputs"
-    engineering_status: EngineeringStatus = "incomplete"
+    engineering_status: EngineeringStatus | None = None
+    quick_outcome: Literal["screening_passed", "screening_failed"] | None = None
     verification_status: VerificationStatus = "unverified"
     calculation_result: CalculationResult | None = None
     message: str | None = None
@@ -222,7 +259,8 @@ class SceneRevisionResult(BaseModel):
     mode: CalculationMode
     status: EngineeringStatus
     workflow_status: WorkflowStatus = "missing_inputs"
-    engineering_status: EngineeringStatus = "incomplete"
+    engineering_status: EngineeringStatus | None = None
+    quick_outcome: Literal["screening_passed", "screening_failed"] | None = None
     result_class: Literal["quick_estimate", "professional_check"] | None = None
     verification_status: VerificationStatus = "unverified"
     graph_template_id: str | None = None

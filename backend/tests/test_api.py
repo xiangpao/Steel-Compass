@@ -158,9 +158,9 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
         scene_instance = client.post(
             f"/api/v2/projects/{project_id}/scene-instances",
             json={
-                "family_id": "signage-billboard",
-                "variant_id": "single-post",
-                "title": "入口导视完整场景",
+                "family_id": "pergola-pavilion",
+                "variant_id": "flat-single",
+                "title": "钢单跨廊架方案 A",
                 "mode": "quick",
                 "draft_state": {"wizard_step": 3, "panel_width_m": 1.2},
             },
@@ -174,35 +174,94 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
             ),
             json={
                 "draft_state": {"wizard_step": 4, "panel_width_m": 1.5},
-                "changed_node_ids": ["wind_panel"],
+                "changed_node_ids": ["environment"],
             },
         )
         assert updated_instance.status_code == 200, updated_instance.text
-        assert updated_instance.json()["stale_node_ids"] == [
-            "post",
-            "base_plate",
-            "foundation",
-        ]
+        assert updated_instance.json()["stale_node_ids"] == []
         scene_revision = client.post(
             f"/api/v2/projects/{project_id}/scene-revisions",
             json={
                 "scene_instance_id": instance_data["id"],
                 "node_calculations": [],
-                "confirmed_input_nodes": ["wind_panel"],
+                "confirmed_input_nodes": ["environment"],
             },
         )
         assert scene_revision.status_code == 201, scene_revision.text
         scene_result = scene_revision.json()["scene_result"]
         assert scene_result["status"] == "incomplete"
-        assert scene_result["engineering_status"] == "incomplete"
-        assert scene_result["workflow_status"] == "stale"
+        assert scene_result["engineering_status"] is None
+        assert scene_result["quick_outcome"] is None
+        assert scene_result["workflow_status"] == "missing_inputs"
         assert scene_result["result_class"] == "quick_estimate"
         assert scene_result["verification_status"] == "unverified"
         assert scene_result["load_cases"]
         assert scene_result["completed_nodes"] == 1
-        assert scene_result["total_required_nodes"] == 4
-        assert "底板与锚栓" in scene_result["missing_nodes"]
-        assert scene_revision.json()["snapshot_schema_version"] == "2.1"
+        assert scene_result["total_required_nodes"] == 7
+        assert "左柱脚 / 底板锚栓" in scene_result["missing_nodes"]
+        assert scene_revision.json()["snapshot_schema_version"] == "3.0"
+        stale_after_result = client.patch(
+            (
+                f"/api/v2/projects/{project_id}/scene-instances/"
+                f"{instance_data['id']}"
+            ),
+            json={"changed_node_ids": ["environment"]},
+        )
+        assert stale_after_result.json()["stale_node_ids"] == [
+            "roof_members",
+            "main_frame",
+            "base_left",
+            "base_right",
+            "foundation_left",
+            "foundation_right",
+        ]
+        revisions = client.get(
+            f"/api/v2/projects/{project_id}/scene-revisions",
+            params={"scene_instance_id": instance_data["id"]},
+        )
+        assert revisions.status_code == 200
+        assert [item["id"] for item in revisions.json()] == [
+            scene_revision.json()["id"]
+        ]
+        duplicated_instance = client.post(
+            (
+                f"/api/v2/projects/{project_id}/scene-instances/"
+                f"{instance_data['id']}/duplicate"
+            )
+        )
+        assert duplicated_instance.status_code == 201
+        duplicate_data = duplicated_instance.json()
+        assert duplicate_data["title"] == "钢单跨廊架方案 A（副本）"
+        duplicate_revisions = client.get(
+            f"/api/v2/projects/{project_id}/scene-revisions",
+            params={"scene_instance_id": duplicate_data["id"]},
+        )
+        assert duplicate_revisions.status_code == 200
+        assert len(duplicate_revisions.json()) == 1
+        assert duplicate_revisions.json()[0]["report_number"] != scene_revision.json()[
+            "report_number"
+        ]
+        archived = client.patch(
+            (
+                f"/api/v2/projects/{project_id}/scene-instances/"
+                f"{duplicate_data['id']}"
+            ),
+            json={"title": "方案 B", "archived": True},
+        )
+        assert archived.status_code == 200
+        assert archived.json()["archived"] is True
+        visible_instances = client.get(
+            f"/api/v2/projects/{project_id}/scene-instances"
+        ).json()
+        assert {item["id"] for item in visible_instances} == {instance_data["id"]}
+        all_instances = client.get(
+            f"/api/v2/projects/{project_id}/scene-instances",
+            params={"include_archived": True},
+        ).json()
+        assert {item["id"] for item in all_instances} == {
+            instance_data["id"],
+            duplicate_data["id"],
+        }
         scene_report = client.get(
             (
                 f"/api/v2/projects/{project_id}/revisions/"

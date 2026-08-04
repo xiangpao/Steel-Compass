@@ -85,11 +85,42 @@ def _reaction_vertical(envelope: ReactionEnvelope) -> float:
 
 def _reaction_combinations(
     envelopes: list[ReactionEnvelope], permanent_weight: float, uplift: float
-) -> list[LoadCombinationResult]:
-    return [
+) -> tuple[list[ReactionEnvelope], list[LoadCombinationResult]]:
+    adjusted: list[ReactionEnvelope] = []
+    combinations: list[LoadCombinationResult] = []
+    for index, item in enumerate(envelopes):
+        permanent_factor = 1.0 if item.limit_state == "SLS" else 1.3
+        uplift_factor = 1.0 if item.limit_state == "SLS" else 1.5
+        vertical = (
+            _reaction_vertical(item)
+            + permanent_factor * permanent_weight
+            - uplift_factor * uplift
+        )
+        components = {
+            name: quantity.model_copy(deep=True)
+            for name, quantity in item.components.items()
+        }
+        components["N"] = Quantity(value=vertical, unit="kN")
+        adjusted_item = ReactionEnvelope(
+            name=item.name,
+            limit_state=item.limit_state,
+            combination_id=item.combination_id or f"legacy-{index + 1}",
+            combination_name=item.combination_name,
+            sls_type=item.sls_type,
+            leading_action=item.leading_action,
+            direction=(
+                LoadDirection.UPLIFT if vertical < 0 else LoadDirection.GRAVITY
+            ),
+            components=components,  # type: ignore[arg-type]
+        )
+        adjusted.append(adjusted_item)
+        combinations.append(
         LoadCombinationResult(
             name=item.combination_name or f"上游反力-{index + 1}",
             limit_state=item.limit_state,
+            combination_id=adjusted_item.combination_id,
+            sls_type=item.sls_type,
+            leading_action=item.leading_action,
             factors={},
             factored_by_kind={
                 "upstream_reaction": Quantity(
@@ -102,20 +133,13 @@ def _reaction_combinations(
                 ]
             },
             total=Quantity(
-                value=(
-                    _reaction_vertical(item)
-                    + (
-                        permanent_weight
-                        if item.limit_state == "SLS"
-                        else 1.3 * permanent_weight
-                    )
-                    - (uplift if item.limit_state == "SLS" else 1.5 * uplift)
-                ),
+                value=vertical,
                 unit="kN",
             ),
+            effect_components=components,  # type: ignore[arg-type]
         )
-        for index, item in enumerate(envelopes)
-    ]
+        )
+    return adjusted, combinations
 
 
 def _rebar(grade: str) -> dict:
@@ -326,12 +350,17 @@ def calculate_spread_footing(
         groundwater_depth_m=groundwater_depth,
     )
     permanent_weight = footing_weight + cover_weight
+    adjusted_reactions: list[ReactionEnvelope] = []
+    design_reaction: ReactionEnvelope | None = None
     if upstream_reactions:
+        adjusted_reactions, result_combinations = _reaction_combinations(
+            upstream_reactions, permanent_weight, uplift
+        )
         sls_reactions = [
-            item for item in upstream_reactions if item.limit_state == "SLS"
+            item for item in adjusted_reactions if item.limit_state == "SLS"
         ]
         uls_reactions = [
-            item for item in upstream_reactions if item.limit_state == "ULS"
+            item for item in adjusted_reactions if item.limit_state == "ULS"
         ]
         if not sls_reactions or not uls_reactions:
             from .errors import CalculationInputError
@@ -344,7 +373,7 @@ def calculate_spread_footing(
 
         def pressure_score(item: ReactionEnvelope) -> float:
             vertical = max(
-                _reaction_vertical(item) + permanent_weight - uplift,
+                _reaction_vertical(item),
                 1e-9,
             )
             mx = _reaction_component(item, "Mx")
@@ -356,16 +385,9 @@ def calculate_spread_footing(
             )
 
         pressure_reaction = max(sls_reactions, key=pressure_score)
-        service_vertical = (
-            _reaction_vertical(pressure_reaction)
-            + permanent_weight
-            - uplift
-        )
-        design_vertical = (
-            max(_reaction_vertical(item) for item in uls_reactions)
-            + 1.3 * permanent_weight
-            - 1.5 * uplift
-        )
+        design_reaction = max(uls_reactions, key=pressure_score)
+        service_vertical = _reaction_vertical(pressure_reaction)
+        design_vertical = _reaction_vertical(design_reaction)
         moment_x = _reaction_component(pressure_reaction, "Mx")
         moment_y = _reaction_component(pressure_reaction, "My")
         horizontal_reaction = max(
@@ -383,9 +405,6 @@ def calculate_spread_footing(
             if "N" in horizontal_reaction.components
             else 0.0
         )
-        result_combinations = _reaction_combinations(
-            upstream_reactions, permanent_weight, uplift
-        )
     else:
         service_vertical = envelope.maximum_sls.total.value + permanent_weight - uplift
         design_vertical = envelope.maximum_uls.total.value + 1.3 * permanent_weight - 1.5 * uplift
@@ -399,19 +418,28 @@ def calculate_spread_footing(
     qmin = average_pressure * (1 - 6 * ex / length - 6 * ey / width)
     contact_ratio = max(0.0, min(1.0, qmin / max(qmax, 1e-9)))
     horizontal = hypot(horizontal_x, horizontal_y)
-    sliding_capacity = max(service_vertical, 0) * friction
-    overturning = (
-        max(
-            hypot(
+    if sls_reactions:
+        sliding_capacity = max(_reaction_vertical(horizontal_reaction), 0) * friction
+        overturning_reaction = max(
+            sls_reactions,
+            key=lambda item: hypot(
                 _reaction_component(item, "Mx"),
                 _reaction_component(item, "My"),
-            )
-            for item in sls_reactions
+            ),
         )
-        if sls_reactions
-        else hypot(moment_x, moment_y)
-    )
-    resisting_moment = max(service_vertical, 0) * min(length, width) / 2
+        overturning = hypot(
+            _reaction_component(overturning_reaction, "Mx"),
+            _reaction_component(overturning_reaction, "My"),
+        )
+        resisting_moment = (
+            max(_reaction_vertical(overturning_reaction), 0)
+            * min(length, width)
+            / 2
+        )
+    else:
+        sliding_capacity = max(service_vertical, 0) * friction
+        overturning = hypot(moment_x, moment_y)
+        resisting_moment = max(service_vertical, 0) * min(length, width) / 2
 
     d_x = thickness - cover - bar_dia_x / 2
     d_y = thickness - cover - bar_dia_y / 2
@@ -422,8 +450,19 @@ def calculate_spread_footing(
             "invalid_effective_depth",
             "保护层与钢筋直径导致基础有效高度不大于 0",
         )
-    load_ratio = max(design_vertical, 0) / max(service_vertical, 1e-9)
-    q_design = max(qmax, 0) * load_ratio
+    if design_reaction is not None:
+        design_n = max(_reaction_vertical(design_reaction), 1e-9)
+        design_ex = abs(_reaction_component(design_reaction, "My")) / design_n
+        design_ey = abs(_reaction_component(design_reaction, "Mx")) / design_n
+        q_design = max(
+            design_n
+            / area
+            * (1 + 6 * design_ex / length + 6 * design_ey / width),
+            0,
+        )
+    else:
+        load_ratio = max(design_vertical, 0) / max(service_vertical, 1e-9)
+        q_design = max(qmax, 0) * load_ratio
     cantilever_x = (length - column_x / 1000) / 2
     cantilever_y = (width - column_y / 1000) / 2
     shear_x = max(q_design * width * (cantilever_x - d_x / 1000), 0)
@@ -448,11 +487,12 @@ def calculate_spread_footing(
     )
 
     if sls_reactions:
-        minimum_vertical = min(
-            _reaction_vertical(item) for item in sls_reactions
-        )
-        uplift_demand = max(-minimum_vertical, 0) + uplift
-        uplift_resistance = permanent_weight
+        uplift_reaction = min(sls_reactions, key=_reaction_vertical)
+        minimum_vertical = _reaction_vertical(uplift_reaction)
+        # Reactions are already adjusted for footing/cover weight and explicit
+        # uplift. Any negative net vertical effect is therefore a failure.
+        uplift_demand = max(-minimum_vertical, 0)
+        uplift_resistance = 0.0
     else:
         downward_external = sum(
             item.value
@@ -553,6 +593,21 @@ def calculate_spread_footing(
             "GB/T 50010-2010 受弯与最小配筋",
         ),
     ]
+    if sls_reactions and design_reaction is not None:
+        combination_by_check = {
+            "地基承载力": pressure_reaction.combination_name,
+            "基底全截面接触": pressure_reaction.combination_name,
+            "抗滑稳定": horizontal_reaction.combination_name,
+            "抗倾覆稳定": overturning_reaction.combination_name,
+            "抗浮稳定": uplift_reaction.combination_name,
+            "X向单向剪切": design_reaction.combination_name,
+            "Y向单向剪切": design_reaction.combination_name,
+            "柱边冲切": design_reaction.combination_name,
+            "X向底筋": design_reaction.combination_name,
+            "Y向底筋": design_reaction.combination_name,
+        }
+        for check in checks:
+            check.governing_combination = combination_by_check.get(check.name)
     complete = (
         request.mode is CalculationMode.QUICK
         or (groundwater_known and groundwater_depth is not None and bool(soil_source))
@@ -630,11 +685,14 @@ def calculate_spread_footing(
             "Mx": Quantity(value=moment_x, unit="kN·m"),
             "My": Quantity(value=moment_y, unit="kN·m"),
         },
-        reaction_envelopes=[
+        reaction_envelopes=adjusted_reactions or [
             ReactionEnvelope(
                 name="footing_base",
                 limit_state=combination.limit_state,
+                combination_id=combination.combination_id,
                 combination_name=combination.name,
+                sls_type=combination.sls_type,
+                leading_action=combination.leading_action,
                 direction=(
                     LoadDirection.UPLIFT
                     if combination.total.value < 0
@@ -642,7 +700,19 @@ def calculate_spread_footing(
                 ),
                 components={
                     "N": Quantity(
-                        value=combination.total.value + permanent_weight - uplift,
+                        value=(
+                            combination.total.value
+                            + (
+                                permanent_weight
+                                if combination.limit_state == "SLS"
+                                else 1.3 * permanent_weight
+                            )
+                            - (
+                                uplift
+                                if combination.limit_state == "SLS"
+                                else 1.5 * uplift
+                            )
+                        ),
                         unit="kN",
                     ),
                     "Vx": Quantity(value=horizontal_x, unit="kN"),
