@@ -237,3 +237,18 @@ def test_result_scope_excludes_unimplemented_engineering_checks() -> None:
     assert "整体稳定" in scope
     assert "沉降" in scope
     assert result.status in {"passed", "failed"}
+
+
+def test_shear_key_and_base_inclination_enhancements() -> None:
+    base_res = calculate_gravity_retaining_wall(_input(shear_key_depth_m=0.0, base_inclination_deg=0.0))
+    key_res = calculate_gravity_retaining_wall(_input(shear_key_depth_m=0.5, base_inclination_deg=0.0))
+    # Passive resistance from shear key increases sliding capacity
+    key_check = _check(key_res, "sliding")
+    base_check = _check(base_res, "sliding")
+    assert key_check.capacity.value > base_check.capacity.value
+
+    inclined_res = calculate_gravity_retaining_wall(_input(shear_key_depth_m=0.0, base_inclination_deg=5.0))
+    inclined_check = _check(inclined_res, "sliding")
+    assert inclined_check.capacity.value > base_check.capacity.value
+
+

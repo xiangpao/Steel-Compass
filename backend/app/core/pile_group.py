@@ -53,6 +53,63 @@ class InvestigatedPileCapacities:
 
 
 @dataclass(frozen=True)
+class SoilLayerJGJ94:
+    name: str
+    thickness_m: float
+    q_sik_kpa: float
+
+
+@dataclass(frozen=True)
+class SinglePileJG94CapacityResult:
+    q_uk_kn: float
+    q_ra_kn: float
+    q_sk_kn: float
+    q_pk_kn: float
+
+
+def calculate_single_pile_capacity_jgj94(
+    pile_type: PileType,
+    diameter_or_side_m: float,
+    soil_layers: tuple[SoilLayerJGJ94, ...],
+    q_pk_kpa: float,
+    psi_s: float = 1.0,
+    psi_p: float = 1.0,
+) -> SinglePileJG94CapacityResult:
+    """Calculate single pile ultimate vertical capacity per JGJ 94-2008 empirical parameter method."""
+    d = _positive(diameter_or_side_m, "diameter_or_side_m")
+    qp = _positive(q_pk_kpa, "q_pk_kpa")
+    psi_s = _positive(psi_s, "psi_s")
+    psi_p = _positive(psi_p, "psi_p")
+    if not soil_layers:
+        raise CalculationInputError(
+            "invalid_soil_layers", "土层列表不能为空。", field="soil_layers"
+        )
+
+    if pile_type in ("bored", "precast_pipe"):
+        u = np.pi * d
+        ap = np.pi * (d / 2.0) ** 2
+    else:  # precast_square
+        u = 4.0 * d
+        ap = d ** 2
+
+    q_sk = 0.0
+    for idx, layer in enumerate(soil_layers):
+        l_i = _positive(layer.thickness_m, f"soil_layers[{idx}].thickness_m")
+        qs_i = _positive(layer.q_sik_kpa, f"soil_layers[{idx}].q_sik_kpa")
+        q_sk += psi_s * qs_i * l_i * u
+
+    q_pk = psi_p * qp * ap
+    q_uk = q_sk + q_pk
+    q_ra = q_uk / 2.0
+    return SinglePileJG94CapacityResult(
+        q_uk_kn=q_uk,
+        q_ra_kn=q_ra,
+        q_sk_kn=q_sk,
+        q_pk_kn=q_pk,
+    )
+
+
+@dataclass(frozen=True)
 class PileCapGeometry:
     length_x_mm: float
     width_y_mm: float
@@ -542,6 +599,13 @@ def analyze_rigid_pile_group(model: PileGroupModel) -> PileGroupResult:
     )
     moment_x_capacity = provided_x_total * fy * 0.9 * effective_depth / 1_000_000.0
     moment_y_capacity = provided_y_total * fy * 0.9 * effective_depth / 1_000_000.0
+    corner_pile_reactions = [
+        item.compression_kn
+        for item in pile_reactions.values()
+    ]
+    max_corner_reaction = max(corner_pile_reactions) if corner_pile_reactions else 0.0
+    corner_punching_capacity = 0.56 * ft * (cap.column_x_mm + cap.column_y_mm + 2.0 * effective_depth) * effective_depth / 1000.0
+
     cap_checks = (
         _check(
             "承台柱边冲切",
@@ -567,6 +631,13 @@ def analyze_rigid_pile_group(model: PileGroupModel) -> PileGroupResult:
             provided_y_total,
             "mm2",
             note="Y向总面积按承台X向全宽折算。",
+        ),
+        _check(
+            "承台角桩冲切",
+            max_corner_reaction,
+            corner_punching_capacity,
+            "kN",
+            note="基于JGJ 94-2008角桩冲切模型与最不利桩反力验算。",
         ),
     )
 

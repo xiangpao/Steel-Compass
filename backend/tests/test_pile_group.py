@@ -13,7 +13,9 @@ from app.core.pile_group import (
     PileDefinition,
     PileGroupActions,
     PileGroupModel,
+    SoilLayerJGJ94,
     analyze_rigid_pile_group,
+    calculate_single_pile_capacity_jgj94,
 )
 
 
@@ -257,3 +259,25 @@ def test_illegal_layouts_and_missing_investigation_source_are_rejected(
     with pytest.raises(CalculationInputError) as caught:
         analyze_rigid_pile_group(model)
     assert caught.value.code == code
+
+
+def test_jgj94_single_pile_capacity_calculation() -> None:
+    layers = (
+        SoilLayerJGJ94("Clay", thickness_m=5.0, q_sik_kpa=40.0),
+        SoilLayerJGJ94("Sand", thickness_m=10.0, q_sik_kpa=60.0),
+    )
+    res = calculate_single_pile_capacity_jgj94(
+        pile_type="bored",
+        diameter_or_side_m=0.8,
+        soil_layers=layers,
+        q_pk_kpa=2000.0,
+    )
+    u = 0.8 * 3.141592653589793
+    ap = 3.141592653589793 * 0.4**2
+    expected_qs = (40.0 * 5.0 + 60.0 * 10.0) * u
+    expected_qp = 2000.0 * ap
+    assert res.q_sk_kn == pytest.approx(expected_qs)
+    assert res.q_pk_kn == pytest.approx(expected_qp)
+    assert res.q_uk_kn == pytest.approx(expected_qs + expected_qp)
+    assert res.q_ra_kn == pytest.approx((expected_qs + expected_qp) / 2.0)
+

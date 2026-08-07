@@ -554,6 +554,221 @@ def solve_parametric_frame(
     )
 
 
+@dataclass(frozen=True)
+class PortalFrameGeneratorInput:
+    span_m: float = 18.0
+    height_m: float = 6.0
+    roof_slope: float = 0.10     # 坡度 1:10
+    num_spans: int = 1
+    has_rocking_column: bool = False
+    column_area_cm2: float = 70.0
+    column_inertia_cm4: float = 12000.0
+    beam_area_cm2: float = 55.0
+    beam_inertia_cm4: float = 8000.0
+    steel_f_y_mpa: float = 235.0
+
+
+@dataclass(frozen=True)
+class GB51022CheckResult:
+    member_id: str
+    axial_n_kn: float
+    moment_m_knm: float
+    shear_v_kn: float
+    lambda_x: float
+    lambda_y: float
+    phi_x: float
+    phi_y: float
+    phi_b: float
+    strength_utilization: float
+    in_plane_stability_utilization: float
+    out_of_plane_stability_utilization: float
+    overall_passed: bool
+
+
+def generate_portal_frame_model(
+    inp: PortalFrameGeneratorInput,
+) -> ParametricFrameModel:
+    """参数化一键生成单跨/多跨门式刚架线弹性拓扑模型。"""
+    if inp.span_m <= 0 or inp.height_m <= 0:
+        raise CalculationInputError(
+            "invalid_dimensions", "跨度与柱高必须大于零。", field="span_m"
+        )
+    if inp.num_spans < 1:
+        raise CalculationInputError(
+            "invalid_num_spans", "跨数至少为 1。", field="num_spans"
+        )
+
+    nodes: list[FrameNode] = []
+    members: list[FrameMember] = []
+    restraints: list[NodeRestraint] = []
+
+    h_apex_mm = (inp.height_m + (inp.span_m / 2.0) * inp.roof_slope) * 1000.0
+    h_col_mm = inp.height_m * 1000.0
+    span_mm = inp.span_m * 1000.0
+
+    col_area_mm2 = inp.column_area_cm2 * 100.0
+    col_inertia_mm4 = inp.column_inertia_cm4 * 10000.0
+    beam_area_mm2 = inp.beam_area_cm2 * 100.0
+    beam_inertia_mm4 = inp.beam_inertia_cm4 * 10000.0
+    e_mpa = 206000.0  # 钢材 Q235/Q355 206 GPa
+
+    node_counter = 0
+
+    for s in range(inp.num_spans):
+        x_start = s * span_mm
+        x_mid = x_start + span_mm / 2.0
+        x_end = x_start + span_mm
+
+        # 节点
+        n_bot_left = f"N_B_{s}"
+        n_top_left = f"N_T_{s}"
+        n_apex = f"N_A_{s}"
+        n_top_right = f"N_T_{s+1}"
+        n_bot_right = f"N_B_{s+1}"
+
+        if s == 0:
+            nodes.append(FrameNode(n_bot_left, x_start, 0.0))
+            nodes.append(FrameNode(n_top_left, x_start, h_col_mm))
+            restraints.append(NodeRestraint(n_bot_left, ux=True, uy=True, rz=True))
+            # 外柱
+            members.append(
+                FrameMember(
+                    f"Col_{s}",
+                    n_bot_left,
+                    n_top_left,
+                    col_area_mm2,
+                    col_inertia_mm4,
+                    e_mpa,
+                )
+            )
+
+        nodes.append(FrameNode(n_apex, x_mid, h_apex_mm))
+        nodes.append(FrameNode(n_bot_right, x_end, 0.0))
+        nodes.append(FrameNode(n_top_right, x_end, h_col_mm))
+
+        # 基础约束
+        restraints.append(NodeRestraint(n_bot_right, ux=True, uy=True, rz=not inp.has_rocking_column))
+
+        # 内部/右侧柱 (如果是摇晃柱，惯性矩极小)
+        cur_col_inertia = col_inertia_mm4 / 100.0 if (inp.has_rocking_column and s > 0) else col_inertia_mm4
+        members.append(
+            FrameMember(
+                f"Col_{s+1}",
+                n_bot_right,
+                n_top_right,
+                col_area_mm2,
+                cur_col_inertia,
+                e_mpa,
+            )
+        )
+
+        # 斜梁 (左坡与右坡)
+        members.append(
+            FrameMember(
+                f"Beam_{s}_L",
+                n_top_left if s == 0 else f"N_T_{s}",
+                n_apex,
+                beam_area_mm2,
+                beam_inertia_mm4,
+                e_mpa,
+            )
+        )
+        members.append(
+            FrameMember(
+                f"Beam_{s}_R",
+                n_apex,
+                n_top_right,
+                beam_area_mm2,
+                beam_inertia_mm4,
+                e_mpa,
+            )
+        )
+
+    return ParametricFrameModel(
+        nodes=tuple(nodes),
+        members=tuple(members),
+        restraints=tuple(restraints),
+    )
+
+
+def calculate_gb51022_member_check(
+    member_id: str,
+    axial_n_kn: float,
+    moment_m_knm: float,
+    shear_v_kn: float,
+    b_f_mm: float = 200.0,
+    t_f_mm: float = 10.0,
+    h_web_max_mm: float = 500.0,
+    h_web_min_mm: float = 300.0,
+    t_w_mm: float = 6.0,
+    l_0x_m: float = 6.0,
+    l_0y_m: float = 3.0,
+    f_y_mpa: float = 235.0,
+) -> GB51022CheckResult:
+    """按 GB 51022-2015 门式刚架轻型房屋钢结构技术规范进行变截面柱/梁压弯构件稳定验算。"""
+
+    n_n = abs(axial_n_kn) * 1000.0
+    m_nmm = abs(moment_m_knm) * 1e6
+    v_n = abs(shear_v_kn) * 1000.0
+
+    # 平均截面高度 (变截面取平均值近似)
+    h_avg = (h_web_max_mm + h_web_min_mm) / 2.0
+    area_mm2 = 2.0 * b_f_mm * t_f_mm + h_avg * t_w_mm
+    
+    # 截面惯性矩 Ix, Iy
+    i_x_mm4 = (b_f_mm * ((h_avg + 2 * t_f_mm) ** 3 - h_avg ** 3) + t_w_mm * (h_avg ** 3)) / 12.0
+    i_y_mm4 = 2.0 * (t_f_mm * (b_f_mm ** 3) / 12.0)
+    
+    w_x_mm3 = i_x_mm4 / ((h_avg / 2.0) + t_f_mm)
+    w_y_mm3 = i_y_mm4 / (b_f_mm / 2.0)
+
+    # 回转半径 rx, ry
+    r_x = (i_x_mm4 / area_mm2) ** 0.5
+    r_y = (i_y_mm4 / area_mm2) ** 0.5
+
+    # 细长比
+    lambda_x = (l_0x_m * 1000.0) / r_x
+    lambda_y = (l_0y_m * 1000.0) / r_y
+
+    # 规范轴压稳定系数 (GB 50017 / GB 51022 b类截面近似)
+    lambda_bar_x = (lambda_x / 3.14159) * (f_y_mpa / 206000.0) ** 0.5
+    lambda_bar_y = (lambda_y / 3.14159) * (f_y_mpa / 206000.0) ** 0.5
+
+    phi_x = 1.0 / (1.0 + 0.25 * (lambda_bar_x ** 2)) if lambda_bar_x > 0.2 else 1.0
+    phi_y = 1.0 / (1.0 + 0.25 * (lambda_bar_y ** 2)) if lambda_bar_y > 0.2 else 1.0
+    phi_b = min(1.0, 1.07 - (lambda_y / 120.0) ** 2)
+
+    # 强度利用率
+    sigma_strength = (n_n / area_mm2) + (m_nmm / w_x_mm3)
+    strength_util = sigma_strength / f_y_mpa
+
+    # 平面内稳定 utilization
+    # N / (phi_x * A * f) + beta_mx * M / (gamma_x * W_x * (1 - N / N_ex) * f)
+    n_ex = (3.14159 ** 2 * 206000.0 * area_mm2) / (lambda_x ** 2)
+    in_plane_util = (n_n / (phi_x * area_mm2 * f_y_mpa)) + (1.0 * m_nmm / (1.05 * w_x_mm3 * max(1.0 - n_n / max(n_ex, 1e-6), 0.1) * f_y_mpa))
+
+    # 平面外稳定 utilization
+    out_of_plane_util = (n_n / (phi_y * area_mm2 * f_y_mpa)) + (m_nmm / (phi_b * w_x_mm3 * f_y_mpa))
+
+    overall_passed = max(strength_util, in_plane_util, out_of_plane_util) <= 1.0
+
+    return GB51022CheckResult(
+        member_id=member_id,
+        axial_n_kn=axial_n_kn,
+        moment_m_knm=moment_m_knm,
+        shear_v_kn=shear_v_kn,
+        lambda_x=lambda_x,
+        lambda_y=lambda_y,
+        phi_x=phi_x,
+        phi_y=phi_y,
+        phi_b=phi_b,
+        strength_utilization=strength_util,
+        in_plane_stability_utilization=in_plane_util,
+        out_of_plane_stability_utilization=out_of_plane_util,
+        overall_passed=overall_passed,
+    )
+
+
 __all__ = [
     "FrameMember",
     "FrameNode",
@@ -567,5 +782,9 @@ __all__ = [
     "ParametricFrameResult",
     "SupportReaction",
     "UniformMemberLoad",
+    "PortalFrameGeneratorInput",
+    "GB51022CheckResult",
+    "generate_portal_frame_model",
+    "calculate_gb51022_member_check",
     "solve_parametric_frame",
 ]

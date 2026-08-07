@@ -243,6 +243,18 @@ def _validate(pool: RectangularPoolInput) -> None:
                 field=field,
                 details={"maximum_external_head_m": maximum_external_head},
             )
+    if geometry.wall_thickness_mm < 150.0:
+        raise CalculationInputError(
+            "wall_thickness_too_thin",
+            "GB 50069-2002 第 6.1 节强检：盛水构筑物池壁最小厚度不应小于 150mm。",
+            field="geometry.wall_thickness_mm",
+        )
+    if geometry.base_thickness_mm < 150.0:
+        raise CalculationInputError(
+            "base_thickness_too_thin",
+            "GB 50069-2002 第 6.1 节强检：盛水构筑物池底板最小厚度不应小于 150mm。",
+            field="geometry.base_thickness_mm",
+        )
     wall_effective_depth = (
         geometry.wall_thickness_mm
         - reinforcement.wall_cover_mm
@@ -523,17 +535,36 @@ def _rc_capacity(
 
 
 def _crack_width(
-    *, moment_kn_m: float, effective_depth_mm: float, as_mm2: float,
-    cover_mm: float, bar_diameter_mm: float, rebar_es_mpa: float,
+    *,
+    moment_kn_m: float,
+    thickness_mm: float,
+    effective_depth_mm: float,
+    as_mm2: float,
+    cover_mm: float,
+    bar_diameter_mm: float,
+    rebar_es_mpa: float,
+    concrete_ft_mpa: float = 1.5,
 ) -> float:
+    """Calculate maximum crack width per GB 50069-2002 Appendix A.
+
+    Formula: w_max = alpha_cr * psi * (sigma_sk / Es) * (3.5 * c + 0.08 * d_eq / rho_te)
+    """
+    if moment_kn_m <= 0:
+        return 0.0
     steel_stress = moment_kn_m * 1.0e6 / max(0.87 * effective_depth_mm * as_mm2, 1.0e-9)
-    reinforcement_ratio = max(as_mm2 / (1_000.0 * effective_depth_mm), 0.002)
-    return (
-        1.7
-        * steel_stress
-        / rebar_es_mpa
-        * (1.9 * cover_mm + 0.08 * bar_diameter_mm / reinforcement_ratio)
-    )
+    ate_mm2 = 0.5 * 1000.0 * thickness_mm
+    rho_te = max(as_mm2 / ate_mm2, 0.01)
+
+    psi = 1.1 - 0.65 * concrete_ft_mpa / (rho_te * max(steel_stress, 1.0e-9))
+    psi = max(0.2, min(1.0, psi))
+
+    alpha_cr = 2.1
+    c = min(cover_mm, 65.0)
+    d_eq = bar_diameter_mm
+
+    w_max = alpha_cr * psi * (steel_stress / rebar_es_mpa) * (3.5 * c + 0.08 * d_eq / rho_te)
+    return max(0.0, float(w_max))
+
 
 
 def _check(
@@ -665,19 +696,37 @@ def calculate_rectangular_pool(pool: RectangularPoolInput) -> PoolStructureResul
         _check("池壁水平最小配筋", reinforcement.minimum_reinforcement_ratio, wall_h_rho, "1", wall_horizontal.combination_id, "双向每米条带配筋率"),
         _check(
             "池壁竖向裂缝宽度",
-            _crack_width(moment_kn_m=wall_vertical_sls.wall.vertical_moment_kn_m_per_m, effective_depth_mm=wall_d, as_mm2=reinforcement.wall_vertical_as_mm2_per_m, cover_mm=reinforcement.wall_cover_mm, bar_diameter_mm=reinforcement.wall_bar_diameter_mm, rebar_es_mpa=materials.rebar_es_mpa),
+            _crack_width(
+                moment_kn_m=wall_vertical_sls.wall.vertical_moment_kn_m_per_m,
+                thickness_mm=geometry.wall_thickness_mm,
+                effective_depth_mm=wall_d,
+                as_mm2=reinforcement.wall_vertical_as_mm2_per_m,
+                cover_mm=reinforcement.wall_cover_mm,
+                bar_diameter_mm=reinforcement.wall_bar_diameter_mm,
+                rebar_es_mpa=materials.rebar_es_mpa,
+                concrete_ft_mpa=materials.concrete_ft_mpa,
+            ),
             reinforcement.crack_width_limit_mm,
             "mm",
             wall_vertical_sls.combination_id,
-            "弹性钢筋应力裂缝宽度简化",
+            "GB 50069-2002 附录 A 水工构筑物裂缝宽度验算",
         ),
         _check(
             "池壁水平裂缝宽度",
-            _crack_width(moment_kn_m=wall_horizontal_sls.wall.horizontal_moment_kn_m_per_m, effective_depth_mm=wall_d, as_mm2=reinforcement.wall_horizontal_as_mm2_per_m, cover_mm=reinforcement.wall_cover_mm, bar_diameter_mm=reinforcement.wall_bar_diameter_mm, rebar_es_mpa=materials.rebar_es_mpa),
+            _crack_width(
+                moment_kn_m=wall_horizontal_sls.wall.horizontal_moment_kn_m_per_m,
+                thickness_mm=geometry.wall_thickness_mm,
+                effective_depth_mm=wall_d,
+                as_mm2=reinforcement.wall_horizontal_as_mm2_per_m,
+                cover_mm=reinforcement.wall_cover_mm,
+                bar_diameter_mm=reinforcement.wall_bar_diameter_mm,
+                rebar_es_mpa=materials.rebar_es_mpa,
+                concrete_ft_mpa=materials.concrete_ft_mpa,
+            ),
             reinforcement.crack_width_limit_mm,
             "mm",
             wall_horizontal_sls.combination_id,
-            "弹性钢筋应力裂缝宽度简化",
+            "GB 50069-2002 附录 A 水工构筑物裂缝宽度验算",
         ),
         _check("底板 X 向受弯", base_x.base.x_moment_kn_m_per_m, base_x_cap, "kN*m/m", base_x.combination_id, "四边支承双向分配简化"),
         _check("底板 Y 向受弯", base_y.base.y_moment_kn_m_per_m, base_y_cap, "kN*m/m", base_y.combination_id, "四边支承双向分配简化"),
@@ -687,19 +736,37 @@ def calculate_rectangular_pool(pool: RectangularPoolInput) -> PoolStructureResul
         _check("底板 Y 向最小配筋", reinforcement.minimum_reinforcement_ratio, base_y_rho, "1", base_y.combination_id, "每米底板条带配筋率"),
         _check(
             "底板 X 向裂缝宽度",
-            _crack_width(moment_kn_m=base_x_sls.base.x_moment_kn_m_per_m, effective_depth_mm=base_d, as_mm2=reinforcement.base_x_as_mm2_per_m, cover_mm=reinforcement.base_cover_mm, bar_diameter_mm=reinforcement.base_bar_diameter_mm, rebar_es_mpa=materials.rebar_es_mpa),
+            _crack_width(
+                moment_kn_m=base_x_sls.base.x_moment_kn_m_per_m,
+                thickness_mm=geometry.base_thickness_mm,
+                effective_depth_mm=base_d,
+                as_mm2=reinforcement.base_x_as_mm2_per_m,
+                cover_mm=reinforcement.base_cover_mm,
+                bar_diameter_mm=reinforcement.base_bar_diameter_mm,
+                rebar_es_mpa=materials.rebar_es_mpa,
+                concrete_ft_mpa=materials.concrete_ft_mpa,
+            ),
             reinforcement.crack_width_limit_mm,
             "mm",
             base_x_sls.combination_id,
-            "弹性钢筋应力裂缝宽度简化",
+            "GB 50069-2002 附录 A 水工构筑物裂缝宽度验算",
         ),
         _check(
             "底板 Y 向裂缝宽度",
-            _crack_width(moment_kn_m=base_y_sls.base.y_moment_kn_m_per_m, effective_depth_mm=base_d, as_mm2=reinforcement.base_y_as_mm2_per_m, cover_mm=reinforcement.base_cover_mm, bar_diameter_mm=reinforcement.base_bar_diameter_mm, rebar_es_mpa=materials.rebar_es_mpa),
+            _crack_width(
+                moment_kn_m=base_y_sls.base.y_moment_kn_m_per_m,
+                thickness_mm=geometry.base_thickness_mm,
+                effective_depth_mm=base_d,
+                as_mm2=reinforcement.base_y_as_mm2_per_m,
+                cover_mm=reinforcement.base_cover_mm,
+                bar_diameter_mm=reinforcement.base_bar_diameter_mm,
+                rebar_es_mpa=materials.rebar_es_mpa,
+                concrete_ft_mpa=materials.concrete_ft_mpa,
+            ),
             reinforcement.crack_width_limit_mm,
             "mm",
             base_y_sls.combination_id,
-            "弹性钢筋应力裂缝宽度简化",
+            "GB 50069-2002 附录 A 水工构筑物裂缝宽度验算",
         ),
         _check("抗浮稳定", uplift.base.uplift_kn, uplift.base.downward_kn, "kN", uplift.combination_id, "地下水浮力乘抗浮系数与永久重量平衡"),
         _check("地基承载力", bearing.base.soil_reaction_kpa, materials.allowable_bearing_kpa, "kPa", bearing.combination_id, "均匀地基、中心受压"),

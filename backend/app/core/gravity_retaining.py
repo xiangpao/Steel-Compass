@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isfinite, radians, tan
+from math import cos, isfinite, radians, sin, tan
 from typing import Literal
 
 from .errors import CalculationInputError
@@ -30,8 +30,11 @@ class GravityRetainingInput:
     water_unit_weight_kn_m3: float = 10.0
     uplift_head_toe_m: float = 0.0
     uplift_head_heel_m: float = 0.0
+    shear_key_depth_m: float = 0.0
+    base_inclination_deg: float = 0.0
     sliding_safety_factor: float = 1.0
     overturning_safety_factor: float = 1.0
+
 
 
 @dataclass(frozen=True)
@@ -160,8 +163,17 @@ def _validate(data: GravityRetainingInput) -> None:
         "water_depth_behind_m",
         "uplift_head_toe_m",
         "uplift_head_heel_m",
+        "shear_key_depth_m",
     ):
         _non_negative(getattr(data, field), field)
+    inclination = _finite(data.base_inclination_deg, "base_inclination_deg")
+    if not -20.0 <= inclination <= 20.0:
+        raise CalculationInputError(
+            "invalid_base_inclination",
+            "基底倾角必须在 -20° 至 20° 之间。",
+            field="base_inclination_deg",
+        )
+
     friction_angle = _finite(data.soil_friction_angle_deg, "soil_friction_angle_deg")
     if not 0 < friction_angle < 45:
         raise CalculationInputError(
@@ -330,20 +342,46 @@ def calculate_gravity_retaining_wall(
         wall_average_compression
         + 6 * lateral_moment / data.wall_bottom_thickness_m**2
     )
-    sliding_capacity = (
-        data.base_friction_coefficient * effective_vertical
+
+    kp = tan(radians(45.0 + data.soil_friction_angle_deg / 2.0)) ** 2
+    h_base = data.base_slab_thickness_m
+    h_key = data.shear_key_depth_m
+    passive_resistance = (
+        0.5 * kp * data.soil_unit_weight_kn_m3 * ((h_base + h_key)**2 - h_base**2)
+        if h_key > 0
+        else 0.0
     )
+
+    alpha = radians(data.base_inclination_deg)
+    if data.base_inclination_deg != 0.0:
+        sliding_demand = max(0.0, horizontal * cos(alpha) - effective_vertical * sin(alpha)) * data.sliding_safety_factor
+        normal_force_on_base = effective_vertical * cos(alpha) + horizontal * sin(alpha)
+        sliding_capacity = data.base_friction_coefficient * normal_force_on_base + passive_resistance
+        sliding_ref = f"基底倾角 {data.base_inclination_deg:.1f}° 法向摩擦与倾斜滑动力平衡"
+    else:
+        sliding_demand = horizontal * data.sliding_safety_factor
+        sliding_capacity = data.base_friction_coefficient * effective_vertical + passive_resistance
+        sliding_ref = "静力平衡；含底板抗滑凸榫被动阻力" if h_key > 0 else "静力平衡；不计被动土压力"
+
     net_center_moment = effective_vertical * eccentricity
     contact_capacity = data.base_width_m / 6
+    h_mid = data.retained_height_m / 2.0
+    v_mid_shear = 0.5 * ka * data.soil_unit_weight_kn_m3 * (h_mid**2)
+    b_mid = data.wall_top_thickness_m + 0.5 * (data.wall_bottom_thickness_m - data.wall_top_thickness_m)
+    tau_mid = v_mid_shear / b_mid  # kPa
+    # Allowable shear design capacity assumed 0.1 * material_compressive_design_kpa for unreinforced masonry/concrete
+    tau_allowable = 0.10 * data.material_compressive_design_kpa
+
     checks = (
         _check(
             data,
             key="sliding",
             name="抗滑移",
-            demand=horizontal * data.sliding_safety_factor,
+            demand=sliding_demand,
             capacity=sliding_capacity,
             unit="kN/m",
-            reference="静力平衡；不计被动土压力",
+            reference=sliding_ref,
+            note=f"包含抗滑凸榫被动阻力 {passive_resistance:.1f} kN/m。" if h_key > 0 else None,
         ),
         _check(
             data,
@@ -382,6 +420,15 @@ def calculate_gravity_retaining_wall(
             capacity=data.material_compressive_design_kpa,
             unit="kPa",
             reference="梯形/矩形墙身一米条带弹性压应力筛查",
+        ),
+        _check(
+            data,
+            key="wall_mid_shear",
+            name="墙身截面平均剪应力",
+            demand=tau_mid,
+            capacity=tau_allowable,
+            unit="kPa",
+            reference="墙身H/2高截面无筋砌体/混凝土剪应力估算(f_v=0.10 f_cu)",
         ),
     )
     status: Literal["passed", "failed"] = (

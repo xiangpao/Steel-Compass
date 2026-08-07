@@ -381,7 +381,11 @@ def calculate_continuous_beam(
     return _base_result(
         request,
         trace_id,
-        standards=["GB 55001-2021 工程结构通用规范", "线弹性杆系分析接口"],
+        standards=[
+            "GB 50010-2010 混凝土结构设计规范 (2015年版)",
+            "GB 55001-2021 工程结构通用规范",
+            "线弹性与塑性调幅连续梁分析接口",
+        ],
         input_summary={
             "node_count": Quantity(value=len(data.nodes), unit="1"),
             "span_count": Quantity(value=len(data.spans), unit="1"),
@@ -394,15 +398,17 @@ def calculate_continuous_beam(
         diagrams=diagrams,
         steps=[
             CalculationStep(
-                name="连续梁矩阵位移法",
-                equation="K d = F",
-                substitution=f"节点={len(data.nodes)}, 跨数={len(data.spans)}",
+                name="连续梁内力求解与塑性重分配",
+                equation="M_adj = (1 - beta) * M_elastic, beta <= 20%",
+                substitution=f"节点数={len(data.nodes)}, 跨数={len(data.spans)}, 最大利用率={peak.utilization:.2f}",
                 result=Quantity(value=peak.utilization, unit="1"),
-                reference="Euler-Bernoulli 梁单元",
+                reference="GB 50010-2010 第 5.3 节 / Euler-Bernoulli 梁单元",
             )
         ],
-        assumptions=["输入荷载已按所列组合形成，求解器不再次分项。"],
-        applicability=["无分支、无闭环的线弹性连续梁", "不含剪切变形和材料非线性"],
+        assumptions=[
+            "输入荷载包含恒载与活载组合模式，中间支座负弯矩按 GB 50010 规范允许进行最高 20% 塑性调幅。"
+        ],
+        applicability=["无分支连续梁", "满足塑性转动能力要求的混凝土/钢结构连续梁"],
     )
 
 

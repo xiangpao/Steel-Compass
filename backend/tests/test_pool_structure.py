@@ -184,9 +184,9 @@ def test_rectangular_base_distributes_moment_in_both_directions() -> None:
         ),
         (
             RectangularPoolInput(
-                geometry=RectangularPoolGeometry(6, 4, 2.5, 30, 400),
+                geometry=RectangularPoolGeometry(6, 4, 2.5, 200, 400),
                 materials=PoolMaterials(),
-                reinforcement=PoolReinforcement(wall_cover_mm=35),
+                reinforcement=PoolReinforcement(wall_cover_mm=210),
                 water_levels=PoolWaterLevels(2.0),
             ),
             "invalid_effective_depth",
