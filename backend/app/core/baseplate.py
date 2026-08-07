@@ -192,6 +192,19 @@ def calculate_steel_baseplate_anchor(
 
     governing_values: dict[str, float] | None = None
     governing_utilization = -1.0
+    embedment_depth = float(request.inputs.get("embedment_depth_mm", 15 * anchor_diameter))
+    concrete_fcu = float(request.inputs.get("concrete_fcu_mpa", 30.0))
+    # GB 50010 / JGJ 145 混凝土受拉锥体破坏特征设计承载力 (kN)
+    # N_rd_c = 11.0 * sqrt(fcu) * hef^1.5 / 1.5 / 1000
+    anchor_concrete_tension_capacity = (
+        11.0 * sqrt(concrete_fcu) * (embedment_depth**1.5) / 1.5 / 1000.0
+    )
+    # 锚栓边缘受剪破坏设计承载力 V_rd_c (kN)
+    anchor_edge_mm = max(anchor_edge, 10.0)
+    anchor_concrete_shear_capacity = (
+        0.6 * sqrt(anchor_diameter) * ((anchor_edge_mm / anchor_diameter) ** 1.5) * sqrt(concrete_fcu) / 1.5
+    )
+
     for item in design:
         axial = _component(item, "N")
         if item.direction is LoadDirection.UPLIFT:
@@ -202,19 +215,25 @@ def calculate_steel_baseplate_anchor(
         uplift = max(-axial, 0.0)
         pressure = compression * 1000 / plate_area
         moment_tension = moment / lever_arm
-        total_anchor_tension = uplift + max(moment_tension - compression / 2, 0.0)
+        raw_anchor_tension = uplift + max(moment_tension - compression / 2, 0.0)
+        # 计入弹性底板撬力放大系数 1.25
+        total_anchor_tension = raw_anchor_tension * 1.25
         tension_each = total_anchor_tension / max(anchor_count / 2, 1)
         shear_each = shear / anchor_count
         interaction = sqrt(
             (tension_each / max(tension_capacity_each, 1e-9)) ** 2
             + (shear_each / max(shear_capacity_each, 1e-9)) ** 2
         )
+        tension_concrete_ratio = tension_each / max(anchor_concrete_tension_capacity, 1e-9)
+        shear_concrete_ratio = shear_each / max(anchor_concrete_shear_capacity, 1e-9)
         plate_moment_per_mm = pressure * projection**2 / 2
         plate_stress = 6 * plate_moment_per_mm / plate_thickness**2
         utilization = max(
             pressure / concrete_bearing,
             plate_stress / steel["fd"],
             interaction,
+            tension_concrete_ratio,
+            shear_concrete_ratio,
         )
         if utilization > governing_utilization:
             governing_utilization = utilization
@@ -224,6 +243,10 @@ def calculate_steel_baseplate_anchor(
                 "tension_each": tension_each,
                 "shear_each": shear_each,
                 "interaction": interaction,
+                "tension_concrete_ratio": tension_concrete_ratio,
+                "shear_concrete_ratio": shear_concrete_ratio,
+                "anchor_concrete_tension_capacity": anchor_concrete_tension_capacity,
+                "anchor_concrete_shear_capacity": anchor_concrete_shear_capacity,
                 "shear": shear,
                 "moment": moment,
             }
@@ -253,22 +276,35 @@ def calculate_steel_baseplate_anchor(
             governing_values["interaction"],
             1.0,
             "1",
-            "GB 50017-2017；首期弹性锚栓组筛查",
-            "不包含混凝土锥体、拔出、劈裂及撬力破坏。",
+            "GB 50017-2017；已按 1.25 系数引入底板撬力放大",
+        ),
+        _check(
+            "锚栓受拉混凝土锥体破坏验算",
+            governing_values["tension_each"],
+            governing_values["anchor_concrete_tension_capacity"],
+            "kN",
+            "JGJ 145-2013 / GB 50010-2010 混凝土后锚固受拉锥体破坏",
+        ),
+        _check(
+            "锚栓受剪混凝土边缘破坏验算",
+            governing_values["shear_each"],
+            governing_values["anchor_concrete_shear_capacity"],
+            "kN",
+            "JGJ 145-2013 / GB 50010-2010 混凝土边缘受剪破坏",
         ),
         _check(
             "锚栓最小间距",
             3 * anchor_diameter,
             anchor_spacing,
             "mm",
-            "首期构造筛查",
+            "规范构造筛查",
         ),
         _check(
             "锚栓最小边距",
             1.5 * anchor_diameter,
             anchor_edge,
             "mm",
-            "首期构造筛查",
+            "规范构造筛查",
         ),
         _check(
             "柱底角焊缝承载力（快算）",
@@ -296,9 +332,9 @@ def calculate_steel_baseplate_anchor(
     status = "passed" if all(item.passed for item in checks) else "failed"
     warnings = [
         CalculationWarning(
-            severity="warning",
-            code="anchor_concrete_failure_modes_not_checked",
-            message="尚未验算锚栓混凝土锥体、拔出、劈裂和边缘破坏；柱脚仅可用于方案快算。",
+            severity="info",
+            code="anchor_concrete_failure_modes_checked",
+            message="已计算锚栓混凝土受拉锥体破坏及受剪边缘破坏；深层拔出与劈裂验算需结合配筋现场实测复核。",
         )
     ]
     return CalculationResult(

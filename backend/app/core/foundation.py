@@ -228,8 +228,29 @@ def _effective_foundation_weights(
 
 
 def _groundwater_depth(request: CalculationRequest) -> tuple[bool, float | None]:
-    known = bool(request.inputs.get("groundwater_known", False))
-    raw = request.inputs.get("groundwater_depth_m")
+    condition = request.inputs.get("groundwater_condition")
+    if condition is not None:
+        condition = str(condition)
+        if condition not in {"no_influence", "known_water_table", "unknown"}:
+            from .errors import CalculationInputError
+
+            raise CalculationInputError(
+                "invalid_groundwater_condition",
+                "groundwater_condition 必须为 no_influence、known_water_table 或 unknown",
+                field="groundwater_condition",
+            )
+        if condition == "no_influence":
+            return True, None
+        if condition == "unknown":
+            return False, 5.0 if request.mode is CalculationMode.QUICK else None
+        known = True
+        raw = request.inputs.get("water_table_depth_m")
+        input_field = "water_table_depth_m"
+    else:
+        # Schema 3.1-and-earlier compatibility.
+        known = bool(request.inputs.get("groundwater_known", False))
+        raw = request.inputs.get("groundwater_depth_m")
+        input_field = "groundwater_depth_m"
     if raw is None:
         return known, 5.0 if request.mode is CalculationMode.QUICK else None
     try:
@@ -239,18 +260,34 @@ def _groundwater_depth(request: CalculationRequest) -> tuple[bool, float | None]
 
         raise CalculationInputError(
             "invalid_groundwater_depth",
-            "groundwater_depth_m 必须为非负数值",
-            field="groundwater_depth_m",
+            f"{input_field} 必须为非负数值",
+            field=input_field,
         )
     if depth < 0:
         from .errors import CalculationInputError
 
         raise CalculationInputError(
             "invalid_groundwater_depth",
-            "groundwater_depth_m 不得小于 0",
-            field="groundwater_depth_m",
+            f"{input_field} 不得小于 0",
+            field=input_field,
         )
     return known, depth
+
+
+def _groundwater_inputs_complete(
+    request: CalculationRequest,
+    known: bool,
+    depth: float | None,
+    soil_source: str,
+) -> bool:
+    if request.schema_version != "3.2" or "groundwater_condition" not in request.inputs:
+        return known and depth is not None and bool(soil_source)
+    condition = str(request.inputs.get("groundwater_condition"))
+    groundwater_source = str(request.inputs.get("groundwater_source", "")).strip()
+    water_level_complete = condition == "no_influence" or (
+        condition == "known_water_table" and depth is not None
+    )
+    return bool(soil_source) and bool(groundwater_source) and water_level_complete
 
 
 def calculate_spread_footing(
@@ -416,9 +453,24 @@ def calculate_spread_footing(
     ex = abs(moment_y) / effective_vertical
     ey = abs(moment_x) / effective_vertical
     average_pressure = max(service_vertical, 0) / area
-    qmax = average_pressure * (1 + 6 * ex / length + 6 * ey / width)
-    qmin = average_pressure * (1 - 6 * ex / length - 6 * ey / width)
-    contact_ratio = max(0.0, min(1.0, qmin / max(qmax, 1e-9)))
+    # 结合长宽方向综合偏心距与 GB 50007-2011 规范
+    e_governing = max(ex, ey)
+    dim_governing = length if ex >= ey else width
+    orthogonal_dim = width if ex >= ey else length
+
+    if e_governing <= dim_governing / 6.0:
+        # 小偏心：梯形应力分布
+        qmax = average_pressure * (1 + 6 * ex / length + 6 * ey / width)
+        qmin = average_pressure * (1 - 6 * ex / length - 6 * ey / width)
+        detach_ratio = 0.0
+    else:
+        # 大偏心 (e > L/6)：按 GB 50007-2011 三角形压应力分布计算
+        compressed_length = max(3.0 * (dim_governing / 2.0 - e_governing), 1e-3)
+        qmax = (2.0 * max(service_vertical, 0)) / (3.0 * orthogonal_dim * max(dim_governing / 2.0 - e_governing, 1e-3))
+        qmin = 0.0
+        detach_ratio = max(0.0, min(1.0, (dim_governing - compressed_length) / dim_governing))
+
+    contact_ratio = 1.0 - detach_ratio
     horizontal = hypot(horizontal_x, horizontal_y)
     if sls_reactions:
         sliding_capacity = max(_reaction_vertical(horizontal_reaction), 0) * friction
@@ -520,6 +572,10 @@ def calculate_spread_footing(
     as_provided_x = _provided_rebar_area(bar_dia_x, spacing_x, width * 1000)
     as_provided_y = _provided_rebar_area(bar_dia_y, spacing_y, length * 1000)
 
+    # 水浮力抗浮安全系数验算 (GB 50007 / GB 55003)
+    buoyancy_force = displaced_water + uplift_demand
+    buoyancy_safety_factor = permanent_weight / max(buoyancy_force, 1e-9) if buoyancy_force > 0 else 2.0
+
     checks = [
         _check(
             "地基承载力",
@@ -529,12 +585,20 @@ def calculate_spread_footing(
             "GB 50007-2011 地基承载力验算",
         ),
         _check(
-            "基底全截面接触",
-            max(-qmin, 0),
-            0,
-            "kPa",
-            "GB 50007-2011 偏心荷载基础",
-            "出现拉应力时必须进行局部接触专项复核；当前模块不以负压力参与承载力。",
+            "基底脱开区比例",
+            detach_ratio * 100.0,
+            25.0,
+            "%",
+            "GB 50007-2011 5.2.2条 偏心荷载脱开区限制",
+            "正常使用极限状态下，偏心荷载作用基底脱开区面积不得超过 25%。",
+        ),
+        _check(
+            "地下水抗浮稳定系数",
+            1.05,
+            buoyancy_safety_factor if buoyancy_force > 0 else 1.05,
+            "1",
+            "GB 55003-2021 基础抗浮稳定",
+            "抗浮安全系数须大于 1.05。",
         ),
         _check(
             "抗滑稳定",
@@ -612,7 +676,9 @@ def calculate_spread_footing(
             check.governing_combination = combination_by_check.get(check.name)
     complete = (
         request.mode is CalculationMode.QUICK
-        or (groundwater_known and groundwater_depth is not None and bool(soil_source))
+        or _groundwater_inputs_complete(
+            request, groundwater_known, groundwater_depth, soil_source
+        )
     )
     governing = max(checks, key=lambda item: item.utilization)
     warnings = [
@@ -635,7 +701,7 @@ def calculate_spread_footing(
             CalculationWarning(
                 severity="critical",
                 code="geotechnical_input_incomplete",
-                message="专业模式缺少地下水确认或地基承载力来源，结论标记为 incomplete。",
+                message="专业模式缺少地下水条件、水位资料来源或地基承载力来源，结论标记为 incomplete。",
             )
         )
     elif (
@@ -669,8 +735,16 @@ def calculate_spread_footing(
                 "rebar_grade": rebar_grade,
                 "soil_capacity": (soil_capacity, "kPa"),
                 "soil_source": soil_source or "方案假定，待勘察确认",
-                "groundwater_known": groundwater_known,
-                "groundwater_depth": (
+                "groundwater_condition": str(
+                    request.inputs.get(
+                        "groundwater_condition",
+                        "known_water_table" if groundwater_known else "unknown",
+                    )
+                ),
+                "groundwater_source": str(
+                    request.inputs.get("groundwater_source", "旧版输入")
+                ),
+                "water_table_depth": (
                     (groundwater_depth, "m")
                     if groundwater_depth is not None
                     else "未提供"
@@ -917,7 +991,9 @@ def calculate_strip_footing(
     ]
     complete = (
         request.mode is CalculationMode.QUICK
-        or (groundwater_known and groundwater_depth is not None and bool(soil_source))
+        or _groundwater_inputs_complete(
+            request, groundwater_known, groundwater_depth, soil_source
+        )
     )
     governing = max(checks, key=lambda item: item.utilization)
     warnings = [
@@ -940,7 +1016,7 @@ def calculate_strip_footing(
             CalculationWarning(
                 severity="critical",
                 code="geotechnical_input_incomplete",
-                message="专业模式缺少地下水确认或地基承载力来源。",
+                message="专业模式缺少地下水条件、水位资料来源或地基承载力来源。",
             )
         )
     elif (
@@ -972,8 +1048,16 @@ def calculate_strip_footing(
                 "rebar_grade": rebar_grade,
                 "soil_capacity": (soil_capacity, "kPa"),
                 "soil_source": soil_source or "方案假定，待勘察确认",
-                "groundwater_known": groundwater_known,
-                "groundwater_depth": (
+                "groundwater_condition": str(
+                    request.inputs.get(
+                        "groundwater_condition",
+                        "known_water_table" if groundwater_known else "unknown",
+                    )
+                ),
+                "groundwater_source": str(
+                    request.inputs.get("groundwater_source", "旧版输入")
+                ),
+                "water_table_depth": (
                     (groundwater_depth, "m")
                     if groundwater_depth is not None
                     else "未提供"

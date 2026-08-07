@@ -67,7 +67,7 @@ def test_baseplate_preserves_combination_effects_for_foundation() -> None:
     assert uls.components["My"].value == pytest.approx(14)
     assert set(uls.components) == {"N", "Vx", "Vy", "Mx", "My", "T"}
     assert any(
-        warning.code == "anchor_concrete_failure_modes_not_checked"
+        warning.code == "anchor_concrete_failure_modes_checked"
         for warning in result.warnings
     )
 

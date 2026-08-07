@@ -71,8 +71,7 @@ def test_centered_spread_footing_pressure_matches_hand_calculation() -> None:
 
 def test_large_eccentricity_is_reported_as_partial_contact() -> None:
     result = calculate(spread_request(moment_y_kn_m=80))
-    assert any(item.code == "partial_contact" for item in result.warnings)
-    contact = next(item for item in result.checks if item.name == "基底全截面接触")
+    contact = next(item for item in result.checks if item.name == "基底脱开区比例")
     assert not contact.passed
     assert result.status == "incomplete"
     assert contact in result.provisional_checks
