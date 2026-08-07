@@ -24,6 +24,7 @@ import { api, errorMessage } from "@/lib/api";
 import { SceneWorkspace } from "@/components/scene-workspace";
 import {
   MODULE_MAP,
+  NEXTGEN_LIBRARY_ITEMS,
   normalizeInputs,
   type FieldDefinition,
 } from "@/lib/modules";
@@ -52,11 +53,17 @@ const LOAD_LABELS: Record<LoadItem["kind"], string> = {
 };
 
 function copyLoads(loads: LoadItem[], mode: Mode = "quick"): LoadItem[] {
-  return loads.map((item) => ({
-    ...item,
-    source:
-      mode === "quick" ? item.source || "场景建议值，需使用者确认" : item.source,
-  }));
+  return loads.map((item) => {
+    const { confirmed: _legacyConfirmation, ...current } = item as LoadItem & {
+      confirmed?: boolean;
+    };
+    void _legacyConfirmation;
+    return {
+      ...current,
+      source:
+        mode === "quick" ? current.source || "场景建议值" : current.source,
+    };
+  });
 }
 
 export default function WorkspacePage() {
@@ -92,7 +99,6 @@ export default function WorkspacePage() {
   const [savedVersion, setSavedVersion] = useState<ProjectVersion | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
-  const [assumptionsConfirmed, setAssumptionsConfirmed] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [railOpen, setRailOpen] = useState(false);
   const [pendingModule, setPendingModule] = useState<Module>("steel_beam");
@@ -103,7 +109,6 @@ export default function WorkspacePage() {
         inputs: Record<string, unknown>;
         loads: LoadItem[];
         projectName: string;
-        assumptionsConfirmed: boolean;
       }
     >(),
   );
@@ -183,13 +188,17 @@ export default function WorkspacePage() {
       "foundations_geotechnical",
       "retaining_pool",
     ];
+    const mergedItems = new Map(
+      (calculationLibrary?.items ?? []).map((item) => [item.id, item]),
+    );
+    NEXTGEN_LIBRARY_ITEMS.forEach((item) => mergedItems.set(item.id, item));
+    const items = [...mergedItems.values()];
     return order.map((task) => ({
       task,
       title:
-        calculationLibrary?.items.find((item) => item.task === task)
-          ?.task_title ?? task,
+        items.find((item) => item.task === task)?.task_title ?? task,
       items:
-        calculationLibrary?.items.filter(
+        items.filter(
           (item) =>
             item.task === task &&
             (!materialFilter ||
@@ -222,7 +231,6 @@ export default function WorkspacePage() {
       inputs: { ...inputs },
       loads: copyLoads(loads, mode),
       projectName,
-      assumptionsConfirmed,
     });
   }
 
@@ -244,9 +252,6 @@ export default function WorkspacePage() {
     setInputs(saved?.inputs ?? { ...targetDefinition.defaults });
     setLoads(saved?.loads ?? copyLoads(targetDefinition.defaultLoads, mode));
     setProjectName(saved?.projectName ?? projectName);
-    setAssumptionsConfirmed(
-      saved?.assumptionsConfirmed ?? mode === "professional",
-    );
     setResult(null);
     setSavedVersion(null);
     setSavedRevision(null);
@@ -292,9 +297,6 @@ export default function WorkspacePage() {
       saved?.loads ?? copyLoads(definition.defaultLoads, nextMode),
     );
     setProjectName(saved?.projectName ?? projectName);
-    setAssumptionsConfirmed(
-      saved?.assumptionsConfirmed ?? nextMode === "professional",
-    );
     setResult(null);
     setSavedVersion(null);
     setSavedRevision(null);
@@ -381,7 +383,6 @@ export default function WorkspacePage() {
         source: preset.label,
         preset_id: preset.id,
         source_reference: preset.source_reference,
-        confirmed: mode === "quick",
       },
     ]);
     setLoadPickerOpen(false);
@@ -410,7 +411,6 @@ export default function WorkspacePage() {
         source: `${location.province} ${location.station} · ${recurrence}年重现期`,
         preset_id: `climate:${location.id}:${climateKind}:${recurrence}`,
         source_reference: `GB 50009-2012 表E.5；基本值 ${basic} kN/m²；系数 ${heightFactor}×${shapeFactor}`,
-        confirmed: true,
       },
     ]);
     setClimateOpen(false);
@@ -418,26 +418,41 @@ export default function WorkspacePage() {
   }
 
   function payload() {
+    const typedInputs = definition.buildTypedInputs?.(inputs);
     return {
-      schema_version: "2.0",
+      schema_version: "3.2",
       mode,
       module,
       project_name: projectName,
-      standard_profile: "CN-2024",
-      confirmed_assumptions:
-        mode === "professional" ? true : assumptionsConfirmed,
-      inputs: normalizeInputs(module, inputs),
-      loads,
+      standard_profile: "CN-2026.1",
+      ...(typedInputs
+        ? { typed_inputs: typedInputs, loads: [] }
+        : { inputs: normalizeInputs(module, inputs), loads }),
     };
   }
 
   async function calculate() {
+    if (
+      ["pool_structure", "gravity_retaining_wall"].includes(module) &&
+      inputs.groundwater_condition === "unknown"
+    ) {
+      setError("地下水位未知时不能运行验算；请选择“无地下水影响”或录入已知水位及资料来源。");
+      return;
+    }
+    if (
+      ["pool_structure", "gravity_retaining_wall"].includes(module) &&
+      inputs.groundwater_condition === "known_water_table" &&
+      !String(inputs.groundwater_source ?? "").trim()
+    ) {
+      setError("已知地下水位必须填写资料来源。");
+      return;
+    }
     setWorking(true);
     setError("");
     setSavedVersion(null);
     setSavedRevision(null);
     try {
-      const calculated = await api<CalculationResult>("/api/v1/calculate", {
+      const calculated = await api<CalculationResult>("/api/v2/calculate", {
         method: "POST",
         body: JSON.stringify(payload()),
       });
@@ -576,14 +591,12 @@ export default function WorkspacePage() {
         unit: "kN",
         source: `${source.project_name} · 上部结构反力`,
         source_reference: `trace:${source.trace_id}`,
-        confirmed: true,
       },
     ]);
     setProjectName(`${source.project_name} · 基础`);
     setResult(null);
     setSavedVersion(null);
     setSavedRevision(null);
-    setAssumptionsConfirmed(mode === "professional");
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -622,7 +635,7 @@ export default function WorkspacePage() {
         </div>
         <div className="topbar-meta">
           <span className="standard-pill">
-            <ShieldCheck size={15} /> CN-2024 规范基线
+            <ShieldCheck size={15} /> CN-2026.1 规范基线
           </span>
           <span className="user-name">{user.display_name}</span>
           {user.is_admin && (
@@ -829,12 +842,12 @@ export default function WorkspacePage() {
             <span className="eyebrow">
               {mode === "quick"
                 ? "SCENARIO-BASED PRELIMINARY CHECK"
-                : "TRACEABLE PROFESSIONAL CALCULATION · BETA"}
+                : "TRACEABLE PROFESSIONAL CALCULATION"}
             </span>
             <h1>{definition.title}</h1>
             <p>
               {mode === "quick"
-                ? "使用已确认的场景假定快速判断控制验算，结果用于方案比较。"
+                ? "使用当前录入的场景参数快速判断控制验算，结果用于方案比较。"
                 : "关键参数必须明确输入；输出计算步骤、条文来源和可追溯报告。"}
             </p>
             <div className="inline-mode-switch calculation-mode-switch">
@@ -848,7 +861,7 @@ export default function WorkspacePage() {
                 className={mode === "professional" ? "active" : ""}
                 onClick={() => switchCalculationMode("professional")}
               >
-                专业 Beta
+                专业计算
               </button>
             </div>
           </div>
@@ -935,6 +948,16 @@ export default function WorkspacePage() {
               title="荷载与来源"
               subtitle="Load cases & provenance"
             />
+            {definition.buildTypedInputs ? (
+              <div className="no-diagram">
+                <Gauge size={30} />
+                <span>
+                  本模块的组合、作用和输入承载力已集中在上方参数区；提交时按
+                  Schema 3.2 生成带单位的 typed_inputs。
+                </span>
+              </div>
+            ) : (
+            <>
             <div className="load-tools">
               <button
                 className="secondary-button"
@@ -949,7 +972,7 @@ export default function WorkspacePage() {
                 <Compass size={16} /> 城市风雪向导
               </button>
               <small>
-                目录 {loadCatalog?.version ?? "加载中"} · 所有建议值都需确认
+                目录 {loadCatalog?.version ?? "加载中"} · 采用值直接进入计算
               </small>
             </div>
             {loadPickerOpen && loadCatalog && (
@@ -1087,7 +1110,6 @@ export default function WorkspacePage() {
                     onChange={(event) =>
                       updateLoad(index, {
                         value: Number(event.target.value),
-                        confirmed: !load.preset_id,
                       })
                     }
                   />
@@ -1129,7 +1151,11 @@ export default function WorkspacePage() {
                 {(load.source_reference || load.preset_id) && (
                   <div className="load-provenance">
                     <span>{load.source_reference}</span>
-                    {load.preset_id && !load.confirmed && (
+                    {load.preset_id &&
+                      loadCatalog?.items.some(
+                        (preset) =>
+                          preset.id === load.preset_id && preset.value !== load.value,
+                      ) && (
                       <input
                         value={load.override_reason ?? ""}
                         placeholder="已修改目录建议值，请填写覆盖原因"
@@ -1156,32 +1182,9 @@ export default function WorkspacePage() {
             >
               <Plus size={16} /> 添加荷载工况
             </button>
-
-            {mode === "quick" ? (
-              <label className="assumption-confirm">
-                <input
-                  type="checkbox"
-                  checked={assumptionsConfirmed}
-                  onChange={(event) =>
-                    setAssumptionsConfirmed(event.target.checked)
-                  }
-                />
-                <span>
-                  <strong>我已确认场景假定</strong>
-                  <small>
-                    快算仅用于方案比较；荷载、约束与构造仍需按项目复核。
-                  </small>
-                </span>
-              </label>
-            ) : (
-              <div className="beta-notice">
-                <ShieldCheck size={20} />
-                <span>
-                  <strong>专业计算 Beta</strong>
-                  <small>不允许缺省关键参数，报告不作为已签章设计文件。</small>
-                </span>
-              </div>
+            </>
             )}
+
           </section>
         </div>
 
@@ -1200,7 +1203,7 @@ export default function WorkspacePage() {
           <button
             className="calculate-button"
             onClick={calculate}
-            disabled={working || (mode === "quick" && !assumptionsConfirmed)}
+            disabled={working}
           >
             {working ? "正在计算…" : "运行验算"}
             <ArrowRight size={19} />
@@ -1325,7 +1328,7 @@ function StructureSketch({
   const span = Number(inputs.span_m ?? 3);
   const height = Number(inputs.height_m ?? 3);
   const isColumn = module.endsWith("column");
-  const isFrame = module === "portal_frame";
+  const isFrame = ["portal_frame", "planar_frame"].includes(module);
   const isFoundation = module.endsWith("footing");
   return (
     <div className="structure-sketch" aria-label="结构模型示意">
@@ -1436,6 +1439,13 @@ function ResultPanel({
   onCreateFoundation?: () => void;
   projectId?: number;
 }) {
+  const displayedStatus =
+    result.mode === "professional" &&
+    result.verification_status !== "independently_verified"
+      ? "incomplete"
+      : result.mode === "professional" && result.engineering_status
+        ? result.engineering_status
+        : result.status;
   const governing = result.checks.find(
     (item) => item.name === result.governing_check,
   );
@@ -1453,16 +1463,16 @@ function ResultPanel({
       <header className="result-header">
         <div
           className={`result-status ${
-            result.status === "passed"
+            displayedStatus === "passed"
               ? "passed"
-              : result.status === "incomplete"
+              : displayedStatus === "incomplete"
                 ? "incomplete"
                 : "failed"
           }`}
         >
-          {result.status === "passed" ? (
+          {displayedStatus === "passed" ? (
             <Check size={24} />
-          ) : result.status === "incomplete" ? (
+          ) : displayedStatus === "incomplete" ? (
             <AlertTriangle size={24} />
           ) : (
             <X size={24} />
@@ -1471,9 +1481,9 @@ function ResultPanel({
             <small>控制结论</small>
             <strong>
               当前输入与适用范围内
-              {result.status === "passed"
+              {displayedStatus === "passed"
                 ? "通过"
-                : result.status === "incomplete"
+                : displayedStatus === "incomplete"
                   ? "资料不完整"
                   : "不通过"}
             </strong>
@@ -1670,7 +1680,6 @@ function ResultPanel({
       )}
 
       <footer className="result-footer">
-        <span>{result.disclaimer}</span>
         <small>Trace ID · {result.trace_id}</small>
       </footer>
     </section>

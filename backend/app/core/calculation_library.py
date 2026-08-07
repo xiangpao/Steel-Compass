@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 
-CALCULATION_LIBRARY_VERSION = "CN-CALC-LIB-2026.2"
+CALCULATION_LIBRARY_VERSION = "CN-CALC-LIB-2026.3"
 
 
 CALCULATION_LIBRARY: list[dict[str, Any]] = [
@@ -283,6 +283,73 @@ CALCULATION_LIBRARY: list[dict[str, Any]] = [
         "presets": [],
     },
 ]
+
+
+# Modules with a Schema 3.2 calculation endpoint are public calculation tasks.
+_PUBLIC_MODULES_BY_ID = {
+    "load-combinations": "load_combinations",
+    "wind-snow": "wind_snow_guide",
+    "soil-water": "soil_water_actions",
+    "continuous-beam": "continuous_beam",
+    "planar-truss": "planar_truss",
+    "two-way-slab": "two_way_slab",
+    "timber-base": "timber_connection",
+    "pile-foundation": "pile_group_cap",
+    "pool-structure": "pool_structure",
+}
+for _item in CALCULATION_LIBRARY:
+    if _item["id"] in _PUBLIC_MODULES_BY_ID:
+        _item["module"] = _PUBLIC_MODULES_BY_ID[_item["id"]]
+        _item["maturity"] = "beta"
+
+CALCULATION_LIBRARY.extend(
+    [
+        {
+            "id": "site-rc-wall",
+            "title": "现浇 RC 景墙",
+            "task": "superstructure",
+            "task_title": "上部构件",
+            "material": "concrete",
+            "module": "site_rc_wall",
+            "maturity": "beta",
+            "description": "直线等高现浇墙的正反向风、弯剪、最低配筋与基础线荷载。",
+            "presets": ["现浇混凝土景墙"],
+        },
+        {
+            "id": "steel-infill-wall",
+            "title": "钢立柱轻质填充墙",
+            "task": "superstructure",
+            "task_title": "上部构件",
+            "material": "steel",
+            "module": "steel_infill_wall",
+            "maturity": "beta",
+            "description": "钢立柱、轻质填充面层、正反向风和柱底反力。",
+            "presets": ["钢立柱景墙"],
+        },
+        {
+            "id": "plain-masonry-wall",
+            "title": "低矮纯砌体墙",
+            "task": "superstructure",
+            "task_title": "上部构件",
+            "material": "masonry",
+            "module": "plain_masonry_wall",
+            "maturity": "beta",
+            "description": "受限高度、规则小开洞砌体墙的弯剪、压应力和长细筛查。",
+            "presets": ["纯砌体低景墙"],
+        },
+        {
+            "id": "gravity-retaining-wall",
+            "title": "重力式挡土墙",
+            "task": "retaining_pool",
+            "task_title": "挡土与池体",
+            "material": "concrete",
+            "module": "gravity_retaining_wall",
+            "maturity": "beta",
+            "description": "土水压力、墙体自重、滑移、倾覆和基底压力。",
+            "presets": ["重力式挡土墙"],
+        },
+    ]
+)
 
 
 def calculation_library(

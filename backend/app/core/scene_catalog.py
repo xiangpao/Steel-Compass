@@ -13,8 +13,8 @@ from .scene_schemas import (
 )
 
 
-SCENE_CATALOG_VERSION = "3.1"
-SCENE_LOAD_PACKAGE_VERSION = "3.1"
+SCENE_CATALOG_VERSION = "3.2"
+SCENE_LOAD_PACKAGE_VERSION = "3.2"
 
 
 def _number(
@@ -142,7 +142,6 @@ def _load(
         distribution=distribution,
         direction=direction,
         application_target=target,
-        confirmed=False,
         notes=notes,
     )
 
@@ -859,14 +858,20 @@ for family_id, title, description, icon, variants, load_label, body_label in [
         )
 
 
-# ---- 3.1 快算闭环场景 -------------------------------------------------
+# ---- 3.2 快算与专业验证门控场景 -----------------------------------------
 # The catalog above intentionally keeps the wider roadmap visible.  The
 # following replacements promote only variants whose graph has real module
 # bindings and a usable load package.  Development variants remain in the
 # family so users can see the boundary without accidentally entering them.
 
 
-def _roof_scene_package(package_id: str, title: str, target: str) -> SceneLoadPackage:
+def _roof_scene_package(
+    package_id: str,
+    title: str,
+    target: str,
+    *,
+    finish_default: float = 0.50,
+) -> SceneLoadPackage:
     return _package(
         package_id,
         title,
@@ -881,7 +886,7 @@ def _roof_scene_package(package_id: str, title: str, target: str) -> SceneLoadPa
                 "按覆盖层材料密度、厚度和构造层计算",
                 target,
                 minimum=0.20,
-                default=0.50,
+                default=finish_default,
                 maximum=1.20,
                 notes="结构构件自重由各构件自动计入，不能重复添加。",
             ),
@@ -1105,11 +1110,863 @@ RETAINING_GRAPH_PUBLIC = _graph(
 )
 
 
+def _site_wall_system_graph(
+    graph_id: str, module: str, wall_label: str, foundation_label: str
+) -> SceneGraphTemplate:
+    return _graph(
+        graph_id,
+        [
+            _node(
+                "wall_loads",
+                "墙体附加恒载与正反向风",
+                "load",
+                maturity="verified",
+                verification_status="independently_verified",
+                description="场景荷载包直接写入墙体模块的 typed load_cases。",
+            ),
+            _node(
+                "wall_system",
+                wall_label,
+                "column_wall",
+                module,
+                input_bindings={
+                    "height": "height_m",
+                    "length": "length_m",
+                    "support_spacing": "support_spacing_m",
+                    "opening_ratio": "opening_ratio",
+                },
+            ),
+            _node(
+                "foundation_interface",
+                foundation_label,
+                "foundation",
+                maturity="verified",
+                verification_status="independently_verified",
+                quick_assumption="墙体模块输出同组合底部六分量反力和基础线荷载，供基础单项计算继续使用。",
+            ),
+        ],
+        [
+            _connection("sw-1", "wall_loads", "wall_system", "manual"),
+            _connection(
+                "sw-2",
+                "wall_system",
+                "foundation_interface",
+                "reaction_package",
+                output_unit="kN",
+                input_unit="kN",
+                requires_source_trace=True,
+                description="传递墙体底部同组合六分量反力及基础线荷载追踪号。",
+            ),
+        ],
+    )
+
+
+SITE_RC_WALL_GRAPH = _site_wall_system_graph(
+    "site-rc-wall-real-chain-v32",
+    "site_rc_wall",
+    "现浇 RC 景墙墙身",
+    "条形基础接口",
+)
+STEEL_INFILL_WALL_GRAPH = _site_wall_system_graph(
+    "steel-infill-wall-real-chain-v32",
+    "steel_infill_wall",
+    "钢立柱与轻质填充墙",
+    "柱脚与独立基础接口",
+)
+PLAIN_MASONRY_WALL_GRAPH = _site_wall_system_graph(
+    "plain-masonry-wall-real-chain-v32",
+    "plain_masonry_wall",
+    "低矮纯砌体墙",
+    "条形基础接口",
+)
+
+GRAVITY_RETAINING_GRAPH = _graph(
+    "gravity-retaining-wall-real-chain-v32",
+    [
+        _node(
+            "soil_water_inputs",
+            "土压力、水压力、附加荷载与地下水",
+            "load",
+            maturity="verified",
+            verification_status="independently_verified",
+            description="地勘和项目水位参数输入，不作为独立荷载计算器发布。",
+        ),
+        _node(
+            "gravity_wall",
+            "重力式挡土墙墙体与底座",
+            "primary_member",
+            "gravity_retaining_wall",
+        ),
+        _node(
+            "soil_contact",
+            "基底接触与地基接口",
+            "geotechnical",
+            maturity="verified",
+            verification_status="independently_verified",
+            quick_assumption="重力墙核心已输出基底压力、滑移、倾覆和同组合基础反力。",
+        ),
+    ],
+    [
+        _connection("gr-1", "soil_water_inputs", "gravity_wall", "manual"),
+        _connection(
+            "gr-2",
+            "gravity_wall",
+            "soil_contact",
+            "reaction_package",
+            output_unit="kN/m",
+            input_unit="kN/m",
+            requires_source_trace=True,
+        ),
+    ],
+)
+
+
+def _base_and_foundation_nodes(
+    prefix: str, supports: list[tuple[str, str]]
+) -> tuple[list[SceneNode], list[SceneConnection]]:
+    nodes: list[SceneNode] = []
+    connections: list[SceneConnection] = []
+    for suffix, _support in supports:
+        base_id = f"{prefix}_base_{suffix}"
+        foundation_id = f"{prefix}_foundation_{suffix}"
+        nodes.extend(
+            [
+                _node(
+                    base_id,
+                    f"{suffix} 柱脚 / 底板锚栓",
+                    "connection",
+                    "steel_baseplate_anchor",
+                ),
+                _node(
+                    foundation_id,
+                    f"{suffix} 独立基础",
+                    "foundation",
+                    "spread_footing",
+                ),
+            ]
+        )
+        connections.append(
+            _connection(
+                f"{prefix}-{suffix}-foundation",
+                base_id,
+                foundation_id,
+                "reaction_package",
+                output_unit="kN",
+                input_unit="kN",
+                requires_source_trace=True,
+            )
+        )
+    return nodes, connections
+
+
+def _framed_foundation_graph(
+    graph_id: str,
+    load_node_id: str,
+    load_label: str,
+    frame_node_id: str,
+    frame_label: str,
+    supports: list[tuple[str, str]],
+) -> SceneGraphTemplate:
+    support_nodes, support_connections = _base_and_foundation_nodes(
+        graph_id, supports
+    )
+    frame_connections = [
+        _connection(
+            f"{graph_id}-load-frame",
+            load_node_id,
+            frame_node_id,
+            "manual",
+        )
+    ]
+    for suffix, support in supports:
+        frame_connections.append(
+            _connection(
+                f"{graph_id}-frame-{suffix}",
+                frame_node_id,
+                f"{graph_id}_base_{suffix}",
+                "reaction_package",
+                output_unit="kN",
+                input_unit="kN",
+                support=support,
+                requires_source_trace=True,
+            )
+        )
+    return _graph(
+        graph_id,
+        [
+            _node(
+                load_node_id,
+                load_label,
+                "load",
+                verification_status="independently_verified",
+            ),
+            _node(
+                frame_node_id,
+                frame_label,
+                "primary_member",
+                "planar_frame",
+            ),
+            *support_nodes,
+        ],
+        [*frame_connections, *support_connections],
+    )
+
+
+def _pergola_frame_graph(
+    graph_id: str, frame_label: str, supports: list[tuple[str, str]]
+) -> SceneGraphTemplate:
+    support_nodes, support_connections = _base_and_foundation_nodes(
+        graph_id, supports
+    )
+    connections = [
+        _connection(
+            f"{graph_id}-loads-roof",
+            "environment",
+            "roof_members",
+            "manual",
+        ),
+        _connection(
+            f"{graph_id}-roof-frame",
+            "roof_members",
+            "main_frame",
+            "reaction_to_line",
+            output_unit="kN",
+            input_unit="kN",
+            support="left",
+            conversion_input_key="reaction_conversion_spacing_m",
+            requires_source_trace=True,
+        ),
+    ]
+    for suffix, support in supports:
+        connections.append(
+            _connection(
+                f"{graph_id}-frame-{suffix}",
+                "main_frame",
+                f"{graph_id}_base_{suffix}",
+                "reaction_package",
+                output_unit="kN",
+                input_unit="kN",
+                support=support,
+                requires_source_trace=True,
+            )
+        )
+    return _graph(
+        graph_id,
+        [
+            _node(
+                "environment",
+                "覆盖层、检修、风雪作用",
+                "load",
+                verification_status="independently_verified",
+            ),
+            _node(
+                "roof_members",
+                "钢檩条 / 椽条",
+                "secondary_member",
+                "continuous_beam",
+                input_bindings={
+                    "reaction_conversion_spacing_m": "frame_spacing_m"
+                },
+            ),
+            _node(
+                "main_frame",
+                frame_label,
+                "primary_member",
+                "planar_frame",
+            ),
+            *support_nodes,
+        ],
+        [*connections, *support_connections],
+    )
+
+
+PERGOLA_MONO_GRAPH = _pergola_frame_graph(
+    "pergola-mono-pitch-chain",
+    "单坡参数化平面框架",
+    [("left", "left"), ("right", "right")],
+)
+PERGOLA_DUAL_GRAPH = _pergola_frame_graph(
+    "pergola-dual-pitch-chain",
+    "双坡屋脊参数化平面框架",
+    [("left", "left"), ("right", "right")],
+)
+PERGOLA_MULTI_GRAPH = _pergola_frame_graph(
+    "pergola-two-bay-unequal-chain",
+    "双跨 / 不同柱高参数化平面框架",
+    [("left", "left"), ("middle", "base"), ("right", "right")],
+)
+
+CANOPY_WALL_PUBLIC_GRAPH = _graph(
+    "canopy-wall-anchor-chain",
+    [
+        _node(
+            "canopy_loads",
+            "覆盖层、检修、风雪作用",
+            "load",
+            verification_status="independently_verified",
+        ),
+        _node(
+            "secondary_beam",
+            "墙附悬挑钢梁",
+            "secondary_member",
+            "steel_beam",
+        ),
+        _node(
+            "wall_anchor",
+            "墙体锚栓组",
+            "connection",
+            "wall_anchor",
+        ),
+    ],
+    [
+        _connection(
+            "canopy-wall-load-beam",
+            "canopy_loads",
+            "secondary_beam",
+            "manual",
+        ),
+        _connection(
+            "canopy-wall-beam-anchor",
+            "secondary_beam",
+            "wall_anchor",
+            "reaction_package",
+            output_unit="kN",
+            input_unit="kN",
+            requires_source_trace=True,
+        ),
+    ],
+)
+
+SIGN_DOUBLE_GRAPH = _framed_foundation_graph(
+    "signage-double-post-chain-v32",
+    "wind_panel",
+    "面板自重与正负风压",
+    "post",
+    "双柱平面框架",
+    [("left", "left"), ("right", "right")],
+)
+SIGN_GROUND_GRAPH = _framed_foundation_graph(
+    "signage-ground-mounted-chain-v32",
+    "wind_panel",
+    "面板自重与正负风压",
+    "post",
+    "落地式钢悬臂框架",
+    [("base", "base")],
+)
+
+SIGN_ECCENTRIC_GRAPH = _graph(
+    "signage-eccentric-panel-chain-v32",
+    [
+        _node(
+            "wind_panel",
+            "倾斜面板自重与正负风压",
+            "load",
+            verification_status="independently_verified",
+        ),
+        _node(
+            "post",
+            "偏心钢悬臂立柱",
+            "column_wall",
+            "steel_cantilever_post",
+        ),
+        _node(
+            "base_plate",
+            "底板与锚栓组",
+            "connection",
+            "steel_baseplate_anchor",
+        ),
+        _node(
+            "foundation",
+            "独立基础",
+            "foundation",
+            "spread_footing",
+        ),
+    ],
+    [
+        _connection("sign-ecc-load-post", "wind_panel", "post", "manual"),
+        _connection(
+            "sign-ecc-post-base",
+            "post",
+            "base_plate",
+            "reaction_package",
+            output_unit="kN",
+            input_unit="kN",
+            requires_source_trace=True,
+        ),
+        _connection(
+            "sign-ecc-base-foundation",
+            "base_plate",
+            "foundation",
+            "reaction_package",
+            output_unit="kN",
+            input_unit="kN",
+            requires_source_trace=True,
+        ),
+    ],
+)
+
+ENTRANCE_MULTI_GRAPH = _framed_foundation_graph(
+    "entrance-two-bay-chain-v32",
+    "gate_loads",
+    "面层、招牌与正负风作用",
+    "gate_frame",
+    "双跨参数化门楼框架",
+    [("left", "left"), ("middle", "base"), ("right", "right")],
+)
+ENTRANCE_ECCENTRIC_GRAPH = _framed_foundation_graph(
+    "entrance-eccentric-lintel-chain-v32",
+    "gate_loads",
+    "偏心门楣、招牌与正负风作用",
+    "gate_frame",
+    "偏心门楣参数化框架",
+    [("left", "left"), ("right", "right")],
+)
+ENTRANCE_UNEQUAL_GRAPH = _framed_foundation_graph(
+    "entrance-unequal-column-chain-v32",
+    "gate_loads",
+    "面层、招牌与正负风作用",
+    "gate_frame",
+    "不同柱高参数化框架",
+    [("left", "left"), ("right", "right")],
+)
+
+VIEWING_PLATFORM_GRAPH = _graph(
+    "viewing-platform-two-way-chain-v32",
+    [
+        _node(
+            "deck_loads",
+            "人群、栏杆与面层作用",
+            "load",
+            verification_status="independently_verified",
+        ),
+        _node("deck", "双向混凝土平台板", "surface", "two_way_slab"),
+        _node(
+            "secondary",
+            "钢次梁",
+            "secondary_member",
+            "continuous_beam",
+            input_bindings={
+                "reaction_conversion_spacing_m": "secondary_spacing_m"
+            },
+        ),
+        _node(
+            "primary",
+            "钢主梁",
+            "primary_member",
+            "continuous_beam",
+            input_bindings={
+                "reaction_conversion_spacing_m": "primary_spacing_m"
+            },
+        ),
+        _node(
+            "platform_base_left",
+            "左柱脚 / 底板锚栓",
+            "connection",
+            "steel_baseplate_anchor",
+        ),
+        _node(
+            "platform_base_right",
+            "右柱脚 / 底板锚栓",
+            "connection",
+            "steel_baseplate_anchor",
+        ),
+        _node(
+            "platform_foundation_left",
+            "左独立基础",
+            "foundation",
+            "spread_footing",
+        ),
+        _node(
+            "platform_foundation_right",
+            "右独立基础",
+            "foundation",
+            "spread_footing",
+        ),
+    ],
+    [
+        _connection("platform-load-deck", "deck_loads", "deck", "manual"),
+        _connection(
+            "platform-deck-secondary",
+            "deck",
+            "secondary",
+            "reaction_to_line",
+            output_unit="kN",
+            input_unit="kN",
+            conversion_input_key="reaction_conversion_spacing_m",
+            requires_source_trace=True,
+        ),
+        _connection(
+            "platform-secondary-primary",
+            "secondary",
+            "primary",
+            "reaction_to_line",
+            output_unit="kN",
+            input_unit="kN",
+            support="left",
+            conversion_input_key="reaction_conversion_spacing_m",
+            requires_source_trace=True,
+        ),
+        _connection(
+            "platform-primary-left-base",
+            "primary",
+            "platform_base_left",
+            "reaction_package",
+            output_unit="kN",
+            input_unit="kN",
+            support="left",
+            requires_source_trace=True,
+        ),
+        _connection(
+            "platform-primary-right-base",
+            "primary",
+            "platform_base_right",
+            "reaction_package",
+            output_unit="kN",
+            input_unit="kN",
+            support="right",
+            requires_source_trace=True,
+        ),
+        _connection(
+            "platform-left-foundation",
+            "platform_base_left",
+            "platform_foundation_left",
+            "reaction_package",
+            output_unit="kN",
+            input_unit="kN",
+            requires_source_trace=True,
+        ),
+        _connection(
+            "platform-right-foundation",
+            "platform_base_right",
+            "platform_foundation_right",
+            "reaction_package",
+            output_unit="kN",
+            input_unit="kN",
+            requires_source_trace=True,
+        ),
+    ],
+)
+
+SIGN_PUBLIC_LOAD_PACKAGE = _package(
+    "signage-panel-public-loads-v32",
+    "导视牌面板荷载包",
+    "面板自重和正负风压；偏心距与倾角作为几何参数录入。",
+    [
+        _load(
+            "sign-panel-dead-v32",
+            "面板及安装骨架自重",
+            "dead",
+            "reference_range",
+            "kN/m2",
+            "按面板与骨架产品资料",
+            "post",
+            minimum=0.15,
+            default=0.35,
+            maximum=0.80,
+        ),
+        _load(
+            "sign-wind-positive-v32",
+            "面板正向风压",
+            "wind",
+            "calculated",
+            "kN/m2",
+            "GB 50009-2012 第 8 章",
+            "post",
+            default=0.60,
+            direction="x_positive",
+        ),
+        _load(
+            "sign-wind-negative-v32",
+            "面板反向风压",
+            "wind",
+            "calculated",
+            "kN/m2",
+            "GB 50009-2012 第 8 章",
+            "post",
+            default=0.60,
+            direction="x_negative",
+        ),
+    ],
+)
+
+
+POOL_PUBLIC_LOAD_PACKAGE = _package(
+    "rectangular-pool-actions-v32",
+    "矩形水池土水作用包",
+    "内外水位、土压力、地表附加荷载和地下水浮力由水池参数生成并保存来源。",
+    [
+        _load(
+            "pool-internal-water-v32",
+            "池内水位与水压力",
+            "water",
+            "calculated",
+            "kPa",
+            "项目运行水位与水重度",
+            "pool_loads",
+            default=20.0,
+            distribution="pressure",
+            applicable_when="满池及运行水位组合。",
+        ),
+        _load(
+            "pool-external-soil-v32",
+            "池外主动土压力",
+            "soil",
+            "calculated",
+            "kPa",
+            "项目地勘土重度、内摩擦角与覆土高度",
+            "pool_loads",
+            default=12.0,
+            distribution="pressure",
+            direction="x_positive",
+            applicable_when="半地下或地下池；地上池为不适用。",
+        ),
+        _load(
+            "pool-groundwater-uplift-v32",
+            "地下水浮力",
+            "buoyancy",
+            "calculated",
+            "kPa",
+            "勘察最高抗浮水位",
+            "pool_loads",
+            default=10.0,
+            distribution="pressure",
+            direction="uplift",
+            applicable_when="地下水位高于池底；未知水位时专业计算不完整。",
+        ),
+    ],
+)
+
+BRIDGE_PUBLIC_LOAD_PACKAGE = _package(
+    "pedestrian-bridge-actions-v32",
+    "景观人行桥作用包",
+    "桥面恒载、人群、栏杆和横向风作用；各跨分配由桥梁模块保存。",
+    [
+        _load(
+            "bridge-finish-dead-v32",
+            "桥面铺装及附加恒载",
+            "dead",
+            "reference_range",
+            "kN/m2",
+            "按桥面材料和构造层计算",
+            "bridge_superstructure",
+            minimum=0.30,
+            default=0.80,
+            maximum=2.50,
+        ),
+        _load(
+            "bridge-crowd-v32",
+            "人群荷载",
+            "live",
+            "fixed",
+            "kN/m2",
+            "项目使用类别与现行荷载标准",
+            "bridge_superstructure",
+            default=4.00,
+        ),
+        _load(
+            "bridge-wind-v32",
+            "桥梁横向风作用",
+            "wind",
+            "calculated",
+            "kN/m2",
+            "GB 50009-2012 风荷载向导",
+            "bridge_superstructure",
+            default=0.50,
+            direction="x_positive",
+        ),
+    ],
+)
+
+
+def _pool_graph(graph_id: str, *, piled: bool) -> SceneGraphTemplate:
+    nodes = [
+        _node(
+            "pool_loads",
+            "内外水位、土压力与地下水",
+            "load",
+            verification_status="independently_verified",
+        ),
+        _node(
+            "pool_structure",
+            "RC 池壁、底板与抗浮组合",
+            "surface",
+            "pool_structure",
+        ),
+        _node(
+            "antifloat_support",
+            "池底支承与抗浮控制",
+            "geotechnical" if piled else "foundation",
+            description="复用水池模块同一结果中的基底压力和抗浮验算，不另行重复计重。",
+        ),
+    ]
+    connections = [
+        _connection(
+            f"{graph_id}-loads-pool",
+            "pool_loads",
+            "pool_structure",
+            "manual",
+        ),
+        _connection(
+            f"{graph_id}-pool-support",
+            "pool_structure",
+            "antifloat_support",
+            "combination_package",
+            output_unit="kN",
+            input_unit="kN",
+            requires_source_trace=True,
+        ),
+    ]
+    if piled:
+        nodes.append(
+            _node(
+                "pile_cap",
+                "抗浮桩群与承台",
+                "foundation",
+                "pile_group_cap",
+            )
+        )
+        connections.append(
+            _connection(
+                f"{graph_id}-support-piles",
+                "antifloat_support",
+                "pile_cap",
+                "combination_package",
+                output_unit="kN",
+                input_unit="kN",
+                requires_source_trace=True,
+            )
+        )
+    return _graph(graph_id, nodes, connections)
+
+
+def _bridge_graph(
+    graph_id: str,
+    bridge_module: str,
+    *,
+    support_count: int,
+    piled: bool,
+) -> SceneGraphTemplate:
+    if support_count not in {2, 3}:
+        raise ValueError("parameterized bridge catalog supports two or three supports")
+    support_specs = (
+        [("left", "left"), ("right", "right")]
+        if support_count == 2
+        else [("left", "left"), ("middle", "base"), ("right", "right")]
+    )
+    support_module = "pile_group_cap" if piled else "spread_footing"
+    support_label = "桩群承台" if piled else "浅基础"
+    nodes = [
+        _node(
+            "bridge_loads",
+            "桥面、人群、栏杆与横向风作用",
+            "load",
+            verification_status="independently_verified",
+        ),
+        _node(
+            "bridge_superstructure",
+            "参数化桥面板、纵横梁与墩台反力",
+            "primary_member",
+            bridge_module,
+        ),
+    ]
+    connections = [
+        _connection(
+            f"{graph_id}-loads-superstructure",
+            "bridge_loads",
+            "bridge_superstructure",
+            "manual",
+        )
+    ]
+    for suffix, support in support_specs:
+        node_id = f"support_{suffix}"
+        nodes.append(
+            _node(
+                node_id,
+                f"{suffix} {support_label}",
+                "foundation",
+                support_module,
+            )
+        )
+        connections.append(
+            _connection(
+                f"{graph_id}-support-{suffix}",
+                "bridge_superstructure",
+                node_id,
+                "combination_package",
+                output_unit="kN",
+                input_unit="kN",
+                support=support,
+                requires_source_trace=True,
+            )
+        )
+    return _graph(graph_id, nodes, connections)
+
+
+POOL_ABOVE_SHALLOW_GRAPH = _pool_graph("pool-above-shallow-v32", piled=False)
+POOL_SEMI_SHALLOW_GRAPH = _pool_graph("pool-semi-shallow-v32", piled=False)
+POOL_BURIED_SHALLOW_GRAPH = _pool_graph("pool-buried-shallow-v32", piled=False)
+POOL_ABOVE_PILE_GRAPH = _pool_graph("pool-above-pile-v32", piled=True)
+POOL_SEMI_PILE_GRAPH = _pool_graph("pool-semi-pile-v32", piled=True)
+POOL_BURIED_PILE_GRAPH = _pool_graph("pool-buried-pile-v32", piled=True)
+
+BRIDGE_ST_SINGLE_SHALLOW_GRAPH = _bridge_graph(
+    "bridge-steel-timber-single-shallow-v32",
+    "bridge_steel_timber",
+    support_count=2,
+    piled=False,
+)
+BRIDGE_ST_SINGLE_PILE_GRAPH = _bridge_graph(
+    "bridge-steel-timber-single-pile-v32",
+    "bridge_steel_timber",
+    support_count=2,
+    piled=True,
+)
+BRIDGE_ST_MULTI_SHALLOW_GRAPH = _bridge_graph(
+    "bridge-steel-timber-two-span-shallow-v32",
+    "bridge_steel_timber",
+    support_count=3,
+    piled=False,
+)
+BRIDGE_ST_MULTI_PILE_GRAPH = _bridge_graph(
+    "bridge-steel-timber-two-span-pile-v32",
+    "bridge_steel_timber",
+    support_count=3,
+    piled=True,
+)
+BRIDGE_RC_SINGLE_SHALLOW_GRAPH = _bridge_graph(
+    "bridge-rc-single-shallow-v32",
+    "bridge_rc",
+    support_count=2,
+    piled=False,
+)
+BRIDGE_RC_SINGLE_PILE_GRAPH = _bridge_graph(
+    "bridge-rc-single-pile-v32",
+    "bridge_rc",
+    support_count=2,
+    piled=True,
+)
+BRIDGE_RC_MULTI_SHALLOW_GRAPH = _bridge_graph(
+    "bridge-rc-two-span-shallow-v32",
+    "bridge_rc",
+    support_count=3,
+    piled=False,
+)
+BRIDGE_RC_MULTI_PILE_GRAPH = _bridge_graph(
+    "bridge-rc-two-span-pile-v32",
+    "bridge_rc",
+    support_count=3,
+    piled=True,
+)
+
+
 def _replace_public_variant(family_id: str, variant: SceneVariant) -> None:
     family = next(item for item in SCENE_FAMILIES if item.id == family_id)
-    family.variants = [
-        variant if item.id == variant.id else item for item in family.variants
-    ]
+    if any(item.id == variant.id for item in family.variants):
+        family.variants = [
+            variant if item.id == variant.id else item for item in family.variants
+        ]
+    else:
+        family.variants.append(variant)
     family.availability = "public"
     family.maturity = "beta"
     family.default_variant_id = variant.id
@@ -1237,12 +2094,500 @@ _replace_public_variant(
     ),
 )
 
+_replace_public_variant(
+    "landscape-wall-fence",
+    _variant(
+        "concrete-straight",
+        "现浇混凝土景墙",
+        "墙体附加恒载和正反向风直接进入现浇 RC 墙核心，并输出基础线荷载和底部六分量反力。",
+        ["混凝土"],
+        [
+            _number("height_m", "墙高", "m", 1.8),
+            _number("length_m", "代表墙长", "m", 6.0),
+            _number("thickness_mm", "墙厚", "mm", 180.0),
+            _number("support_spacing_m", "代表支承间距", "m", 3.0),
+            _number("opening_ratio", "规则小开洞率", "1", 0.0),
+        ],
+        support_system="墙身固定端+条形基础接口",
+        graph=SITE_RC_WALL_GRAPH,
+        load_package=_package(
+            "site-rc-wall-loads-v32",
+            "现浇 RC 景墙荷载包",
+            "墙体自重由几何和混凝土重度自动生成；目录只提供附加面层与正反向风。",
+            [
+                _load("rc-wall-finish", "饰面附加恒载", "dead", "reference_range", "kN/m2", "按饰面产品资料", "wall_system", minimum=0.10, default=0.25, maximum=0.60),
+                _load("rc-wall-wind-positive", "正向风压", "wind", "calculated", "kN/m2", "GB 50009-2012 风荷载向导", "wall_system", default=0.50, direction="x_positive"),
+                _load("rc-wall-wind-negative", "反向风压", "wind", "calculated", "kN/m2", "GB 50009-2012 风荷载向导", "wall_system", default=0.45, direction="x_negative"),
+            ],
+        ),
+    ),
+)
+
+_replace_public_variant(
+    "landscape-wall-fence",
+    _variant(
+        "steel-infill",
+        "钢立柱轻质填充墙",
+        "轻质填充面层恒载和风作用进入钢立柱体系核心，输出每根立柱底反力和基础线荷载。",
+        ["钢+轻质填充"],
+        [
+            _number("height_m", "墙高", "m", 2.0),
+            _number("length_m", "代表墙长", "m", 8.0),
+            _number("support_spacing_m", "钢立柱间距", "m", 2.0),
+            _number("opening_ratio", "规则小开洞率", "1", 0.0),
+        ],
+        support_system="钢立柱柱脚+独立基础接口",
+        graph=STEEL_INFILL_WALL_GRAPH,
+        load_package=_package(
+            "steel-infill-wall-loads-v32",
+            "钢立柱轻质填充墙荷载包",
+            "填充面层恒载、正向风和反向风按立柱间距形成支承反力。",
+            [
+                _load("steel-infill-dead", "轻质填充面层恒载", "dead", "reference_range", "kN/m2", "按填充板及龙骨产品资料", "wall_system", minimum=0.25, default=0.45, maximum=0.80),
+                _load("steel-infill-wind-positive", "正向风压", "wind", "calculated", "kN/m2", "GB 50009-2012 风荷载向导", "wall_system", default=0.65, direction="x_positive"),
+                _load("steel-infill-wind-negative", "反向风压", "wind", "calculated", "kN/m2", "GB 50009-2012 风荷载向导", "wall_system", default=0.55, direction="x_negative"),
+            ],
+        ),
+    ),
+)
+
+_replace_public_variant(
+    "landscape-wall-fence",
+    _variant(
+        "plain-masonry",
+        "低矮纯砌体景墙",
+        "仅用于受限高度和规则小开洞的低墙，计算砌体弯剪、压应力、长细与基础线荷载。",
+        ["砌体"],
+        [
+            _number("height_m", "墙高", "m", 1.0),
+            _number("length_m", "代表墙长", "m", 6.0),
+            _number("thickness_mm", "墙厚", "mm", 240.0),
+            _number("support_spacing_m", "侧向支承间距", "m", 3.0),
+            _number("opening_ratio", "规则小开洞率", "1", 0.0),
+        ],
+        support_system="低墙固定端+条形基础接口",
+        graph=PLAIN_MASONRY_WALL_GRAPH,
+        load_package=_package(
+            "plain-masonry-wall-loads-v32",
+            "低矮纯砌体墙荷载包",
+            "砌体自重自动生成；目录记录抹灰饰面和正反向风。",
+            [
+                _load("plain-masonry-finish", "抹灰饰面附加恒载", "dead", "reference_range", "kN/m2", "按抹灰和饰面厚度计算", "wall_system", minimum=0.20, default=0.35, maximum=0.70),
+                _load("plain-masonry-wind-positive", "正向风压", "wind", "calculated", "kN/m2", "GB 50009-2012 风荷载向导", "wall_system", default=0.45, direction="x_positive"),
+                _load("plain-masonry-wind-negative", "反向风压", "wind", "calculated", "kN/m2", "GB 50009-2012 风荷载向导", "wall_system", default=0.40, direction="x_negative"),
+            ],
+        ),
+    ),
+)
+
+_replace_public_variant(
+    "retaining-facility",
+    _variant(
+        "gravity",
+        "重力式挡土墙",
+        "土水作用进入重力墙核心，完成墙体自重、滑移、倾覆、基底接触和地基压力传力链。",
+        ["素混凝土/石砌体等效重力墙"],
+        [
+            _number("retained_height_m", "挡土高度", "m", 2.0),
+            _number("base_width_m", "底座宽度", "m", 2.4),
+            _number("wall_bottom_thickness_m", "墙底厚度", "m", 1.2),
+            _number("wall_top_thickness_m", "墙顶厚度", "m", 0.5),
+            _number("toe_projection_m", "趾部挑出", "m", 0.7),
+            _number("water_depth_behind_m", "墙后水深", "m", 0.0),
+        ],
+        support_system="墙体底座+地基接触",
+        graph=GRAVITY_RETAINING_GRAPH,
+        load_package=_package(
+            "gravity-retaining-loads-v32",
+            "重力式挡墙土水资料包",
+            "地勘参数和水位通过 typed inputs 进入墙体；本包仅保存来源和采用工况。",
+            [
+                _load("gravity-soil-source", "地勘土参数资料", "custom", "fixed", "1", "项目勘察资料", "soil_water_inputs", default=1.0, distribution="point"),
+                _load("gravity-surcharge", "墙后附加荷载", "soil", "reference_range", "kPa", "项目使用条件", "soil_water_inputs", minimum=0.0, default=5.0, maximum=20.0, distribution="pressure", direction="x_positive"),
+                _load("gravity-water-head", "墙后水位工况", "water", "project_defined", "m", "项目地下水资料", "soil_water_inputs", default=0.0, distribution="pressure", direction="x_positive"),
+            ],
+        ),
+    ),
+)
+
+_replace_public_variant(
+    "pergola-pavilion",
+    _variant(
+        "mono-pitch",
+        "单坡钢廊架",
+        "覆盖层经连续檩条传至单坡参数化平面框架，再由双柱脚传至独立基础。",
+        ["钢"],
+        COMMON_FRAME_PARAMETERS
+        + [_number("roof_slope_deg", "屋面坡度", "°", 8.0)],
+        support_system="双柱落地",
+        roof_form="单坡",
+        graph=PERGOLA_MONO_GRAPH,
+        load_package=PERGOLA_LOAD_PACKAGE,
+    ),
+)
+_replace_public_variant(
+    "pergola-pavilion",
+    _variant(
+        "dual-pitch",
+        "双坡钢廊架",
+        "左右坡面经连续檩条传至带屋脊节点的参数化框架，再传至双柱脚与基础。",
+        ["钢"],
+        COMMON_FRAME_PARAMETERS
+        + [_number("roof_slope_deg", "屋面坡度", "°", 15.0)],
+        support_system="双柱落地",
+        roof_form="双坡",
+        graph=PERGOLA_DUAL_GRAPH,
+        load_package=PERGOLA_LOAD_PACKAGE,
+    ),
+)
+_replace_public_variant(
+    "pergola-pavilion",
+    _variant(
+        "multi-bay",
+        "双跨 / 不同柱高钢廊架",
+        "首版固定为双跨参数化框架，支持不同柱高与三个独立柱脚、基础反力。",
+        ["钢"],
+        COMMON_FRAME_PARAMETERS
+        + [
+            _number("bay_count", "跨数", "跨", 2.0),
+            _number("right_height_m", "右柱高", "m", 3.0),
+        ],
+        support_system="三柱落地",
+        roof_form="平顶 / 非对称",
+        graph=PERGOLA_MULTI_GRAPH,
+        load_package=PERGOLA_LOAD_PACKAGE,
+    ),
+)
+_replace_public_variant(
+    "canopy",
+    _variant(
+        "wall-cantilever",
+        "墙附悬挑钢雨棚",
+        "覆盖层作用传至悬挑钢梁与墙体锚栓组；墙附体系不生成基础节点。",
+        ["钢"],
+        [
+            _number("cantilever_m", "悬挑长度", "m", 1.8),
+            _number("width_m", "雨棚宽度", "m", 3.0),
+            _choice(
+                "wall_substrate",
+                "墙体基材",
+                ["钢筋混凝土", "实心砌体", "未知"],
+                "钢筋混凝土",
+            ),
+        ],
+        support_system="墙体锚固",
+        roof_form="平顶",
+        graph=CANOPY_WALL_PUBLIC_GRAPH,
+        load_package=_roof_scene_package(
+            "canopy-wall-public-loads-v32",
+            "墙附悬挑雨棚荷载包",
+            "secondary_beam",
+            finish_default=0.35,
+        ),
+    ),
+)
+_replace_public_variant(
+    "signage-billboard",
+    _variant(
+        "double-post",
+        "双柱钢导视牌",
+        "正负面板风压传至双柱平面框架，并分别传至两组柱脚与独立基础。",
+        ["钢"],
+        [
+            _number("panel_width_m", "面板宽度", "m", 2.4),
+            _number("panel_height_m", "面板高度", "m", 1.2),
+            _number("post_spacing_m", "柱间距", "m", 1.6),
+        ],
+        support_system="双柱落地",
+        graph=SIGN_DOUBLE_GRAPH,
+        load_package=SIGN_PUBLIC_LOAD_PACKAGE,
+    ),
+)
+_replace_public_variant(
+    "signage-billboard",
+    _variant(
+        "ground-mounted",
+        "钢构落地式导视牌",
+        "面板作用传至落地式钢悬臂框架、底板锚栓和独立基础。",
+        ["钢"],
+        [
+            _number("panel_width_m", "面板宽度", "m", 2.0),
+            _number("panel_height_m", "面板高度", "m", 1.5),
+            _number("base_width_m", "底座宽度", "m", 0.8),
+        ],
+        support_system="钢底座落地",
+        graph=SIGN_GROUND_GRAPH,
+        load_package=SIGN_PUBLIC_LOAD_PACKAGE,
+    ),
+)
+_replace_public_variant(
+    "signage-billboard",
+    _variant(
+        "eccentric-panel",
+        "偏心 / 倾斜钢导视牌",
+        "按面板偏心距和倾角生成剪力、弯矩及扭矩，并传至柱脚与独立基础。",
+        ["钢"],
+        [
+            _number("panel_width_m", "面板宽度", "m", 1.5),
+            _number("eccentricity_m", "面板偏心距", "m", 0.3),
+            _number("tilt_deg", "面板倾角", "°", 8.0),
+        ],
+        support_system="单柱落地",
+        graph=SIGN_ECCENTRIC_GRAPH,
+        load_package=SIGN_PUBLIC_LOAD_PACKAGE,
+    ),
+)
+_replace_public_variant(
+    "entrance-frame",
+    _variant(
+        "multi-span",
+        "双跨钢门楼",
+        "首版固定为双跨参数化门楼，三个支点分别传至柱脚与独立基础。",
+        ["钢"],
+        COMMON_FRAME_PARAMETERS + [_number("bay_count", "跨数", "跨", 2.0)],
+        support_system="三柱落地",
+        graph=ENTRANCE_MULTI_GRAPH,
+        load_package=ENTRANCE_LOAD_PACKAGE,
+    ),
+)
+_replace_public_variant(
+    "entrance-frame",
+    _variant(
+        "eccentric-lintel",
+        "偏心门楣钢门楼",
+        "偏心门楣和招牌作用进入参数化平面框架，再传至双柱脚与独立基础。",
+        ["钢"],
+        COMMON_FRAME_PARAMETERS
+        + [_number("eccentricity_m", "偏心距", "m", 0.5)],
+        support_system="双柱落地",
+        graph=ENTRANCE_ECCENTRIC_GRAPH,
+        load_package=ENTRANCE_LOAD_PACKAGE,
+    ),
+)
+_replace_public_variant(
+    "entrance-frame",
+    _variant(
+        "unequal-columns",
+        "不同柱高钢门楼",
+        "不同柱高形成非对称参数化框架，左右反力独立传至柱脚和基础。",
+        ["钢"],
+        COMMON_FRAME_PARAMETERS
+        + [_number("right_height_m", "右柱高", "m", 3.6)],
+        support_system="双柱落地",
+        graph=ENTRANCE_UNEQUAL_GRAPH,
+        load_package=ENTRANCE_LOAD_PACKAGE,
+    ),
+)
+_replace_public_variant(
+    "boardwalk-platform",
+    _variant(
+        "viewing-platform",
+        "混凝土板 + 钢梁观景平台",
+        "人群与面层作用经双向板、连续次梁和主梁传至左右柱脚与独立基础。",
+        ["混凝土板+钢构"],
+        [
+            _number("short_span_m", "平台板短跨", "m", 3.0),
+            _number("long_span_m", "平台板长跨", "m", 4.5),
+            _number("slab_thickness_mm", "平台板厚度", "mm", 140.0),
+            _number("secondary_spacing_m", "次梁间距", "m", 1.5),
+            _number("primary_spacing_m", "主梁间距", "m", 3.0),
+        ],
+        support_system="双柱脚+独立基础",
+        graph=VIEWING_PLATFORM_GRAPH,
+        load_package=BOARDWALK_LOAD_PACKAGE,
+    ),
+)
+
+_POOL_PARAMETERS = [
+    _number("inside_length_m", "池内净长", "m", 6.0),
+    _number("inside_width_m", "池内净宽", "m", 3.0),
+    _number("wall_height_m", "池壁高度", "m", 1.5),
+    _number("wall_thickness_mm", "池壁厚度", "mm", 200.0),
+    _number("base_thickness_mm", "底板厚度", "mm", 250.0),
+    _number("internal_water_depth_m", "池内设计水深", "m", 1.2),
+    _number("external_water_head_m", "池外抗浮水头", "m", 0.8),
+    _number("allowable_bearing_kpa", "地基承载力", "kPa", 120.0),
+]
+
+for _variant_id, _title, _description, _graph_template, _support in (
+    (
+        "rect-above",
+        "矩形地上水池（浅基础）",
+        "地上矩形 RC 池壁、底板、满池/空池组合、裂缝、基底压力与抗浮闭环。",
+        POOL_ABOVE_SHALLOW_GRAPH,
+        "池底板浅基础",
+    ),
+    (
+        "rect-semi-buried",
+        "矩形半地下水池（浅基础）",
+        "半地下 RC 池体同时考虑内水、外侧土水压力、空池抗浮和池底浅基础。",
+        POOL_SEMI_SHALLOW_GRAPH,
+        "池底板浅基础",
+    ),
+    (
+        "rect-buried",
+        "矩形地下水池（浅基础）",
+        "地下 RC 池体按空池、满池及内外水位组合验算池壁、底板、抗浮和基底压力。",
+        POOL_BURIED_SHALLOW_GRAPH,
+        "池底板浅基础",
+    ),
+    (
+        "rect-above-pile",
+        "矩形地上水池（桩承台）",
+        "池体组合反力按同一组合传入勘察承载力驱动的桩群与承台。",
+        POOL_ABOVE_PILE_GRAPH,
+        "池底板+桩群承台",
+    ),
+    (
+        "rect-semi-buried-pile",
+        "矩形半地下水池（桩承台）",
+        "半地下池体的重力、土水和浮力组合传至抗浮桩群承台。",
+        POOL_SEMI_PILE_GRAPH,
+        "池底板+抗浮桩群承台",
+    ),
+    (
+        "rect-buried-pile",
+        "矩形地下水池（桩承台）",
+        "地下池空池抗浮与满池组合分别传至桩群承台，不拼接不同组合效应。",
+        POOL_BURIED_PILE_GRAPH,
+        "池底板+抗浮桩群承台",
+    ),
+):
+    _replace_public_variant(
+        "water-feature-pool",
+        _variant(
+            _variant_id,
+            _title,
+            _description,
+            ["钢筋混凝土"],
+            _POOL_PARAMETERS,
+            support_system=_support,
+            graph=_graph_template,
+            load_package=POOL_PUBLIC_LOAD_PACKAGE,
+        ),
+    )
+
+_BRIDGE_PARAMETERS = [
+    _number("span_length_m", "等跨跨径", "m", 6.0),
+    _number("deck_width_m", "桥面净宽", "m", 2.5),
+    _number("crossbeam_spacing_m", "横梁间距", "m", 1.5),
+    _number("crowd_load_kpa", "人群荷载", "kPa", 4.0),
+    _number("wind_load_kpa", "横向风压", "kPa", 0.5),
+]
+
+for _variant_id, _title, _description, _material, _graph_template, _support in (
+    (
+        "single-straight",
+        "单跨钢梁 + 木桥面（浅基础）",
+        "木桥面板、钢横纵梁和两端浅基础的直线人行桥。",
+        "钢梁+木桥面",
+        BRIDGE_ST_SINGLE_SHALLOW_GRAPH,
+        "两端浅基础",
+    ),
+    (
+        "single-steel-timber-pile",
+        "单跨钢梁 + 木桥面（桩基）",
+        "上部反力分别传入两端勘察承载力驱动的桩群承台。",
+        "钢梁+木桥面",
+        BRIDGE_ST_SINGLE_PILE_GRAPH,
+        "两端桩群承台",
+    ),
+    (
+        "multi-span",
+        "双跨钢梁 + 木桥面（浅基础）",
+        "首版固定为等跨双跨，三处支座分别传至浅基础。",
+        "钢梁+木桥面",
+        BRIDGE_ST_MULTI_SHALLOW_GRAPH,
+        "三处浅基础",
+    ),
+    (
+        "multi-steel-timber-pile",
+        "双跨钢梁 + 木桥面（桩基）",
+        "等跨双跨上部结构的三组支反力分别传至桩群承台。",
+        "钢梁+木桥面",
+        BRIDGE_ST_MULTI_PILE_GRAPH,
+        "三处桩群承台",
+    ),
+    (
+        "single-rc-shallow",
+        "单跨全混凝土桥（浅基础）",
+        "RC 桥面板、纵梁、墩台反力与两端浅基础的参数化直线人行桥。",
+        "全混凝土",
+        BRIDGE_RC_SINGLE_SHALLOW_GRAPH,
+        "两端浅基础",
+    ),
+    (
+        "single-rc-pile",
+        "单跨全混凝土桥（桩基）",
+        "RC 上部结构的同组合六分量反力分别传至两端桩群承台。",
+        "全混凝土",
+        BRIDGE_RC_SINGLE_PILE_GRAPH,
+        "两端桩群承台",
+    ),
+    (
+        "multi-rc-shallow",
+        "双跨全混凝土桥（浅基础）",
+        "首版固定为等跨双跨 RC 板梁桥和三处浅基础。",
+        "全混凝土",
+        BRIDGE_RC_MULTI_SHALLOW_GRAPH,
+        "三处浅基础",
+    ),
+    (
+        "multi-rc-pile",
+        "双跨全混凝土桥（桩基）",
+        "等跨双跨 RC 上部结构与三处桩群承台的完整传力链。",
+        "全混凝土",
+        BRIDGE_RC_MULTI_PILE_GRAPH,
+        "三处桩群承台",
+    ),
+):
+    _replace_public_variant(
+        "landscape-bridge",
+        _variant(
+            _variant_id,
+            _title,
+            _description,
+            [_material],
+            _BRIDGE_PARAMETERS,
+            support_system=_support,
+            graph=_graph_template,
+            load_package=BRIDGE_PUBLIC_LOAD_PACKAGE,
+        ),
+    )
+
+for _family_id, _boundaries in (
+    (
+        "water-feature-pool",
+        [
+            "仅覆盖矩形、规则池壁和底板；不覆盖异形池、温度作用和不均匀沉降",
+            "地下水位未知或桩承载力无勘察来源时专业结果保持 incomplete",
+        ],
+    ),
+    (
+        "landscape-bridge",
+        [
+            "仅覆盖直线人行梁桥；多跨首版固定为等跨双跨",
+            "不覆盖车行、曲线、拱桥、索桥、复杂动力和河道冲刷",
+        ],
+    ),
+):
+    _family = next(item for item in SCENE_FAMILIES if item.id == _family_id)
+    _family.boundaries = _boundaries
+
 # Prefer the smallest complete path when opening a family with several newly
 # published variants.  Other public variants remain selectable in the same
 # family and development variants remain explicitly blocked.
 for _family_id, _default_variant in (
+    ("pergola-pavilion", "flat-single"),
     ("canopy", "single-row"),
+    ("signage-billboard", "single-post"),
+    ("entrance-frame", "single-span"),
+    ("boardwalk-platform", "straight"),
+    ("water-feature-pool", "rect-above"),
+    ("landscape-bridge", "single-straight"),
     ("bench-planter", "bench"),
+    ("landscape-wall-fence", "constrained-masonry"),
+    ("retaining-facility", "cantilever-rc"),
 ):
     _family = next(item for item in SCENE_FAMILIES if item.id == _family_id)
     _family.default_variant_id = _default_variant

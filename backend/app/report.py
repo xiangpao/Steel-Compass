@@ -73,7 +73,7 @@ def build_calculation_pdf(result: CalculationResult, report_number: str) -> byte
         Spacer(1, 6 * mm),
         Paragraph(f"报告编号：{escape(report_number)}", body),
         Paragraph(f"项目：{escape(result.project_name)}", body),
-        Paragraph(f"模式：{'方案快算' if result.mode.value == 'quick' else '专业计算 Beta'}", body),
+        Paragraph(f"模式：{'方案快算' if result.mode.value == 'quick' else '专业计算'}", body),
         Paragraph(f"模块：{escape(result.module.value)}", body),
         Paragraph(f"计算引擎：{escape(result.engine_version)}", body),
         Paragraph(f"追踪编号：{escape(result.trace_id)}", body),
@@ -82,9 +82,10 @@ def build_calculation_pdf(result: CalculationResult, report_number: str) -> byte
             f"控制结论：{status_labels[result.status]}",
             heading,
         ),
-        Paragraph(escape(result.disclaimer), body),
         Paragraph("规范基线", heading),
     ]
+    if result.schema_version != "3.2" and result.disclaimer:
+        story.insert(-1, Paragraph(escape(result.disclaimer), body))
     story.extend(Paragraph(f"• {escape(item)}", body) for item in result.standards)
     if result.catalog_versions:
         story.append(Paragraph("版本追溯", heading))
@@ -259,7 +260,7 @@ def build_scene_project_pdf(
             body,
         ),
         Paragraph(
-            f"模式：{'方案快算' if scene_result.mode.value == 'quick' else '专业计算 Beta'}",
+            f"模式：{'方案快算' if scene_result.mode.value == 'quick' else '专业计算'}",
             body,
         ),
         Paragraph(f"整体状态：{status_label}", heading),

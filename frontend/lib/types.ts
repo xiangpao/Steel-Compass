@@ -1,22 +1,8 @@
+import type { ApiCalculationModule } from "./generated-api";
+
 export type Mode = "quick" | "professional";
 
-export type Module =
-  | "steel_beam"
-  | "steel_column"
-  | "portal_frame"
-  | "steel_baseplate_anchor"
-  | "concrete_beam"
-  | "concrete_slab"
-  | "concrete_column"
-  | "spread_footing"
-  | "strip_footing"
-  | "timber_beam"
-  | "timber_column"
-  | "timber_deck_panel"
-  | "steel_cantilever_post"
-  | "masonry_wall"
-  | "rc_wall"
-  | "retaining_wall";
+export type Module = ApiCalculationModule;
 
 export interface LoadItem {
   kind: "self_weight" | "dead" | "live" | "wind" | "snow";
@@ -33,7 +19,6 @@ export interface LoadItem {
   preset_id?: string;
   source_reference?: string;
   override_reason?: string;
-  confirmed?: boolean;
 }
 
 export interface Scenario {
@@ -117,7 +102,6 @@ export interface SceneLoadCase {
   unit: string;
   direction?: LoadItem["direction"];
   source_reference: string;
-  confirmed: boolean;
   override_reason?: string;
   applicable_when: string;
   distribution: "point" | "line" | "area" | "pressure";
@@ -164,7 +148,7 @@ export interface CalculationLibraryItem {
   title: string;
   task: string;
   task_title: string;
-  material?: "steel" | "concrete" | "timber";
+  material?: "steel" | "concrete" | "timber" | "masonry";
   module?: Module;
   maturity: SceneMaturity;
   description: string;
@@ -282,6 +266,9 @@ export interface CalculationResult {
   module: Module;
   mode: Mode;
   status: "passed" | "failed" | "incomplete" | "not_applicable";
+  workflow_status?: WorkflowStatus;
+  engineering_status?: "passed" | "failed" | "incomplete" | null;
+  quick_outcome?: "screening_passed" | "screening_failed" | null;
   result_class?: "quick_estimate" | "professional_check";
   verification_status?: VerificationStatus;
   standards: string[];
@@ -297,6 +284,7 @@ export interface CalculationResult {
     reference: string;
   }>;
   checks: CheckResult[];
+  provisional_checks?: CheckResult[];
   governing_check?: string;
   warnings: Array<{
     severity: "info" | "warning" | "critical";
@@ -307,7 +295,6 @@ export interface CalculationResult {
   applicability: string[];
   catalog_versions?: Record<string, string>;
   load_provenance?: LoadItem[];
-  disclaimer: string;
 }
 
 export interface RebarMaterial {
@@ -347,7 +334,6 @@ export interface LoadPreset {
 
 export interface LoadCatalog {
   version: string;
-  confirmation_required: boolean;
   items: LoadPreset[];
 }
 

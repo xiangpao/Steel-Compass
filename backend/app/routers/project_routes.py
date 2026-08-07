@@ -16,7 +16,7 @@ from ..api_schemas import (
 )
 from ..auth import require_ready_user
 from ..core.engine import calculate
-from ..core.schemas import CalculationResult
+from ..core.schemas import CalculationResult, require_current_request_schema
 from ..core.schemas import CalculationModule, LoadItem, LoadKind
 from ..database import get_db
 from ..models import Project, ProjectRevision, ProjectVersion, User
@@ -151,7 +151,6 @@ def _apply_connections(
                     unit="kN",
                     source=f"项目节点 {incoming.source_node_id} 的 {incoming.support} 支座反力",
                     source_reference=f"trace:{source.trace_id}",
-                    confirmed=True,
                 )
             ],
         },
@@ -251,6 +250,7 @@ def create_version(
     user: User = Depends(require_ready_user),
 ) -> VersionView:
     project = _owned_project(db, project_id, user.id)
+    require_current_request_schema(payload.calculation)
     result = calculate(payload.calculation)
     current_version = db.scalar(
         select(func.max(ProjectVersion.version_number)).where(
@@ -336,6 +336,7 @@ def create_revision(
     results: dict[str, CalculationResult] = {}
     snapshot_nodes: list[dict] = []
     for node in payload.calculations:
+        require_current_request_schema(node.calculation)
         calculation = _apply_connections(
             node.calculation,
             node.node_id,

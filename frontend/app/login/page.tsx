@@ -51,7 +51,7 @@ export default function LoginPage() {
           <span className="eyebrow">LANDSCAPE STRUCTURAL WORKSPACE</span>
           <h1>让每一次方案判断，都有清楚的工程依据。</h1>
           <p>
-            从场景快算到专业计算 Beta，共用同一套可追溯计算核心、规范基线和版本报告。
+            从场景快算到专业计算，共用同一套可追溯计算核心、规范基线和版本报告。
           </p>
         </div>
         <div className="trust-row">

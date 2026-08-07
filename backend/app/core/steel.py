@@ -511,3 +511,12 @@ def calculate_steel_column(
         applicability=["轴心受压柱", "单向小偏心压弯筛查"],
         disclaimer=DISCLAIMER,
     )
+    if governing_thickness < 3.0:
+        result.warnings.append(
+            CalculationWarning(
+                severity="warning",
+                code="min_thickness_outdoor",
+                message="GB 50017-2017 规定户外暴露钢结构管材壁厚不宜小于 3.0mm，请复核腐蚀耐久性。",
+            )
+        )
+    return result

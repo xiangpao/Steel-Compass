@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from . import STANDARD_PROFILE
+
 from math import pi
 
 
@@ -308,7 +310,7 @@ CLIMATE_LOCATIONS = [
 def material_catalog() -> dict:
     return {
         "version": MATERIAL_CATALOG_VERSION,
-        "standard_profile": "CN-2024",
+        "standard_profile": STANDARD_PROFILE,
         "source_references": [
             "GB/T 50010-2010（2024年局部修订）",
             "GB 1499.1-2024",
@@ -346,7 +348,6 @@ def load_catalog() -> dict:
                 ),
                 "direction": "gravity",
                 "application_target": "user_selected",
-                "confirmed": False,
                 "override_reason": None,
             }
         )
@@ -370,14 +371,12 @@ def load_catalog() -> dict:
             "distribution": "area",
             "direction": "gravity",
             "application_target": "user_selected",
-            "confirmed": False,
             "override_reason": None,
         }
     )
     return {
         "version": LOAD_CATALOG_VERSION,
-        "standard_profile": "CN-2024",
-        "confirmation_required": True,
+        "standard_profile": STANDARD_PROFILE,
         "items": items,
     }
 
@@ -394,7 +393,7 @@ def climate_catalog(query: str = "") -> dict:
     ]
     return {
         "version": CLIMATE_CATALOG_VERSION,
-        "standard_profile": "CN-2024",
+        "standard_profile": STANDARD_PROFILE,
         "source_reference": "GB 50009-2012 表 E.5",
         "coverage": "reviewed_initial_batch",
         "professional_use_requires_confirmation": True,

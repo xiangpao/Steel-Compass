@@ -3,14 +3,17 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from ..auth import require_ready_user
-from ..core.engine import calculate
+from ..core import STANDARD_PROFILE
 from ..core.catalogs import climate_catalog, load_catalog, material_catalog
+from ..core.engine import calculate
 from ..core.scenarios import SCENARIOS
 from ..core.schemas import (
     CalculationRequest,
     CalculationResult,
     ScenarioTemplate,
+    require_current_request_schema,
 )
+from ..core.standards import standard_profile
 from ..models import User
 
 
@@ -27,25 +30,13 @@ def run_calculation(
     payload: CalculationRequest,
     _: User = Depends(require_ready_user),
 ) -> CalculationResult:
+    require_current_request_schema(payload)
     return calculate(payload)
 
 
 @router.get("/standards")
 def standards(_: User = Depends(require_ready_user)) -> dict:
-    return {
-        "profile": "CN-2024",
-        "status": "Beta mapping",
-        "standards": [
-            "GB 55001-2021",
-            "GB 55005-2021",
-            "GB 55006-2021",
-            "GB 55008-2021",
-            "GB 50009-2012",
-            "GB 50017-2017",
-            "GB 50005-2017",
-            "GB/T 50010-2010（2024年局部修订）",
-        ],
-    }
+    return standard_profile(STANDARD_PROFILE)
 
 
 @router.get("/catalogs/materials")

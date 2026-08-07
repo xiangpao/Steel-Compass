@@ -14,6 +14,31 @@ from .concrete import calculate_concrete_column, calculate_concrete_member
 from .errors import CalculationInputError
 from .frame import calculate_portal_frame
 from .foundation import calculate_spread_footing, calculate_strip_footing
+from .infrastructure import (
+    calculate_bridge_rc,
+    calculate_bridge_steel_timber,
+    calculate_pile_group_cap,
+    calculate_pool_structure,
+    calculate_gravity_retaining_wall,
+)
+from .load_environment_api import (
+    calculate_load_combinations,
+    calculate_soil_water_action_package,
+    calculate_wind_snow_guide,
+)
+from .nextgen import (
+    calculate_continuous_beam,
+    calculate_planar_frame,
+    calculate_planar_truss,
+    calculate_timber_connection,
+    calculate_two_way_slab,
+    calculate_wall_anchor,
+)
+from .site_wall_api import (
+    calculate_plain_masonry_wall,
+    calculate_site_rc_wall,
+    calculate_steel_infill_wall,
+)
 from .schemas import (
     CalculationMode,
     CalculationModule,
@@ -156,6 +181,23 @@ def calculate(request: CalculationRequest) -> CalculationResult:
         CalculationModule.MASONRY_WALL: calculate_masonry_wall,
         CalculationModule.RC_WALL: calculate_rc_wall,
         CalculationModule.RETAINING_WALL: calculate_retaining_wall,
+        CalculationModule.CONTINUOUS_BEAM: calculate_continuous_beam,
+        CalculationModule.PLANAR_FRAME: calculate_planar_frame,
+        CalculationModule.PLANAR_TRUSS: calculate_planar_truss,
+        CalculationModule.TWO_WAY_SLAB: calculate_two_way_slab,
+        CalculationModule.TIMBER_CONNECTION: calculate_timber_connection,
+        CalculationModule.WALL_ANCHOR: calculate_wall_anchor,
+        CalculationModule.POOL_STRUCTURE: calculate_pool_structure,
+        CalculationModule.PILE_GROUP_CAP: calculate_pile_group_cap,
+        CalculationModule.BRIDGE_STEEL_TIMBER: calculate_bridge_steel_timber,
+        CalculationModule.BRIDGE_RC: calculate_bridge_rc,
+        CalculationModule.GRAVITY_RETAINING_WALL: calculate_gravity_retaining_wall,
+        CalculationModule.SITE_RC_WALL: calculate_site_rc_wall,
+        CalculationModule.STEEL_INFILL_WALL: calculate_steel_infill_wall,
+        CalculationModule.PLAIN_MASONRY_WALL: calculate_plain_masonry_wall,
+        CalculationModule.LOAD_COMBINATIONS: calculate_load_combinations,
+        CalculationModule.WIND_SNOW_GUIDE: calculate_wind_snow_guide,
+        CalculationModule.SOIL_WATER_ACTIONS: calculate_soil_water_action_package,
     }
     result = handlers[request.module](request, trace_id)
     result.load_provenance = [item.model_copy(deep=True) for item in request.loads]

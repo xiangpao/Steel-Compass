@@ -32,7 +32,7 @@ import type {
 } from "@/lib/types";
 
 const STATUS_LABELS = {
-  completed: "已确认",
+  completed: "已录入",
   passed: "已完成",
   failed: "不满足",
   incomplete: "待补齐",
@@ -47,6 +47,7 @@ type Props = {
 };
 
 type WorkspaceTab = "settings" | "results";
+type GroundwaterCondition = "no_influence" | "known_water_table" | "unknown";
 
 function initialValues(family: SceneFamily, variantId: string) {
   const variant =
@@ -94,7 +95,6 @@ function fallbackLoadCases(
     distribution: load.unit === "kN" ? "point" : load.unit === "kN/m" ? "line" : "area",
     direction: load.direction ?? "gravity",
     application_target: calculationNode.id,
-    confirmed: false,
     notes: "兼容旧场景数据；请核对后采用。",
   }));
 }
@@ -105,11 +105,26 @@ function copiedLoadCases(
   graph: SceneGraphTemplate,
 ) {
   const source = variant?.load_package?.items ?? fallbackLoadCases(family, graph);
-  return source.map((item) => ({
-    ...item,
-    adopted_value: item.adopted_value ?? item.recommended_default ?? 0,
-    confirmed: false,
-  }));
+  return source.map((item) => {
+    const { confirmed: _legacyConfirmation, ...current } = item as SceneLoadCase & {
+      confirmed?: boolean;
+    };
+    void _legacyConfirmation;
+    return {
+      ...current,
+      adopted_value: current.adopted_value ?? current.recommended_default ?? 0,
+    };
+  });
+}
+
+function currentLoadCases(items: SceneLoadCase[]): SceneLoadCase[] {
+  return items.map((item) => {
+    const { confirmed: _legacyConfirmation, ...current } = item as SceneLoadCase & {
+      confirmed?: boolean;
+    };
+    void _legacyConfirmation;
+    return current;
+  });
 }
 
 function controllingUtilization(revision: SceneRevision): number | null {
@@ -178,7 +193,10 @@ export function SceneWorkspace({
   const [loadCases, setLoadCases] = useState<SceneLoadCase[]>([]);
   const [foundationType, setFoundationType] = useState("独立基础");
   const [bearingCapacity, setBearingCapacity] = useState<number | "">("");
-  const [groundwaterKnown, setGroundwaterKnown] = useState(false);
+  const [groundwaterCondition, setGroundwaterCondition] =
+    useState<GroundwaterCondition>("unknown");
+  const [waterTableDepth, setWaterTableDepth] = useState<number | "">("");
+  const [groundwaterSource, setGroundwaterSource] = useState("");
   const [climateLocationId, setClimateLocationId] = useState("");
   const [recurrence, setRecurrence] = useState<"10" | "50" | "100">("50");
   const [heightFactor, setHeightFactor] = useState(1);
@@ -227,8 +245,6 @@ export function SceneWorkspace({
   );
   const hasFoundation = foundationModules.size > 0;
   const stale = Boolean(revision && inputVersion !== calculatedVersion);
-  const allLoadsConfirmed =
-    loadCases.length > 0 && loadCases.every((item) => item.confirmed);
   const loadPackageTitle = variant?.load_package?.title ?? "场景荷载包";
   const comparisonInstances = projectInstances.slice(0, 3);
 
@@ -256,6 +272,10 @@ export function SceneWorkspace({
           loadCases?: SceneLoadCase[];
           foundationType?: string;
           bearingCapacity?: number | "";
+          groundwaterCondition?: GroundwaterCondition;
+          waterTableDepth?: number | "";
+          groundwaterSource?: string;
+          // Legacy local draft compatibility.
           groundwaterKnown?: boolean;
           sceneTitle?: string;
           selectedProject?: number | "new";
@@ -275,7 +295,9 @@ export function SceneWorkspace({
         setParameters(
           draft.parameters ?? initialValues(family, nextVariantId),
         );
-        savedLoads = draft.loadCases;
+        savedLoads = draft.loadCases
+          ? currentLoadCases(draft.loadCases)
+          : undefined;
         setLoadCases(
           savedLoads ?? copiedLoadCases(family, nextVariant, nextGraph),
         );
@@ -294,7 +316,12 @@ export function SceneWorkspace({
           storedTypeIsSupported ? storedFoundationType! : defaultFoundationType,
         );
         setBearingCapacity(draft.bearingCapacity ?? "");
-        setGroundwaterKnown(draft.groundwaterKnown ?? false);
+        setGroundwaterCondition(
+          draft.groundwaterCondition ??
+            (draft.groundwaterKnown ? "no_influence" : "unknown"),
+        );
+        setWaterTableDepth(draft.waterTableDepth ?? "");
+        setGroundwaterSource(draft.groundwaterSource ?? "");
         setSceneTitle(draft.sceneTitle ?? family.title);
         if (typeof draft.selectedProject === "number") {
           setSelectedProject(draft.selectedProject);
@@ -340,7 +367,9 @@ export function SceneWorkspace({
         loadCases,
         foundationType,
         bearingCapacity,
-        groundwaterKnown,
+        groundwaterCondition,
+        waterTableDepth,
+        groundwaterSource,
         sceneTitle,
         selectedProject,
       }),
@@ -349,13 +378,15 @@ export function SceneWorkspace({
     bearingCapacity,
     family.id,
     foundationType,
-    groundwaterKnown,
+    groundwaterCondition,
+    groundwaterSource,
     loadCases,
     material,
     mode,
     parameters,
     sceneTitle,
     selectedProject,
+    waterTableDepth,
     variantId,
   ]);
 
@@ -399,7 +430,7 @@ export function SceneWorkspace({
         initialValues(family, selected.variant_id),
     );
     setLoadCases(
-      restoredLoads ??
+      (restoredLoads ? currentLoadCases(restoredLoads) : undefined) ??
         copiedLoadCases(family, selectedVariant, graphFor(family, selectedVariant)),
     );
     const selectedGraph = graphFor(family, selectedVariant);
@@ -419,7 +450,16 @@ export function SceneWorkspace({
     setBearingCapacity(
       (state.allowable_bearing_kpa as number | "" | undefined) ?? "",
     );
-    setGroundwaterKnown(Boolean(state.groundwater_known));
+    setGroundwaterCondition(
+      (state.groundwater_condition as GroundwaterCondition | undefined) ??
+        (state.groundwater_known ? "no_influence" : "unknown"),
+    );
+    setWaterTableDepth(
+      (state.water_table_depth_m as number | "" | undefined) ?? "",
+    );
+    setGroundwaterSource(
+      (state.groundwater_source as string | undefined) ?? "",
+    );
     const latest = revisions[0] ?? null;
     setRevision(latest);
     setInputVersion(0);
@@ -480,7 +520,9 @@ export function SceneWorkspace({
     setLoadCases(copiedLoadCases(family, next, nextGraph));
     setFoundationType(foundationTypeForGraph(nextGraph));
     setBearingCapacity("");
-    setGroundwaterKnown(false);
+    setGroundwaterCondition("unknown");
+    setWaterTableDepth("");
+    setGroundwaterSource("");
     setInputVersion((current) => current + 1);
     setChangedNodeIds(nextGraph.nodes.map((node) => node.id));
     setError("");
@@ -514,7 +556,6 @@ export function SceneWorkspace({
         distribution: "area",
         direction: "gravity",
         application_target: target?.id ?? "scene",
-        confirmed: false,
         project_source: "",
         project_reference: "",
         notes: "",
@@ -548,7 +589,6 @@ export function SceneWorkspace({
           ...item,
           adopted_value: Number(adopted.toFixed(3)),
           source_reference: `${climateCatalog?.version ?? "climate"} · ${location.province}${location.city}/${location.station} · ${recurrence}年 · ${isWind ? `高度系数${heightFactor}×体型系数${shapeFactor}` : `屋面积雪系数${snowRoofFactor}`}`,
-          confirmed: false,
           override_reason: "风雪向导计算值",
         };
       }),
@@ -569,7 +609,12 @@ export function SceneWorkspace({
       load_cases: loadCases,
       foundation_type: hasFoundation ? foundationType : null,
       allowable_bearing_kpa: hasFoundation ? bearingCapacity : null,
-      groundwater_known: hasFoundation ? groundwaterKnown : null,
+      groundwater_condition: hasFoundation ? groundwaterCondition : null,
+      water_table_depth_m:
+        hasFoundation && groundwaterCondition === "known_water_table"
+          ? waterTableDepth
+          : null,
+      groundwater_source: hasFoundation ? groundwaterSource : null,
     };
   }
 
@@ -647,10 +692,9 @@ export function SceneWorkspace({
     );
     const targeted = loadCases.filter(
       (item) =>
-        item.confirmed &&
-        (item.application_target === nodeId ||
+        item.application_target === nodeId ||
           item.application_target === "scene" ||
-          item.application_target === "all"),
+          item.application_target === "all",
     );
     const incomingReaction = graph.connections.find(
       (connection) =>
@@ -698,7 +742,6 @@ export function SceneWorkspace({
         preset_id: item.id,
         source_reference: `scene-load:${item.id}`,
         override_reason: item.override_reason,
-        confirmed: item.confirmed,
       };
     });
   }
@@ -724,13 +767,22 @@ export function SceneWorkspace({
     if (calculationModule === "spread_footing" || calculationModule === "strip_footing") {
       Object.assign(nextInputs, {
         soil_capacity_kpa: bearingCapacity || 120,
-        groundwater_known: groundwaterKnown,
+        groundwater_condition: groundwaterCondition,
+        groundwater_source: groundwaterSource,
         soil_source:
           mode === "professional" ? "项目勘察资料" : "方案快算显式假定",
       });
+      if (
+        groundwaterCondition === "known_water_table" &&
+        waterTableDepth !== ""
+      ) {
+        nextInputs.water_table_depth_m = waterTableDepth;
+      } else {
+        delete nextInputs.water_table_depth_m;
+      }
     }
     const targetLoads = loadCases.filter(
-      (item) => item.confirmed && item.application_target === nodeId,
+      (item) => item.application_target === nodeId,
     );
     if (calculationModule === "steel_column") {
       const panelArea =
@@ -773,12 +825,11 @@ export function SceneWorkspace({
     return {
       node_id: nodeId,
       calculation: {
-        schema_version: "3.1",
+        schema_version: "3.2",
         mode,
         module: calculationModule,
         project_name: `${sceneTitle} · ${nodeId}`,
-        standard_profile: "CN-2024",
-        confirmed_assumptions: true,
+        standard_profile: "CN-2026.1",
         typed_inputs: {
           module: calculationModule,
           values: typedValues,
@@ -817,10 +868,9 @@ export function SceneWorkspace({
     if (missingOverride) {
       return `“${missingOverride.label}”覆盖了建议值，请填写调整原因。`;
     }
-    if (!allLoadsConfirmed) return "请逐项确认场景荷载及其来源。";
     if (hasFoundation && mode === "professional") {
-      if (!bearingCapacity || !groundwaterKnown) {
-        return "专业模式需要填写勘察承载力并确认地下水条件。";
+      if (!bearingCapacity) {
+        return "专业模式需要填写勘察承载力。";
       }
     }
     return "";
@@ -843,9 +893,6 @@ export function SceneWorkspace({
           ? [nodeCalculationPayload(node.id, calculationModule)]
           : [];
       });
-      const confirmedInputNodes = visibleNodes
-        .filter((node) => !node.calculation_module)
-        .map((node) => node.id);
       const calculated = await api<SceneRevision>(
         `/api/v2/projects/${saved.project_id}/scene-revisions`,
         {
@@ -853,7 +900,6 @@ export function SceneWorkspace({
           body: JSON.stringify({
             scene_instance_id: saved.id,
             node_calculations: nodeCalculations,
-            confirmed_input_nodes: confirmedInputNodes,
             load_cases: loadCases,
           }),
         },
@@ -1030,7 +1076,7 @@ export function SceneWorkspace({
               markChanged(visibleNodes.map((node) => node.id));
             }}
           >
-            专业 Beta
+            专业计算
           </button>
         </div>
       </section>
@@ -1210,12 +1256,59 @@ export function SceneWorkspace({
                             <small>未填写时采用显式方案假定 120 kPa，并写入报告。</small>
                           )}
                         </label>
-                        <label className="confirmation-card">
-                          <input
-                            type="checkbox"
-                            checked={groundwaterKnown}
+                        <label>
+                          <span>地下水条件</span>
+                          <select
+                            value={groundwaterCondition}
                             onChange={(event) => {
-                              setGroundwaterKnown(event.target.checked);
+                              setGroundwaterCondition(
+                                event.target.value as GroundwaterCondition,
+                              );
+                              markChanged(
+                                visibleNodes
+                                  .filter((node) => node.role === "foundation")
+                                  .map((node) => node.id),
+                              );
+                            }}
+                          >
+                            <option value="no_influence">无地下水影响</option>
+                            <option value="known_water_table">已知水位</option>
+                            <option value="unknown">水位未知</option>
+                          </select>
+                        </label>
+                        {groundwaterCondition === "known_water_table" && (
+                          <label>
+                            <span>地下水位埋深</span>
+                            <div className="input-with-unit">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                value={waterTableDepth}
+                                onChange={(event) => {
+                                  setWaterTableDepth(
+                                    event.target.value
+                                      ? Number(event.target.value)
+                                      : "",
+                                  );
+                                  markChanged(
+                                    visibleNodes
+                                      .filter((node) => node.role === "foundation")
+                                      .map((node) => node.id),
+                                  );
+                                }}
+                              />
+                              <span>m</span>
+                            </div>
+                          </label>
+                        )}
+                        <label>
+                          <span>地下水资料来源</span>
+                          <input
+                            value={groundwaterSource}
+                            placeholder="勘察报告、水位记录或无影响依据"
+                            onChange={(event) => {
+                              setGroundwaterSource(event.target.value);
                               markChanged(
                                 visibleNodes
                                   .filter((node) => node.role === "foundation")
@@ -1223,7 +1316,6 @@ export function SceneWorkspace({
                               );
                             }}
                           />
-                          <span>地下水条件已由项目资料确认</span>
                         </label>
                       </>
                     )}
@@ -1305,16 +1397,6 @@ export function SceneWorkspace({
                             <strong>{item.label}</strong>
                             <span>{loadRange(item)} · {item.application_target}</span>
                           </div>
-                          <label className="load-confirm">
-                            <input
-                              type="checkbox"
-                              checked={item.confirmed}
-                              onChange={(event) =>
-                                updateLoadCase(index, { confirmed: event.target.checked })
-                              }
-                            />
-                            已确认
-                          </label>
                         </div>
                         {item.kind === "snow" && (
                           <button
@@ -1328,7 +1410,6 @@ export function SceneWorkspace({
                                 project_source: "",
                                 source_reference: "",
                                 notes: "不适用：请填写项目所在地或专项资料依据",
-                                confirmed: false,
                               })
                             }
                           >
@@ -1347,7 +1428,6 @@ export function SceneWorkspace({
                                   const adopted = Number(event.target.value);
                                   updateLoadCase(index, {
                                     adopted_value: adopted,
-                                    confirmed: false,
                                     override_reason:
                                       adopted !== item.recommended_default
                                         ? item.override_reason
@@ -1366,7 +1446,6 @@ export function SceneWorkspace({
                               onChange={(event) =>
                                 updateLoadCase(index, {
                                   direction: event.target.value as SceneLoadCase["direction"],
-                                  confirmed: false,
                                 })
                               }
                             >
@@ -1402,7 +1481,6 @@ export function SceneWorkspace({
                                 onChange={(event) =>
                                   updateLoadCase(index, {
                                     override_reason: event.target.value,
-                                    confirmed: false,
                                   })
                                 }
                               />
@@ -1417,7 +1495,6 @@ export function SceneWorkspace({
                                 onChange={(event) =>
                                   updateLoadCase(index, {
                                     kind: event.target.value as SceneLoadCase["kind"],
-                                    confirmed: false,
                                   })
                                 }
                               >
@@ -1444,7 +1521,6 @@ export function SceneWorkspace({
                                         : event.target.value === "kN/m"
                                           ? "line"
                                           : "area",
-                                    confirmed: false,
                                   })
                                 }
                               >
@@ -1460,7 +1536,6 @@ export function SceneWorkspace({
                                 onChange={(event) =>
                                   updateLoadCase(index, {
                                     application_target: event.target.value,
-                                    confirmed: false,
                                   })
                                 }
                               >
@@ -1476,7 +1551,6 @@ export function SceneWorkspace({
                                 onChange={(event) =>
                                   updateLoadCase(index, {
                                     distribution: event.target.value as SceneLoadCase["distribution"],
-                                    confirmed: false,
                                   })
                                 }
                               >
@@ -1493,7 +1567,6 @@ export function SceneWorkspace({
                                 onChange={(event) =>
                                   updateLoadCase(index, {
                                     project_source: event.target.value,
-                                    confirmed: false,
                                   })
                                 }
                               />
@@ -1505,7 +1578,6 @@ export function SceneWorkspace({
                                 onChange={(event) =>
                                   updateLoadCase(index, {
                                     source_reference: event.target.value,
-                                    confirmed: false,
                                   })
                                 }
                               />
@@ -1517,7 +1589,6 @@ export function SceneWorkspace({
                                 onChange={(event) =>
                                   updateLoadCase(index, {
                                     notes: event.target.value,
-                                    confirmed: false,
                                   })
                                 }
                               />
@@ -1530,21 +1601,6 @@ export function SceneWorkspace({
                   <div className="load-table-actions">
                     <button className="secondary-button" onClick={addCustomLoad}>
                       添加项目资料荷载
-                    </button>
-                    <button
-                      className="quiet-button"
-                      onClick={() => {
-                        setLoadCases((current) =>
-                          current.map((item) => ({ ...item, confirmed: true })),
-                        );
-                        markChanged(
-                          visibleNodes
-                            .filter((node) => node.role === "load")
-                            .map((node) => node.id),
-                        );
-                      }}
-                    >
-                      确认全部荷载
                     </button>
                   </div>
                   <div className="boundary-note">

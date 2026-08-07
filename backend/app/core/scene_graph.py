@@ -19,9 +19,29 @@ from .schemas import (
     CalculationModule,
     CalculationRequest,
     CalculationResult,
+    ConnectionEffectInput,
+    ContinuousBeamInputs,
+    FrameUniformLoadInput,
     LoadDirection,
     LoadItem,
     LoadKind,
+    PlanarFrameInputs,
+    PileGroupCapInputs,
+    PlainMasonryWallInputs,
+    SixComponentEffectInputs,
+    SiteRCWallInputs,
+    SiteWallLoadCaseInputs,
+    SteelInfillWallInputs,
+    TimberConnectionInputs,
+    TypedInputValue,
+    WallAnchorInputs,
+)
+
+
+_SITE_WALL_TYPED_INPUTS = (
+    SiteRCWallInputs,
+    SteelInfillWallInputs,
+    PlainMasonryWallInputs,
 )
 
 
@@ -140,6 +160,159 @@ def _reaction_value(
     return None
 
 
+def _typed_reaction_input(
+    calculation: CalculationRequest,
+    connection: SceneConnection,
+    converted_envelopes: list[dict],
+):
+    """Map an upstream effect into an already-typed analysis request.
+
+    Schema 3.2 solvers intentionally do not consume the legacy ``inputs``
+    reaction sidecar.  Scene execution therefore updates only the explicit
+    load/effect fields that are already present (or can be inferred from frame
+    geometry) while preserving the typed public contract.
+    """
+
+    typed = calculation.typed_inputs
+    if typed is None or not converted_envelopes:
+        return typed
+
+    combination_id = getattr(typed, "combination_id", None)
+    limit_state = getattr(typed, "limit_state", None)
+    selected = [
+        item
+        for item in converted_envelopes
+        if combination_id and item.get("combination_id") == combination_id
+    ]
+    if not selected:
+        selected = [
+            item
+            for item in converted_envelopes
+            if limit_state and item.get("limit_state") == limit_state
+        ]
+    if not selected:
+        selected = list(converted_envelopes)
+
+    if connection.transfer == "reaction_to_line" and isinstance(
+        typed, (PlanarFrameInputs, ContinuousBeamInputs)
+    ):
+        transferred = selected[0].get("transferred_line_load")
+        if not isinstance(transferred, dict):
+            raise CalculationInputError(
+                "missing_transferred_line_load",
+                "Schema 3.2 杆系节点需要组合一致的上游线荷载。",
+                details={"connection_id": connection.id},
+            )
+        line_value = -float(transferred.get("value", 0.0))
+        line_load = TypedInputValue(value=line_value, unit="kN/m")
+        if isinstance(typed, ContinuousBeamInputs):
+            return typed.model_copy(
+                update={
+                    "spans": [
+                        span.model_copy(
+                            update={"uniform_load_local_y": line_load}, deep=True
+                        )
+                        for span in typed.spans
+                    ]
+                },
+                deep=True,
+            )
+
+        uniform_loads = list(typed.uniform_loads)
+        if not uniform_loads:
+            coordinates = {
+                item.id: (item.x.value, item.y.value) for item in typed.nodes
+            }
+            target_members = [
+                member.id
+                for member in typed.members
+                if abs(
+                    coordinates[member.end][0] - coordinates[member.start][0]
+                )
+                > 1.0e-12
+            ]
+            uniform_loads = [
+                FrameUniformLoadInput(member=member_id, local_y=line_load)
+                for member_id in target_members
+            ]
+        else:
+            uniform_loads = [
+                item.model_copy(update={"local_y": line_load}, deep=True)
+                for item in uniform_loads
+            ]
+        if not uniform_loads:
+            raise CalculationInputError(
+                "missing_frame_load_target",
+                "无法从平面框架几何识别承接上游线荷载的非竖向杆件。",
+                details={"connection_id": connection.id},
+            )
+        return typed.model_copy(update={"uniform_loads": uniform_loads}, deep=True)
+
+    if connection.transfer in {"reaction_package", "combination_package"} and isinstance(
+        typed, (WallAnchorInputs, TimberConnectionInputs)
+    ):
+        def component(item: dict, key: str, unit: str) -> TypedInputValue:
+            raw = item.get("components", {}).get(key)
+            return TypedInputValue(
+                value=float(raw.get("value", 0.0)) if isinstance(raw, dict) else 0.0,
+                unit=unit,
+            )
+
+        effects = [
+            ConnectionEffectInput(
+                combination_id=str(
+                    item.get("combination_id") or f"scene-{index + 1}"
+                ),
+                combination_name=str(
+                    item.get("combination_name") or f"scene effect {index + 1}"
+                ),
+                limit_state=item.get("limit_state", "ULS"),
+                axial=component(item, "N", "kN"),
+                shear_x=component(item, "Vx", "kN"),
+                shear_y=component(item, "Vy", "kN"),
+                moment_x=component(item, "Mx", "kN*m"),
+                moment_y=component(item, "My", "kN*m"),
+                torsion=component(item, "T", "kN*m"),
+            )
+            for index, item in enumerate(selected)
+        ]
+        return typed.model_copy(update={"effects": effects}, deep=True)
+
+    if connection.transfer in {"reaction_package", "combination_package"} and isinstance(
+        typed, PileGroupCapInputs
+    ):
+        item = selected[0]
+
+        def pile_component(key: str, unit: str) -> TypedInputValue:
+            raw = item.get("components", {}).get(key)
+            return TypedInputValue(
+                value=float(raw.get("value", 0.0)) if isinstance(raw, dict) else 0.0,
+                unit=unit,
+            )
+
+        return typed.model_copy(
+            update={
+                "combination_id": str(
+                    item.get("combination_id") or typed.combination_id
+                ),
+                "combination_name": str(
+                    item.get("combination_name") or typed.combination_name
+                ),
+                "limit_state": item.get("limit_state", typed.limit_state),
+                "effects": SixComponentEffectInputs(
+                    axial=pile_component("N", "kN"),
+                    shear_x=pile_component("Vx", "kN"),
+                    shear_y=pile_component("Vy", "kN"),
+                    moment_x=pile_component("Mx", "kN*m"),
+                    moment_y=pile_component("My", "kN*m"),
+                    torsion=pile_component("T", "kN*m"),
+                ),
+            },
+            deep=True,
+        )
+    return typed
+
+
 def _apply_reaction(
     calculation: CalculationRequest,
     connection: SceneConnection,
@@ -168,6 +341,22 @@ def _apply_reaction(
         for item in source.reaction_envelopes
         if item.name in envelope_names
     ]
+    if not upstream_envelopes and source.reaction_envelopes and connection.support in {
+        "left",
+        "base",
+        "right",
+    }:
+        grouped: dict[str, list] = defaultdict(list)
+        for item in source.reaction_envelopes:
+            grouped[item.combination_id or item.combination_name].append(item)
+        upstream_envelopes = [
+            items[0]
+            if connection.support == "left"
+            else items[-1]
+            if connection.support == "right"
+            else items[len(items) // 2]
+            for items in grouped.values()
+        ]
     if not upstream_envelopes and len(
         {item.name for item in source.reaction_envelopes}
     ) == 1:
@@ -183,7 +372,28 @@ def _apply_reaction(
             },
         )
 
-    converted_envelopes = [item.model_dump(mode="json") for item in upstream_envelopes]
+    def _tag_governing_envelopes(envelope_list: list[dict]) -> list[dict]:
+        if not envelope_list:
+            return envelope_list
+        tagged = [dict(item) for item in envelope_list]
+        max_n = max((float(item.get("components", {}).get("N", {}).get("value", 0.0)) for item in tagged), default=0.0)
+        min_n = min((float(item.get("components", {}).get("N", {}).get("value", 0.0)) for item in tagged), default=0.0)
+        max_m = max((abs(float(item.get("components", {}).get("My", {}).get("value", 0.0))) for item in tagged), default=0.0)
+        for item in tagged:
+            comp = item.get("components", {})
+            n_val = float(comp.get("N", {}).get("value", 0.0))
+            m_val = abs(float(comp.get("My", {}).get("value", 0.0)))
+            tags = []
+            if abs(n_val - max_n) < 1e-6:
+                tags.append("N_max")
+            if abs(n_val - min_n) < 1e-6 and n_val < 0:
+                tags.append("N_uplift")
+            if abs(m_val - max_m) < 1e-6:
+                tags.append("M_max")
+            item["governing_tags"] = tags or ["general"]
+        return tagged
+
+    converted_envelopes = _tag_governing_envelopes([item.model_dump(mode="json") for item in upstream_envelopes])
     conversion_scale: float | None = None
     if connection.transfer == "reaction_to_line":
         key = connection.conversion_input_key
@@ -228,6 +438,9 @@ def _apply_reaction(
     }
     if conversion_scale is not None:
         updated_inputs["reaction_conversion_scale_m"] = conversion_scale
+    updated_typed_inputs = _typed_reaction_input(
+        calculation, connection, converted_envelopes
+    )
     if calculation.module is CalculationModule.SPREAD_FOOTING:
         updated_inputs.update(
             {
@@ -252,13 +465,13 @@ def _apply_reaction(
                     f"的 {connection.support} 支座反力"
                 ),
                 source_reference=f"trace:{source.trace_id}",
-                confirmed=True,
             )
         ]
     return calculation.model_copy(
         update={
             "inputs": updated_inputs,
             "loads": updated_loads,
+            "typed_inputs": updated_typed_inputs,
         },
         deep=True,
     )
@@ -371,11 +584,74 @@ def _apply_scene_loads(
     for node_id, scene_loads in by_target.items():
         calculation = calculations.get(node_id)
         if calculation is None:
-            # Load records targeting a confirmed manual/environment node are
+            # Load records targeting a manual/environment node are
             # provenance entries, not member actions.  They are carried into
             # the immutable revision and consumed by that node's parameter
             # contract rather than forced into CalculationRequest.loads.
             continue
+        if isinstance(calculation.typed_inputs, _SITE_WALL_TYPED_INPUTS):
+            typed = calculation.typed_inputs
+            dead_total = sum(
+                float(item.adopted_value or 0.0)
+                for item in scene_loads
+                if item.kind in {"dead", "self_weight"}
+                and item.unit in {"kPa", "kN/m2"}
+            )
+            wind_by_sign = {
+                -1 if item.direction == "x_negative" else 1: float(
+                    item.adopted_value or 0.0
+                )
+                for item in scene_loads
+                if item.kind == "wind"
+                and item.unit in {"kPa", "kN/m2"}
+                and item.direction in {"x_positive", "x_negative"}
+            }
+            existing_cases = list(typed.load_cases)
+            mapped_cases: list[SiteWallLoadCaseInputs] = []
+            for index, existing in enumerate(existing_cases):
+                sign = -1 if existing.wind_pressure.value < 0 else 1
+                wind = wind_by_sign.get(sign)
+                if wind is None:
+                    wind = abs(existing.wind_pressure.value)
+                mapped_cases.append(
+                    existing.model_copy(
+                        update={
+                            "wind_pressure": TypedInputValue(
+                                value=sign * wind, unit="kPa"
+                            ),
+                            "additional_dead_load": TypedInputValue(
+                                value=dead_total, unit="kPa"
+                            ),
+                        },
+                        deep=True,
+                    )
+                )
+            if not mapped_cases:
+                mapped_cases = [
+                    SiteWallLoadCaseInputs(
+                        combination_id=f"scene-wall-wind-{'negative' if sign < 0 else 'positive'}",
+                        combination_name=(
+                            "场景反向风" if sign < 0 else "场景正向风"
+                        ),
+                        limit_state="ULS",
+                        wind_pressure=TypedInputValue(
+                            value=sign * wind, unit="kPa"
+                        ),
+                        additional_dead_load=TypedInputValue(
+                            value=dead_total, unit="kPa"
+                        ),
+                    )
+                    for sign, wind in sorted(wind_by_sign.items(), reverse=True)
+                ]
+            updated[node_id] = calculation.model_copy(
+                update={
+                    "typed_inputs": typed.model_copy(
+                        update={"load_cases": mapped_cases}, deep=True
+                    )
+                },
+                deep=True,
+            )
+            calculation = updated[node_id]
         mapped: list[LoadItem] = []
         existing_by_preset = {
             item.preset_id: item
@@ -383,7 +659,7 @@ def _apply_scene_loads(
             if item.preset_id is not None
         }
         for item in scene_loads:
-            if not item.confirmed or item.adopted_value is None:
+            if item.adopted_value is None:
                 continue
             direct_units = {
                 CalculationModule.SPREAD_FOOTING: {"kN"},
@@ -407,7 +683,6 @@ def _apply_scene_loads(
                         preset_id=item.id,
                         source_reference=f"scene-load:{item.id}",
                         override_reason=item.override_reason,
-                        confirmed=True,
                     )
                 )
                 continue
@@ -428,9 +703,11 @@ def execute_scene(
     variant_id: str,
     mode: CalculationMode,
     node_calculations: list[SceneNodeCalculation],
-    confirmed_input_nodes: list[str],
     stale_node_ids: list[str] | None = None,
     load_cases: list[SceneLoadItem] | None = None,
+    # Legacy internal keyword retained so 3.1 test fixtures and saved command
+    # replays can still be read; Schema 3.2 API requests no longer expose it.
+    confirmed_input_nodes: list[str] | None = None,
 ) -> SceneRevisionResult:
     mode = CalculationMode(mode)
     variant = get_scene_variant(family, variant_id)
@@ -464,24 +741,19 @@ def execute_scene(
             details={"node_ids": unknown_calculations},
         )
 
-    confirmed = set(confirmed_input_nodes)
-    unknown_confirmed = sorted(confirmed - set(nodes))
-    if unknown_confirmed:
-        raise CalculationInputError(
-            "unknown_confirmed_node",
-            "确认列表包含不存在的场景节点。",
-            details={"node_ids": unknown_confirmed},
-        )
+    recorded_input_nodes = {
+        node_id for node_id, node in nodes.items() if node.calculation_module is None
+    }
     resolved_loads = _resolved_load_cases(
         family, variant_id, load_cases or [], graph
     )
     calculations, missing_load_mappings = _apply_scene_loads(
         calculations, resolved_loads
     )
-    unconfirmed_loads = [
+    missing_load_values = [
         item.label
         for item in resolved_loads
-        if not item.confirmed or item.adopted_value is None
+        if item.adopted_value is None
     ]
     stale = set(stale_node_ids or [])
     incoming: dict[str, list[SceneConnection]] = defaultdict(list)
@@ -536,7 +808,7 @@ def execute_scene(
 
         calculation = calculations.get(node_id)
         if node.calculation_module is None:
-            if node_id in confirmed:
+            if node_id in recorded_input_nodes:
                 if (
                     mode is CalculationMode.PROFESSIONAL
                     and node.verification_status != "independently_verified"
@@ -565,7 +837,7 @@ def execute_scene(
                         verification_status=node.verification_status,
                         message=(
                             node.quick_assumption
-                            or "输入、边界和传力假定已由用户确认。"
+                            or "输入、边界和传力条件已录入。"
                         ),
                         stale=False,
                     )
@@ -593,7 +865,7 @@ def execute_scene(
                     message=(
                         "该节点计算能力尚未开放。"
                         if node.maturity == "planned"
-                        else "该节点尚未确认输入和假定。"
+                        else "该节点尚缺少必要输入。"
                     ),
                     stale=node.id in stale,
                 )
@@ -711,7 +983,7 @@ def execute_scene(
         )
         for node_id in required_ids
     )
-    load_contract_complete = not unconfirmed_loads and not missing_load_mappings
+    load_contract_complete = not missing_load_values and not missing_load_mappings
     workflow_states = {
         node_results[node_id].workflow_status for node_id in required_ids
     }
@@ -721,7 +993,7 @@ def execute_scene(
         workflow_status = "capability_unavailable"
     elif (
         "missing_inputs" in workflow_states
-        or unconfirmed_loads
+        or missing_load_values
         or missing_load_mappings
     ):
         workflow_status = "missing_inputs"
@@ -773,8 +1045,8 @@ def execute_scene(
         catalog_versions.update(result.catalog_versions)
 
     warnings = [*family.boundaries]
-    if unconfirmed_loads:
-        warnings.append("以下场景荷载尚未确认或缺少采用值：" + "、".join(unconfirmed_loads))
+    if missing_load_values:
+        warnings.append("以下场景荷载缺少采用值：" + "、".join(missing_load_values))
     if missing_load_mappings:
         warnings.append(
             "以下场景荷载尚未映射到计算节点："
@@ -783,7 +1055,7 @@ def execute_scene(
     warnings.extend(
         node.quick_assumption
         for node in graph.nodes
-        if node.id in confirmed
+        if node.id in recorded_input_nodes
         and node.quick_assumption
         and mode is CalculationMode.QUICK
     )

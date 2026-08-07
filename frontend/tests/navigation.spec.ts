@@ -229,7 +229,7 @@ async function enterSingleCalculation(page: Page) {
   await page.getByRole("button", { name: "打开导航" }).click();
   const rail = page.locator("aside.left-rail");
   await rail.getByRole("button", { name: /单项计算/ }).click();
-  await rail.getByRole("button", { name: /钢梁/ }).click();
+  await rail.getByRole("button", { name: /^SB 钢梁 / }).click();
   await rail.getByRole("button", { name: "应用并关闭" }).click();
 }
 
@@ -240,7 +240,7 @@ test("移动抽屉选择期间保持打开，应用后关闭", async ({ page }) 
   await page.getByRole("button", { name: "打开导航" }).click();
   const rail = page.locator("aside.left-rail");
   await rail.getByRole("button", { name: /单项计算/ }).click();
-  await rail.getByRole("button", { name: /钢梁/ }).click();
+  await rail.getByRole("button", { name: /^SB 钢梁 / }).click();
   await expect(rail).toHaveClass(/open/);
   await rail.getByRole("button", { name: "应用并关闭" }).click();
   await expect(rail).not.toHaveClass(/open/);
@@ -278,7 +278,8 @@ test("结果可复制为服务端方案并在修改输入后立即标记过期",
   await mockWorkspace(page);
   await page.goto("/");
   await page.getByRole("button", { name: "计算并写入采用值" }).click();
-  await page.getByRole("button", { name: "确认全部荷载" }).click();
+  await expect(page.getByRole("button", { name: "确认全部荷载" })).toHaveCount(0);
+  await expect(page.getByText("我已确认场景假定")).toHaveCount(0);
   await page.getByRole("button", { name: "计算当前方案" }).click();
   await expect(page.getByText("方案快算已完成")).toBeVisible();
   await page.getByRole("button", { name: /复制为方案 B/ }).click();
@@ -310,4 +311,179 @@ test("单项计算仍可使用移动抽屉进入", async ({ page }) => {
   await page.goto("/");
   await enterSingleCalculation(page);
   await expect(page.getByRole("heading", { name: "钢梁" })).toBeVisible();
+});
+
+test("十一个Schema 3.2单项模块均生成判别输入并沿用通用结果页", async ({ page }) => {
+  await mockWorkspace(page);
+  const submitted: Array<Record<string, unknown>> = [];
+  await page.route("**/api/v2/calculate", async (route) => {
+    const payload = route.request().postDataJSON() as Record<string, unknown>;
+    submitted.push(payload);
+    const calculationModule = String(payload.module);
+    await route.fulfill({
+      json: {
+        schema_version: "3.2",
+        engine_version: "3.2.0-test",
+        trace_id: `trace-${calculationModule}`,
+        project_name: "前端新模块测试",
+        module: calculationModule,
+        mode: "quick",
+        status: "passed",
+        workflow_status: "ready",
+        engineering_status: null,
+        quick_outcome: "screening_passed",
+        result_class: "quick_estimate",
+        verification_status: "unverified",
+        standards: [],
+        input_summary: {},
+        combinations: [{ name: "ULS 用户输入组合", limit_state: "ULS", factors: {}, factored_by_kind: {}, total: { value: 1, unit: "kN" } }],
+        reactions: {},
+        diagrams: [],
+        steps: [{ name: "矩阵分析", equation: "Kd=F", substitution: "test", result: { value: 0.5, unit: "1" }, reference: "test" }],
+        checks: [{ name: "控制验算", demand: { value: 1, unit: "kN" }, capacity: { value: 2, unit: "kN" }, utilization: 0.5, passed: true, reference: "test" }],
+        governing_check: "控制验算",
+        warnings: [],
+        assumptions: [],
+        applicability: ["参数化模块测试"],
+        catalog_versions: { schema: "3.2" },
+      },
+    });
+  });
+  await page.goto("/");
+  const rail = page.locator("aside.left-rail");
+  await rail.getByRole("button", { name: /单项计算/ }).click();
+
+  const modules = [
+    ["连续梁", "continuous_beam"],
+    ["参数化平面框架", "planar_frame"],
+    ["平面桁架", "planar_truss"],
+    ["混凝土双向板", "two_way_slab"],
+  ] as const;
+  for (const [label, moduleId] of modules) {
+    const button = rail.getByRole("button", { name: new RegExp(label) });
+    await expect(button).toBeEnabled();
+    await button.click();
+    await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "运行验算" }).click();
+    await expect(page.locator("#result-panel")).toBeVisible();
+    expect((submitted.at(-1)?.typed_inputs as { module: string }).module).toBe(moduleId);
+  }
+
+  await rail.getByRole("button", { name: "连接与支承" }).click();
+  for (const [label, moduleId] of [
+    ["木柱脚 / 金属连接件", "timber_connection"],
+    ["墙附锚栓组", "wall_anchor"],
+  ] as const) {
+    const button = rail.getByRole("button", { name: new RegExp(label) });
+    await expect(button).toBeEnabled();
+    await button.click();
+    await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "运行验算" }).click();
+    expect((submitted.at(-1)?.typed_inputs as { module: string }).module).toBe(moduleId);
+  }
+
+  await rail.getByRole("button", { name: "上部构件" }).click();
+  for (const [label, moduleId] of [
+    ["钢木景观人行桥", "bridge_steel_timber"],
+    ["全混凝土景观人行桥", "bridge_rc"],
+  ] as const) {
+    const button = rail.getByRole("button", { name: new RegExp(label) });
+    await expect(button).toBeEnabled();
+    await button.click();
+    await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
+    await expect(page.getByLabel("墩台基础策略")).toBeVisible();
+    await page.getByRole("button", { name: "运行验算" }).click();
+    expect((submitted.at(-1)?.typed_inputs as { module: string }).module).toBe(moduleId);
+  }
+
+  await rail.getByRole("button", { name: "基础与地基" }).click();
+  await rail.getByRole("button", { name: /群桩与承台/ }).click();
+  await expect(page.getByRole("heading", { name: "群桩与承台", exact: true })).toBeVisible();
+  await expect(page.getByLabel("基础支承策略")).toHaveValue("four_pile_cap");
+  await page.getByRole("button", { name: "运行验算" }).click();
+  const pilePayload = submitted.at(-1)?.typed_inputs as {
+    module: string;
+    piles: Array<{ x: { unit: string } }>;
+  };
+  expect(pilePayload.module).toBe("pile_group_cap");
+  expect(pilePayload.piles).toHaveLength(4);
+  expect(pilePayload.piles[0].x.unit).toBe("mm");
+
+  await rail.getByRole("button", { name: "挡土与池体" }).click();
+  for (const [label, moduleId] of [
+    ["矩形水景池体", "pool_structure"],
+    ["重力式挡土墙", "gravity_retaining_wall"],
+  ] as const) {
+    await rail.getByRole("button", { name: new RegExp(label) }).click();
+    await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
+    await expect(page.getByLabel("地下水条件")).toHaveValue("no_influence");
+    await expect(page.getByLabel("基础支承策略")).toBeVisible();
+    await page.getByRole("button", { name: "运行验算" }).click();
+    expect((submitted.at(-1)?.typed_inputs as { module: string }).module).toBe(moduleId);
+  }
+
+  expect(submitted).toHaveLength(11);
+  for (const payload of submitted) {
+    expect(payload.schema_version).toBe("3.2");
+    expect(payload.standard_profile).toBe("CN-2026.1");
+    expect(payload.inputs).toBeUndefined();
+    expect(payload.loads).toEqual([]);
+  }
+});
+
+test("池体地下水三态中未知水位会阻止提交且已知水位要求资料来源", async ({ page }) => {
+  await mockWorkspace(page);
+  let calculateRequests = 0;
+  await page.route("**/api/v2/calculate", async (route) => {
+    calculateRequests += 1;
+    await route.abort();
+  });
+  await page.goto("/");
+  const rail = page.locator("aside.left-rail");
+  await rail.getByRole("button", { name: /单项计算/ }).click();
+  await rail.getByRole("button", { name: "挡土与池体" }).click();
+  await rail.getByRole("button", { name: /矩形水景池体/ }).click();
+
+  await page.getByLabel("地下水条件").selectOption("unknown");
+  await page.getByRole("button", { name: "运行验算" }).click();
+  await expect(page.getByText(/地下水位未知时不能运行验算/)).toBeVisible();
+  expect(calculateRequests).toBe(0);
+
+  await page.getByLabel("地下水条件").selectOption("known_water_table");
+  await page.getByRole("button", { name: "运行验算" }).click();
+  await expect(page.getByText(/已知地下水位必须填写资料来源/)).toBeVisible();
+  expect(calculateRequests).toBe(0);
+});
+
+test("未独立验证模块即使收到passed也不在专业模式显示通过", async ({ page }) => {
+  await mockWorkspace(page);
+  await page.route("**/api/v2/calculate", (route) =>
+    route.fulfill({
+      json: {
+        schema_version: "3.2",
+        engine_version: "3.2.0-test",
+        trace_id: "trace-professional-unverified",
+        project_name: "专业状态测试",
+        module: "gravity_retaining_wall",
+        mode: "professional",
+        status: "passed",
+        workflow_status: "ready",
+        engineering_status: null,
+        result_class: "professional_check",
+        verification_status: "unverified",
+        standards: [], input_summary: {}, combinations: [], reactions: {}, diagrams: [], steps: [],
+        checks: [{ name: "临时验算", demand: { value: 1, unit: "1" }, capacity: { value: 2, unit: "1" }, utilization: 0.5, passed: true, reference: "test" }],
+        governing_check: "临时验算", warnings: [], assumptions: [], applicability: [],
+      },
+    }),
+  );
+  await page.goto("/");
+  const rail = page.locator("aside.left-rail");
+  await rail.getByRole("button", { name: /单项计算/ }).click();
+  await rail.getByRole("button", { name: "挡土与池体" }).click();
+  await rail.getByRole("button", { name: /重力式挡土墙/ }).click();
+  await page.getByRole("button", { name: "专业计算" }).click();
+  await page.getByRole("button", { name: "运行验算" }).click();
+  await expect(page.locator("#result-panel")).toContainText("资料不完整");
+  await expect(page.locator("#result-panel .result-status")).not.toContainText("通过");
 });

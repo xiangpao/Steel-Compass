@@ -481,9 +481,18 @@ def calculate_portal_frame(
             max(abs(item.local_end_forces[0]), abs(item.local_end_forces[3]))
             for item in column_results
         ) / 1000
+        # 计算柱二阶 P-Δ 效应弯矩放大系数 α_s1 (GB 50017-2017 第 5.1.4/5.1.6 条)
+        effective_len_mm = height_m * 1000 * 1.2
+        nex_n = (np.pi ** 2 * E_STEEL * column.ix_mm4) / (effective_len_mm ** 2)
+        if column_n > 0 and nex_n > 0:
+            alpha_s1 = max(1.0, 1.0 / (1.0 - 0.2 * (column_n * 1000) / nex_n))
+        else:
+            alpha_s1 = 1.0
+        column_m_2nd = column_m * alpha_s1
+
         score = max(
             beam_m / max(beam_grade["fd"] * beam.wx_mm3 / 1e6, 1e-9),
-            column_m / max(column_grade["fd"] * column.wx_mm3 / 1e6, 1e-9)
+            column_m_2nd / max(column_grade["fd"] * column.wx_mm3 / 1e6, 1e-9)
             + column_n / max(column_grade["fd"] * column.area_mm2 / 1000, 1e-9),
         )
         previous_score = max(
@@ -495,7 +504,7 @@ def calculate_portal_frame(
             worst_solution = solution
             worst_name = name
             worst_beam_m, worst_beam_v = beam_m, beam_v
-            worst_column_m, worst_column_n = column_m, column_n
+            worst_column_m, worst_column_n = column_m_2nd, column_n
     assert worst_solution is not None
 
     sls_entries = [item for item in solved if item[1] == "SLS"]

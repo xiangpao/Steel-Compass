@@ -362,8 +362,13 @@ def calculate_rc_wall(request: CalculationRequest, trace_id: str) -> Calculation
     shear = line
     fc = {"C25": 11.9, "C30": 14.3, "C35": 16.7, "C40": 19.1}[concrete_grade]
     as_provided = 1000 / spacing * pi * rebar_dia**2 / 4
+    as_minimum = 0.0015 * 1000 * thickness
     capacity = 360 * as_provided * (0.85 * thickness) / 1e6
-    checks = [_check("墙身受弯", moment, capacity, "kN·m/m", "GB/T 50010-2010 墙身受弯 Beta筛查"), _check("墙身受剪", shear, 0.7 * 1.43 * width * thickness / 1000, "kN", "GB/T 50010-2010 墙身受剪 Beta筛查"), _check("最小配筋", as_provided, 0.0015 * 1000 * thickness, "mm²/m", "GB/T 50010-2010 构造配筋")]
+    checks = [
+        _check("墙身受弯", moment, capacity, "kN·m/m", "GB/T 50010-2010 墙身受弯 Beta筛查"),
+        _check("墙身受剪", shear, 0.7 * 1.43 * width * thickness / 1000, "kN", "GB/T 50010-2010 墙身受剪 Beta筛查"),
+        _check("最小配筋", as_minimum, as_provided, "mm²/m", "GB/T 50010-2010 构造配筋"),
+    ]
     combinations = []
     for direction, wind_pressure in wind_cases.items():
         branch_line = abs(wind_pressure) * height + soil_force

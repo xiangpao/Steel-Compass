@@ -76,7 +76,7 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
         assert climate.json()["items"][0]["wind_kpa"]["50"] == 0.45
         scenario = scenarios.json()[0]
         calculation = {
-            "schema_version": "2.0",
+            "schema_version": "3.2",
             "mode": "quick",
             "module": scenario["module"],
             "project_name": scenario["title"],
@@ -111,9 +111,11 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
             "signage-billboard",
             "landscape-wall-fence",
             "entrance-frame",
-            "boardwalk-platform",
-            "bench-planter",
-            "retaining-facility",
+                "boardwalk-platform",
+                "bench-planter",
+                "water-feature-pool",
+                "landscape-bridge",
+                "retaining-facility",
         }
         canopy_family = next(
             item for item in families.json() if item["id"] == "canopy"
@@ -130,16 +132,17 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
         assert wall_canopy["load_package"]["items"][0][
             "recommended_default"
         ] == 0.35
-        development_scene = client.post(
+        gravity_scene = client.post(
             f"/api/v2/projects/{project_id}/scene-instances",
             json={
-                "family_id": "water-feature-pool",
-                "variant_id": "rect-above",
+                "family_id": "retaining-facility",
+                "variant_id": "gravity",
                 "title": "未开放水池",
                 "mode": "quick",
             },
         )
-        assert development_scene.status_code == 409
+        assert gravity_scene.status_code == 201
+        gravity_scene_id = gravity_scene.json()["id"]
         library = client.get(
             "/api/v2/calculation-library",
             params={"task": "superstructure", "material": "steel"},
@@ -149,7 +152,8 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
             "steel_beam",
             "steel_column",
             "portal_frame",
-            None,
+            "planar_truss",
+            "steel_infill_wall",
         }
         steel_beam_item = next(
             item
@@ -202,7 +206,7 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
         assert scene_result["completed_nodes"] == 1
         assert scene_result["total_required_nodes"] == 7
         assert "左柱脚 / 底板锚栓" in scene_result["missing_nodes"]
-        assert scene_revision.json()["snapshot_schema_version"] == "3.1"
+        assert scene_revision.json()["snapshot_schema_version"] == "3.2"
         stale_after_result = client.patch(
             (
                 f"/api/v2/projects/{project_id}/scene-instances/"
@@ -256,12 +260,16 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
         visible_instances = client.get(
             f"/api/v2/projects/{project_id}/scene-instances"
         ).json()
-        assert {item["id"] for item in visible_instances} == {instance_data["id"]}
+        assert {item["id"] for item in visible_instances} == {
+            gravity_scene_id,
+            instance_data["id"],
+        }
         all_instances = client.get(
             f"/api/v2/projects/{project_id}/scene-instances",
             params={"include_archived": True},
         ).json()
         assert {item["id"] for item in all_instances} == {
+            gravity_scene_id,
             instance_data["id"],
             duplicate_data["id"],
         }
@@ -294,7 +302,7 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
             item for item in scenarios.json() if item["module"] == "spread_footing"
         )
         foundation_calculation = {
-            "schema_version": "2.0",
+            "schema_version": "3.2",
             "mode": "quick",
             "module": foundation_scenario["module"],
             "project_name": foundation_scenario["title"],

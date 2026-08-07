@@ -124,7 +124,6 @@ class SceneLoadItem(BaseModel):
     distribution: Literal["point", "line", "area", "pressure"]
     direction: str
     application_target: str
-    confirmed: bool = False
     override_reason: str | None = None
     notes: str = ""
 

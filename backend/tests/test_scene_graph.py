@@ -49,6 +49,8 @@ def test_scene_catalog_has_five_public_families_and_valid_variant_dags() -> None
         "entrance-frame",
         "boardwalk-platform",
         "bench-planter",
+        "water-feature-pool",
+        "landscape-bridge",
         "retaining-facility",
     }
     for family in SCENE_FAMILIES:
@@ -59,11 +61,16 @@ def test_scene_catalog_has_five_public_families_and_valid_variant_dags() -> None
             assert len(order) == len(graph.nodes)
 
 
-def test_only_equal_height_flat_single_steel_pergola_is_public() -> None:
+def test_steel_pergola_structural_variants_are_public() -> None:
     family = get_scene_family("pergola-pavilion")
     assert family is not None
     public_variants = [item for item in family.variants if item.availability == "public"]
-    assert [item.id for item in public_variants] == ["flat-single"]
+    assert [item.id for item in public_variants] == [
+        "flat-single",
+        "mono-pitch",
+        "dual-pitch",
+        "multi-bay",
+    ]
 
     variant = public_variants[0]
     assert variant.material_systems == ["钢"]
@@ -81,8 +88,9 @@ def test_only_equal_height_flat_single_steel_pergola_is_public() -> None:
     for variant_id in ("mono-pitch", "dual-pitch", "multi-bay"):
         item = get_scene_variant(family, variant_id)
         assert item is not None
-        assert item.availability == "development"
-        assert item.missing_capabilities
+        assert item.availability == "public"
+        assert item.material_systems == ["钢"]
+        assert item.missing_capabilities == []
 
 
 def test_steel_single_span_pergola_has_split_support_chain() -> None:
@@ -123,11 +131,11 @@ def test_wall_canopy_has_no_foundation_and_column_canopy_has_full_support_chain(
     wall_graph = instantiate_scene_graph(family, "wall-cantilever")
     assert "foundation" not in {node.role for node in wall_graph.nodes}
     assert [node.id for node in wall_graph.nodes] == [
-        "environment",
+        "canopy_loads",
         "secondary_beam",
-        "wall_substrate",
         "wall_anchor",
     ]
+    assert wall_graph.nodes[-1].calculation_module == "wall_anchor"
     column_graph = instantiate_scene_graph(family, "single-row")
     assert {"column", "base_connection", "foundation"} <= {
         node.id for node in column_graph.nodes
@@ -248,27 +256,23 @@ def _canopy_calculation(mode: str) -> SceneNodeCalculation:
     )
 
 
-def test_unclosed_legacy_scene_variants_are_blocked_as_development() -> None:
+def test_wall_canopy_is_public_with_real_wall_anchor_chain() -> None:
     family = get_scene_family("canopy")
     assert family is not None
     variant = get_scene_variant(family, "wall-cantilever")
     assert variant is not None
-    assert variant.availability == "development"
-    assert variant.missing_capabilities == [
-        "既有墙体承载力",
-        "锚栓组",
-        "墙体基材破坏",
+    assert variant.availability == "public"
+    assert variant.missing_capabilities == []
+    graph = instantiate_scene_graph(family, "wall-cantilever")
+    assert [node.calculation_module for node in graph.nodes] == [
+        None,
+        "steel_beam",
+        "wall_anchor",
     ]
-    with pytest.raises(CalculationInputError) as caught:
-        execute_scene(
-            family,
-            "wall-cantilever",
-            "quick",
-            [_canopy_calculation("quick")],
-            ["environment", "wall_substrate", "wall_anchor"],
-            load_cases=_confirmed_canopy_loads(),
-        )
-    assert caught.value.code == "scene_in_development"
+    assert [item.transfer for item in graph.connections] == [
+        "manual",
+        "reaction_package",
+    ]
 
 
 def test_purlin_reaction_is_traceable_and_converted_without_zero_placeholder() -> None:
@@ -440,7 +444,7 @@ def test_steel_single_span_pergola_executes_full_traceable_chain() -> None:
     )
 
 
-def test_boardwalk_and_pool_publish_dependencies_but_remain_blocked() -> None:
+def test_boardwalk_and_pool_default_paths_are_public() -> None:
     boardwalk = get_scene_family("boardwalk-platform")
     pool = get_scene_family("water-feature-pool")
     assert boardwalk is not None and pool is not None
@@ -448,10 +452,11 @@ def test_boardwalk_and_pool_publish_dependencies_but_remain_blocked() -> None:
     buried = get_scene_variant(pool, "rect-buried")
     assert straight is not None and buried is not None
     assert straight.availability == "public"
-    assert buried.availability == "development"
+    assert buried.availability == "public"
     assert straight.material_systems == ["木面板+钢构"]
     assert "柱脚混凝土锚固破坏" in straight.missing_capabilities
-    assert "地下水浮力与抗浮组合" in buried.missing_capabilities
+    assert buried.material_systems == ["钢筋混凝土"]
+    assert buried.missing_capabilities == []
 
 
 def test_legacy_scene_result_remains_readable_without_recalculation() -> None:

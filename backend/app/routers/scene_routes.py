@@ -26,6 +26,7 @@ from ..core.scene_catalog import (
 )
 from ..core.scene_graph import downstream_node_ids, execute_scene
 from ..core.scene_schemas import SceneFamily, SceneRevisionResult
+from ..core.schemas import require_current_request_schema
 from ..database import get_db
 from ..models import Project, ProjectRevision, SceneInstance, User
 
@@ -359,12 +360,13 @@ def create_scene_revision(
             status_code=422,
             detail="场景节点计算模式必须与场景实例一致",
         )
+    for item in payload.node_calculations:
+        require_current_request_schema(item.calculation)
     scene_result = execute_scene(
         family=family,
         variant_id=instance.variant_id,
         mode=instance.mode,
         node_calculations=payload.node_calculations,
-        confirmed_input_nodes=payload.confirmed_input_nodes,
         stale_node_ids=instance.stale_node_ids,
         load_cases=payload.load_cases,
     )
@@ -383,7 +385,7 @@ def create_scene_revision(
     revision = ProjectRevision(
         project_id=project.id,
         revision_number=next_revision,
-        snapshot_schema_version="3.1",
+        snapshot_schema_version="3.2",
         snapshot={
             "scene_context": {
                 "scene_instance_id": instance.id,

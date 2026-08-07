@@ -1,4 +1,5 @@
-import type { LoadItem, Module } from "./types";
+import type { ApiNextgenTypedInputs, ApiTypedValue } from "./generated-api";
+import type { CalculationLibraryItem, LoadItem, Module } from "./types";
 
 export interface FieldDefinition {
   key: string;
@@ -15,11 +16,50 @@ export interface ModuleDefinition {
   id: Module;
   short: string;
   title: string;
-  material: "steel" | "concrete" | "timber";
+  material: "steel" | "concrete" | "timber" | "masonry";
   description: string;
+  applicability?: string[];
   fields: FieldDefinition[];
   defaults: Record<string, unknown>;
   defaultLoads: LoadItem[];
+  buildTypedInputs?: (values: Record<string, unknown>) => ApiNextgenTypedInputs;
+}
+
+function numeric(values: Record<string, unknown>, key: string): number {
+  const value = Number(values[key]);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function integer(values: Record<string, unknown>, key: string, minimum = 1): number {
+  return Math.max(minimum, Math.round(numeric(values, key)));
+}
+
+function choice(values: Record<string, unknown>, key: string): string {
+  return String(values[key] ?? "");
+}
+
+function q(value: number, unit: string): ApiTypedValue {
+  return { value, unit };
+}
+
+function siteWallLoadCases(values: Record<string, unknown>) {
+  const additionalDeadLoad = q(numeric(values, "additional_dead_load_kpa"), "kPa");
+  return [
+    {
+      combination_id: "ULS-W+",
+      combination_name: "ULS 正向风",
+      limit_state: "ULS" as const,
+      wind_pressure: q(Math.abs(numeric(values, "wind_positive_kpa")), "kPa"),
+      additional_dead_load: additionalDeadLoad,
+    },
+    {
+      combination_id: "ULS-W-",
+      combination_name: "ULS 反向风",
+      limit_state: "ULS" as const,
+      wind_pressure: q(-Math.abs(numeric(values, "wind_negative_kpa")), "kPa"),
+      additional_dead_load: additionalDeadLoad,
+    },
+  ];
 }
 
 const sectionFields: FieldDefinition[] = [
@@ -463,7 +503,26 @@ export const MODULES: ModuleDefinition[] = [
       { key: "soil_capacity_kpa", label: "地基承载力特征值", type: "number", unit: "kPa", min: 10, step: 10 },
       { key: "soil_source", label: "勘察/承载力来源", type: "text" },
       { key: "base_friction_coefficient", label: "基底摩擦系数", type: "number", min: 0, step: 0.05 },
-      { key: "groundwater_known", label: "已确认地下水条件", type: "boolean" },
+      {
+        key: "groundwater_condition",
+        label: "地下水条件",
+        type: "select",
+        options: [
+          { value: "no_influence", label: "无地下水影响" },
+          { value: "known_water_table", label: "已知水位" },
+          { value: "unknown", label: "水位未知" },
+        ],
+      },
+      {
+        key: "water_table_depth_m",
+        label: "地下水位埋深",
+        type: "number",
+        unit: "m",
+        min: 0,
+        step: 0.1,
+        visible: (values) => values.groundwater_condition === "known_water_table",
+      },
+      { key: "groundwater_source", label: "地下水资料来源", type: "text" },
       { key: "horizontal_x_kn", label: "X 向水平力", type: "number", unit: "kN", step: 1 },
       { key: "horizontal_y_kn", label: "Y 向水平力", type: "number", unit: "kN", step: 1 },
       { key: "moment_x_kn_m", label: "绕 X 轴弯矩", type: "number", unit: "kN·m", step: 1 },
@@ -488,7 +547,9 @@ export const MODULES: ModuleDefinition[] = [
       soil_capacity_kpa: 120,
       soil_source: "",
       base_friction_coefficient: 0.3,
-      groundwater_known: false,
+      groundwater_condition: "unknown",
+      water_table_depth_m: null,
+      groundwater_source: "",
       horizontal_x_kn: 0,
       horizontal_y_kn: 0,
       moment_x_kn_m: 0,
@@ -517,7 +578,26 @@ export const MODULES: ModuleDefinition[] = [
       { key: "soil_capacity_kpa", label: "地基承载力特征值", type: "number", unit: "kPa", min: 10, step: 10 },
       { key: "soil_source", label: "勘察/承载力来源", type: "text" },
       { key: "base_friction_coefficient", label: "基底摩擦系数", type: "number", min: 0, step: 0.05 },
-      { key: "groundwater_known", label: "已确认地下水条件", type: "boolean" },
+      {
+        key: "groundwater_condition",
+        label: "地下水条件",
+        type: "select",
+        options: [
+          { value: "no_influence", label: "无地下水影响" },
+          { value: "known_water_table", label: "已知水位" },
+          { value: "unknown", label: "水位未知" },
+        ],
+      },
+      {
+        key: "water_table_depth_m",
+        label: "地下水位埋深",
+        type: "number",
+        unit: "m",
+        min: 0,
+        step: 0.1,
+        visible: (values) => values.groundwater_condition === "known_water_table",
+      },
+      { key: "groundwater_source", label: "地下水资料来源", type: "text" },
       { key: "horizontal_load_kn_m", label: "水平线荷载", type: "number", unit: "kN/m", step: 1 },
       { key: "moment_kn_m_per_m", label: "每延米倾覆弯矩", type: "number", unit: "kN·m/m", step: 1 },
     ],
@@ -534,7 +614,9 @@ export const MODULES: ModuleDefinition[] = [
       soil_capacity_kpa: 120,
       soil_source: "",
       base_friction_coefficient: 0.3,
-      groundwater_known: false,
+      groundwater_condition: "unknown",
+      water_table_depth_m: null,
+      groundwater_source: "",
       horizontal_load_kn_m: 0,
       moment_kn_m_per_m: 0,
     },
@@ -684,6 +766,416 @@ export const MODULES: ModuleDefinition[] = [
     defaults: { retained_height_m: 1.5, base_width_m: 1.6, toe_length_m: 0.45, stem_thickness_mm: 200, base_thickness_m: 0.35, soil_unit_weight_kn_m3: 18, soil_friction_angle_deg: 30, surcharge_kpa: 0, water_level_depth_m: 0, submerged_depth_m: 0, soil_capacity_kpa: 120, base_friction_coefficient: 0.35, stem_moment_capacity_kn_m_per_m: 80 },
     defaultLoads: [],
   },
+  {
+    id: "continuous_beam",
+    short: "CL",
+    title: "连续梁",
+    material: "steel",
+    description: "两跨参数化连续梁的内力、反力与挠度分析",
+    fields: [
+      { key: "span_1_m", label: "第一跨", type: "number", unit: "m", min: 0.5, step: 0.1 },
+      { key: "span_2_m", label: "第二跨", type: "number", unit: "m", min: 0.5, step: 0.1 },
+      { key: "elastic_modulus_gpa", label: "弹性模量", type: "number", unit: "GPa", min: 1, step: 1 },
+      { key: "inertia_mm4", label: "截面惯性矩", type: "number", unit: "mm⁴", min: 1, step: 1000000 },
+      { key: "uniform_load_kn_m", label: "向下均布荷载", type: "number", unit: "kN/m", min: 0, step: 0.5 },
+      { key: "moment_capacity_kn_m", label: "输入弯矩承载力", type: "number", unit: "kN·m", min: 0.1, step: 5 },
+      { key: "shear_capacity_kn", label: "输入剪力承载力", type: "number", unit: "kN", min: 0.1, step: 5 },
+      { key: "deflection_limit_mm", label: "挠度限值", type: "number", unit: "mm", min: 0.1, step: 1 },
+    ],
+    defaults: { span_1_m: 4, span_2_m: 4, elastic_modulus_gpa: 200, inertia_mm4: 80000000, uniform_load_kn_m: 5, moment_capacity_kn_m: 200, shear_capacity_kn: 200, deflection_limit_mm: 30 },
+    defaultLoads: [],
+    buildTypedInputs: (values) => ({
+      module: "continuous_beam",
+      combination_id: "ULS-user",
+      combination_name: "ULS 用户输入组合",
+      limit_state: "ULS",
+      nodes: ["A", "B", "C"],
+      spans: [
+        { id: "S1", start: "A", end: "B", length: q(numeric(values, "span_1_m"), "m"), elastic_modulus: q(numeric(values, "elastic_modulus_gpa"), "GPa"), inertia: q(numeric(values, "inertia_mm4"), "mm4"), uniform_load_local_y: q(-numeric(values, "uniform_load_kn_m"), "kN/m"), moment_capacity: q(numeric(values, "moment_capacity_kn_m"), "kN·m"), shear_capacity: q(numeric(values, "shear_capacity_kn"), "kN") },
+        { id: "S2", start: "B", end: "C", length: q(numeric(values, "span_2_m"), "m"), elastic_modulus: q(numeric(values, "elastic_modulus_gpa"), "GPa"), inertia: q(numeric(values, "inertia_mm4"), "mm4"), uniform_load_local_y: q(-numeric(values, "uniform_load_kn_m"), "kN/m"), moment_capacity: q(numeric(values, "moment_capacity_kn_m"), "kN·m"), shear_capacity: q(numeric(values, "shear_capacity_kn"), "kN") },
+      ],
+      supports: ["A", "B", "C"].map((node) => ({ node, vertical: true, rotation: false })),
+      nodal_loads: [],
+      deflection_limit: q(numeric(values, "deflection_limit_mm"), "mm"),
+    }),
+  },
+  {
+    id: "planar_frame",
+    short: "2F",
+    title: "参数化平面框架",
+    material: "steel",
+    description: "单跨等高框架的轴力、剪力、弯矩、位移与支座反力",
+    fields: [
+      { key: "frame_span_m", label: "框架跨度", type: "number", unit: "m", min: 1, step: 0.5 },
+      { key: "frame_height_m", label: "框架高度", type: "number", unit: "m", min: 1, step: 0.1 },
+      { key: "area_mm2", label: "构件面积", type: "number", unit: "mm²", min: 1, step: 100 },
+      { key: "inertia_mm4", label: "构件惯性矩", type: "number", unit: "mm⁴", min: 1, step: 1000000 },
+      { key: "elastic_modulus_gpa", label: "弹性模量", type: "number", unit: "GPa", min: 1, step: 1 },
+      { key: "roof_load_kn_m", label: "横梁向下线荷载", type: "number", unit: "kN/m", min: 0, step: 0.5 },
+      { key: "wind_kn", label: "柱顶水平力", type: "number", unit: "kN", step: 1 },
+      { key: "axial_capacity_kn", label: "输入轴力承载力", type: "number", unit: "kN", min: 0.1, step: 10 },
+      { key: "shear_capacity_kn", label: "输入剪力承载力", type: "number", unit: "kN", min: 0.1, step: 10 },
+      { key: "moment_capacity_kn_m", label: "输入弯矩承载力", type: "number", unit: "kN·m", min: 0.1, step: 10 },
+      { key: "displacement_limit_mm", label: "位移限值", type: "number", unit: "mm", min: 0.1, step: 1 },
+    ],
+    defaults: { frame_span_m: 5, frame_height_m: 3.2, area_mm2: 5000, inertia_mm4: 80000000, elastic_modulus_gpa: 200, roof_load_kn_m: 5, wind_kn: 5, axial_capacity_kn: 1000, shear_capacity_kn: 300, moment_capacity_kn_m: 300, displacement_limit_mm: 30 },
+    defaultLoads: [],
+    buildTypedInputs: (values) => {
+      const member = (id: string, start: string, end: string) => ({ id, start, end, area: q(numeric(values, "area_mm2"), "mm2"), inertia: q(numeric(values, "inertia_mm4"), "mm4"), elastic_modulus: q(numeric(values, "elastic_modulus_gpa"), "GPa"), axial_capacity: q(numeric(values, "axial_capacity_kn"), "kN"), shear_capacity: q(numeric(values, "shear_capacity_kn"), "kN"), moment_capacity: q(numeric(values, "moment_capacity_kn_m"), "kN·m") });
+      return { module: "planar_frame", combination_id: "ULS-user", combination_name: "ULS 用户输入组合", limit_state: "ULS", nodes: [
+        { id: "L0", x: q(0, "m"), y: q(0, "m") }, { id: "L1", x: q(0, "m"), y: q(numeric(values, "frame_height_m"), "m") },
+        { id: "R1", x: q(numeric(values, "frame_span_m"), "m"), y: q(numeric(values, "frame_height_m"), "m") }, { id: "R0", x: q(numeric(values, "frame_span_m"), "m"), y: q(0, "m") },
+      ], members: [member("LC", "L0", "L1"), member("B", "L1", "R1"), member("RC", "R1", "R0")], restraints: [{ node: "L0", ux: true, uy: true, rz: true }, { node: "R0", ux: true, uy: true, rz: true }], nodal_loads: [{ node: "L1", force_x: q(numeric(values, "wind_kn"), "kN"), force_y: q(0, "kN"), moment_z: q(0, "kN·m") }], uniform_loads: [{ member: "B", local_y: q(-numeric(values, "roof_load_kn_m"), "kN/m") }], displacement_limit: q(numeric(values, "displacement_limit_mm"), "mm") };
+    },
+  },
+  {
+    id: "planar_truss",
+    short: "TR",
+    title: "平面桁架",
+    material: "steel",
+    description: "三角形参数化桁架的杆件轴力、位移和支座反力",
+    fields: [
+      { key: "truss_span_m", label: "桁架跨度", type: "number", unit: "m", min: 1, step: 0.5 },
+      { key: "truss_height_m", label: "桁架高度", type: "number", unit: "m", min: 0.2, step: 0.1 },
+      { key: "area_mm2", label: "杆件面积", type: "number", unit: "mm²", min: 1, step: 100 },
+      { key: "elastic_modulus_gpa", label: "弹性模量", type: "number", unit: "GPa", min: 1, step: 1 },
+      { key: "node_load_kn", label: "跨中节点向下荷载", type: "number", unit: "kN", min: 0, step: 1 },
+      { key: "axial_capacity_kn", label: "输入轴力承载力", type: "number", unit: "kN", min: 0.1, step: 10 },
+      { key: "displacement_limit_mm", label: "位移限值", type: "number", unit: "mm", min: 0.1, step: 1 },
+    ],
+    defaults: { truss_span_m: 4, truss_height_m: 3, area_mm2: 2000, elastic_modulus_gpa: 200, node_load_kn: 10, axial_capacity_kn: 500, displacement_limit_mm: 20 },
+    defaultLoads: [],
+    buildTypedInputs: (values) => {
+      const member = (id: string, start: string, end: string) => ({ id, start, end, area: q(numeric(values, "area_mm2"), "mm2"), elastic_modulus: q(numeric(values, "elastic_modulus_gpa"), "GPa"), axial_capacity: q(numeric(values, "axial_capacity_kn"), "kN") });
+      return { module: "planar_truss", combination_id: "ULS-user", combination_name: "ULS 用户输入组合", limit_state: "ULS", nodes: [{ id: "A", x: q(0, "m"), y: q(0, "m") }, { id: "B", x: q(numeric(values, "truss_span_m"), "m"), y: q(0, "m") }, { id: "C", x: q(numeric(values, "truss_span_m") / 2, "m"), y: q(numeric(values, "truss_height_m"), "m") }], members: [member("AB", "A", "B"), member("AC", "A", "C"), member("BC", "B", "C")], restraints: [{ node: "A", ux: true, uy: true }, { node: "B", ux: false, uy: true }], nodal_loads: [{ node: "C", force_x: q(0, "kN"), force_y: q(-numeric(values, "node_load_kn"), "kN") }], displacement_limit: q(numeric(values, "displacement_limit_mm"), "mm") };
+    },
+  },
+  {
+    id: "two_way_slab",
+    short: "2S",
+    title: "混凝土双向板",
+    material: "concrete",
+    description: "规则矩形四边简支/固定板的双向弯矩与挠度",
+    fields: [
+      { key: "short_span_m", label: "短跨", type: "number", unit: "m", min: 1, step: 0.1 },
+      { key: "long_span_m", label: "长跨", type: "number", unit: "m", min: 1, step: 0.1 },
+      { key: "thickness_mm", label: "板厚", type: "number", unit: "mm", min: 80, step: 10 },
+      { key: "elastic_modulus_gpa", label: "混凝土弹性模量", type: "number", unit: "GPa", min: 1, step: 1 },
+      { key: "uniform_load_kpa", label: "均布面荷载", type: "number", unit: "kN/m²", min: 0, step: 0.5 },
+      { key: "support_condition", label: "四边支承", type: "select", options: [{ value: "four_edges_simply_supported", label: "四边简支" }, { value: "four_edges_fixed", label: "四边固定" }] },
+      { key: "short_moment_capacity_kn_m_m", label: "短跨方向输入承载力", type: "number", unit: "kN·m/m", min: 0.1, step: 5 },
+      { key: "long_moment_capacity_kn_m_m", label: "长跨方向输入承载力", type: "number", unit: "kN·m/m", min: 0.1, step: 5 },
+      { key: "deflection_limit_mm", label: "挠度限值", type: "number", unit: "mm", min: 0.1, step: 1 },
+    ],
+    defaults: { short_span_m: 4, long_span_m: 5, thickness_mm: 180, elastic_modulus_gpa: 30, uniform_load_kpa: 5, support_condition: "four_edges_simply_supported", short_moment_capacity_kn_m_m: 80, long_moment_capacity_kn_m_m: 80, deflection_limit_mm: 25 },
+    defaultLoads: [],
+    buildTypedInputs: (values) => ({ module: "two_way_slab", combination_id: "ULS-user", combination_name: "ULS 用户输入组合", limit_state: "ULS", short_span: q(numeric(values, "short_span_m"), "m"), long_span: q(numeric(values, "long_span_m"), "m"), thickness: q(numeric(values, "thickness_mm"), "mm"), elastic_modulus: q(numeric(values, "elastic_modulus_gpa"), "GPa"), uniform_load: q(numeric(values, "uniform_load_kpa"), "kN/m2"), support_condition: String(values.support_condition) as "four_edges_simply_supported" | "four_edges_fixed", poisson_ratio: 0.2, short_direction_moment_capacity: q(numeric(values, "short_moment_capacity_kn_m_m"), "kN·m/m"), long_direction_moment_capacity: q(numeric(values, "long_moment_capacity_kn_m_m"), "kN·m/m"), deflection_limit: q(numeric(values, "deflection_limit_mm"), "mm") }),
+  },
+  {
+    id: "timber_connection",
+    short: "TCN",
+    title: "木柱脚 / 金属连接件",
+    material: "timber",
+    description: "木柱端承压、连接件拉剪、弯曲及构造距离",
+    fields: [
+      { key: "post_width_mm", label: "木柱宽度", type: "number", unit: "mm", min: 40, step: 10 }, { key: "post_depth_mm", label: "木柱深度", type: "number", unit: "mm", min: 40, step: 10 },
+      { key: "plate_width_mm", label: "连接板宽度", type: "number", unit: "mm", min: 80, step: 10 }, { key: "plate_depth_mm", label: "连接板深度", type: "number", unit: "mm", min: 80, step: 10 },
+      { key: "fastener_diameter_mm", label: "连接件直径", type: "number", unit: "mm", min: 4, step: 2 }, { key: "fastener_spacing_mm", label: "连接件中心间距", type: "number", unit: "mm", min: 20, step: 5 },
+      { key: "connector_standoff_mm", label: "连接件悬臂力臂", type: "number", unit: "mm", min: 0, step: 5 },
+      { key: "axial_kn", label: "轴力（受压为正）", type: "number", unit: "kN", step: 1 }, { key: "shear_kn", label: "水平剪力", type: "number", unit: "kN", min: 0, step: 1 }, { key: "moment_kn_m", label: "柱脚弯矩", type: "number", unit: "kN·m", step: 1 },
+      { key: "bearing_capacity_kn", label: "木柱端承压设计值", type: "number", unit: "kN", min: 0.1, step: 5 }, { key: "tension_capacity_kn", label: "单件拉力/拔出设计值", type: "number", unit: "kN", min: 0.1, step: 1 }, { key: "shear_capacity_kn", label: "单件剪力设计值", type: "number", unit: "kN", min: 0.1, step: 1 }, { key: "bending_capacity_kn_m", label: "单件弯曲设计值", type: "number", unit: "kN·m", min: 0.01, step: 0.1 },
+    ],
+    defaults: { post_width_mm: 180, post_depth_mm: 180, plate_width_mm: 300, plate_depth_mm: 300, fastener_diameter_mm: 12, fastener_spacing_mm: 150, connector_standoff_mm: 40, axial_kn: -20, shear_kn: 5, moment_kn_m: 2, bearing_capacity_kn: 200, tension_capacity_kn: 30, shear_capacity_kn: 20, bending_capacity_kn_m: 1 },
+    defaultLoads: [],
+    buildTypedInputs: (values) => {
+      const half = numeric(values, "fastener_spacing_mm") / 2; const positions = [[-half, -half], [half, -half], [half, half], [-half, half]].map(([x, y]) => ({ x: q(x, "mm"), y: q(y, "mm") }));
+      return { module: "timber_connection", post_width: q(numeric(values, "post_width_mm"), "mm"), post_depth: q(numeric(values, "post_depth_mm"), "mm"), plate_width: q(numeric(values, "plate_width_mm"), "mm"), plate_depth: q(numeric(values, "plate_depth_mm"), "mm"), fastener_diameter: q(numeric(values, "fastener_diameter_mm"), "mm"), fastener_positions: positions, connector_standoff: q(numeric(values, "connector_standoff_mm"), "mm"), effects: [{ combination_id: "ULS-user", combination_name: "ULS 用户输入组合", limit_state: "ULS", axial: q(numeric(values, "axial_kn"), "kN"), shear_x: q(numeric(values, "shear_kn"), "kN"), shear_y: q(0, "kN"), moment_x: q(numeric(values, "moment_kn_m"), "kN·m"), moment_y: q(0, "kN·m"), torsion: q(0, "kN·m") }], bearing_design_capacity: q(numeric(values, "bearing_capacity_kn"), "kN"), fastener_tension_design_capacity: q(numeric(values, "tension_capacity_kn"), "kN"), fastener_shear_design_capacity: q(numeric(values, "shear_capacity_kn"), "kN"), connector_bending_design_capacity: q(numeric(values, "bending_capacity_kn_m"), "kN·m"), minimum_spacing: q(4 * numeric(values, "fastener_diameter_mm"), "mm"), minimum_edge_distance: q(4 * numeric(values, "fastener_diameter_mm"), "mm") };
+    },
+  },
+  {
+    id: "wall_anchor",
+    short: "WA",
+    title: "墙附锚栓组",
+    material: "steel",
+    description: "RC 或有评估承载力实心砌体的墙附锚栓组",
+    fields: [
+      { key: "base_material", label: "墙体基材", type: "select", options: [{ value: "reinforced_concrete", label: "钢筋混凝土" }, { value: "solid_masonry", label: "实心砌体（有评估值）" }, { value: "unknown", label: "未知基材" }] },
+      { key: "plate_width_mm", label: "锚板宽度", type: "number", unit: "mm", min: 80, step: 10 }, { key: "plate_depth_mm", label: "锚板高度", type: "number", unit: "mm", min: 80, step: 10 },
+      { key: "anchor_diameter_mm", label: "锚栓直径", type: "number", unit: "mm", min: 6, step: 2 }, { key: "anchor_spacing_mm", label: "锚栓中心间距", type: "number", unit: "mm", min: 20, step: 5 },
+      { key: "axial_kn", label: "轴力（受压为正）", type: "number", unit: "kN", step: 1 }, { key: "shear_kn", label: "水平剪力", type: "number", unit: "kN", min: 0, step: 1 }, { key: "moment_kn_m", label: "锚板弯矩", type: "number", unit: "kN·m", step: 1 },
+      { key: "anchor_tension_capacity_kn", label: "单锚栓钢材拉力设计值", type: "number", unit: "kN", min: 0.1, step: 1 }, { key: "anchor_shear_capacity_kn", label: "单锚栓钢材剪力设计值", type: "number", unit: "kN", min: 0.1, step: 1 },
+      { key: "substrate_tension_capacity_kn", label: "基材锚固组受拉设计值", type: "number", unit: "kN", min: 0.1, step: 5 }, { key: "substrate_shear_capacity_kn", label: "砌体锚固组受剪设计值", type: "number", unit: "kN", min: 0.1, step: 5, visible: (v) => v.base_material === "solid_masonry" }, { key: "masonry_capacity_source", label: "砌体评估报告来源", type: "text", visible: (v) => v.base_material === "solid_masonry" },
+    ],
+    defaults: { base_material: "reinforced_concrete", plate_width_mm: 300, plate_depth_mm: 300, anchor_diameter_mm: 16, anchor_spacing_mm: 150, axial_kn: -20, shear_kn: 5, moment_kn_m: 2, anchor_tension_capacity_kn: 40, anchor_shear_capacity_kn: 30, substrate_tension_capacity_kn: 160, substrate_shear_capacity_kn: 80, masonry_capacity_source: "项目拉拔试验/评估报告" },
+    defaultLoads: [],
+    buildTypedInputs: (values) => {
+      const half = numeric(values, "anchor_spacing_mm") / 2; const positions = [[-half, -half], [half, -half], [half, half], [-half, half]].map(([x, y]) => ({ x: q(x, "mm"), y: q(y, "mm") })); const material = String(values.base_material) as "reinforced_concrete" | "solid_masonry" | "unknown";
+      const common = { module: "wall_anchor" as const, base_material: material, plate_width: q(numeric(values, "plate_width_mm"), "mm"), plate_depth: q(numeric(values, "plate_depth_mm"), "mm"), anchor_diameter: q(numeric(values, "anchor_diameter_mm"), "mm"), anchor_positions: positions, effects: [{ combination_id: "ULS-user", combination_name: "ULS 用户输入组合", limit_state: "ULS" as const, axial: q(numeric(values, "axial_kn"), "kN"), shear_x: q(numeric(values, "shear_kn"), "kN"), shear_y: q(0, "kN"), moment_x: q(numeric(values, "moment_kn_m"), "kN·m"), moment_y: q(0, "kN·m"), torsion: q(0, "kN·m") }], anchor_tension_design_capacity: q(numeric(values, "anchor_tension_capacity_kn"), "kN"), anchor_shear_design_capacity: q(numeric(values, "anchor_shear_capacity_kn"), "kN"), minimum_spacing: q(3 * numeric(values, "anchor_diameter_mm"), "mm"), minimum_edge_distance: q(1.5 * numeric(values, "anchor_diameter_mm"), "mm"), concrete_capacity_method: "provided" as const };
+      return material === "solid_masonry" ? { ...common, masonry_evaluated_tension_capacity: q(numeric(values, "substrate_tension_capacity_kn"), "kN"), masonry_evaluated_shear_capacity: q(numeric(values, "substrate_shear_capacity_kn"), "kN"), masonry_capacity_source: String(values.masonry_capacity_source ?? "") } : material === "reinforced_concrete" ? { ...common, concrete_cone_design_capacity: q(numeric(values, "substrate_tension_capacity_kn"), "kN"), concrete_pullout_design_capacity: q(numeric(values, "substrate_tension_capacity_kn"), "kN"), concrete_splitting_design_capacity: q(numeric(values, "substrate_tension_capacity_kn"), "kN") } : common;
+    },
+  },
+  {
+    id: "pool_structure",
+    short: "PS",
+    title: "矩形水景池体",
+    material: "concrete",
+    description: "池壁、底板、内外水位、土压力与抗浮的一体化验算",
+    fields: [
+      { key: "inside_length_m", label: "池内净长", type: "number", unit: "m", min: 1, step: 0.5 },
+      { key: "inside_width_m", label: "池内净宽", type: "number", unit: "m", min: 1, step: 0.5 },
+      { key: "wall_height_m", label: "池壁高度", type: "number", unit: "m", min: 0.5, step: 0.1 },
+      { key: "wall_thickness_mm", label: "池壁厚度", type: "number", unit: "mm", min: 150, step: 25 },
+      { key: "base_thickness_mm", label: "底板厚度", type: "number", unit: "mm", min: 150, step: 25 },
+      { key: "base_projection_m", label: "底板外挑", type: "number", unit: "m", min: 0, step: 0.05 },
+      { key: "retained_soil_height_m", label: "外侧覆土高度", type: "number", unit: "m", min: 0, step: 0.1 },
+      { key: "internal_water_depth_m", label: "满池内水深", type: "number", unit: "m", min: 0, step: 0.1 },
+      { key: "groundwater_condition", label: "地下水条件", type: "select", options: [{ value: "no_influence", label: "无地下水影响" }, { value: "known_water_table", label: "已知水位" }, { value: "unknown", label: "水位未知" }] },
+      { key: "external_head_empty_m", label: "空池外水头", type: "number", unit: "m", min: 0, step: 0.1, visible: (v) => v.groundwater_condition === "known_water_table" },
+      { key: "external_head_full_m", label: "满池外水头", type: "number", unit: "m", min: 0, step: 0.1, visible: (v) => v.groundwater_condition === "known_water_table" },
+      { key: "groundwater_source", label: "地下水资料来源", type: "text", visible: (v) => v.groundwater_condition !== "no_influence" },
+      { key: "foundation_strategy", label: "基础支承策略", type: "select", options: [{ value: "bearing_slab", label: "整体底板直接地基承载" }] },
+      { key: "allowable_bearing_kpa", label: "地基承载力特征值", type: "number", unit: "kPa", min: 10, step: 10 },
+      { key: "soil_friction_angle_deg", label: "土内摩擦角", type: "number", unit: "deg", min: 5, step: 1 },
+      { key: "surcharge_kpa", label: "地表附加荷载", type: "number", unit: "kPa", min: 0, step: 1 },
+      { key: "wall_vertical_as", label: "池壁竖向配筋面积", type: "number", unit: "mm²/m", min: 100, step: 100 },
+      { key: "base_as", label: "底板双向配筋面积", type: "number", unit: "mm²/m", min: 100, step: 100 },
+      { key: "additional_ballast_kn", label: "附加抗浮压重", type: "number", unit: "kN", min: 0, step: 5 },
+      { key: "antifloat_factor", label: "抗浮安全系数", type: "number", unit: "1", min: 1, step: 0.05 },
+    ],
+    defaults: { inside_length_m: 6, inside_width_m: 4, wall_height_m: 2.5, wall_thickness_mm: 300, base_thickness_mm: 400, base_projection_m: 0.2, retained_soil_height_m: 2, internal_water_depth_m: 2, groundwater_condition: "no_influence", external_head_empty_m: 0, external_head_full_m: 0, groundwater_source: "", foundation_strategy: "bearing_slab", allowable_bearing_kpa: 120, soil_friction_angle_deg: 30, surcharge_kpa: 5, wall_vertical_as: 1600, base_as: 1800, additional_ballast_kn: 0, antifloat_factor: 1.05 },
+    defaultLoads: [],
+    buildTypedInputs: (values) => {
+      const knownWater = choice(values, "groundwater_condition") === "known_water_table";
+      return {
+        module: "pool_structure",
+        geometry: { inside_length: q(numeric(values, "inside_length_m"), "m"), inside_width: q(numeric(values, "inside_width_m"), "m"), wall_height: q(numeric(values, "wall_height_m"), "m"), wall_thickness: q(numeric(values, "wall_thickness_mm"), "mm"), base_thickness: q(numeric(values, "base_thickness_mm"), "mm"), base_projection: q(numeric(values, "base_projection_m"), "m"), retained_soil_height: q(numeric(values, "retained_soil_height_m"), "m"), wall_horizontal_span: q(numeric(values, "inside_width_m"), "m") },
+        materials: { concrete_unit_weight: q(25, "kN/m3"), water_unit_weight: q(10, "kN/m3"), soil_unit_weight: q(18, "kN/m3"), soil_friction_angle: q(numeric(values, "soil_friction_angle_deg"), "deg"), surcharge: q(numeric(values, "surcharge_kpa"), "kPa"), allowable_bearing: q(numeric(values, "allowable_bearing_kpa"), "kPa"), concrete_fc: q(14.3, "MPa"), concrete_ft: q(1.43, "MPa"), rebar_fy: q(360, "MPa"), rebar_es: q(200000, "MPa") },
+        reinforcement: { wall_vertical_as: q(numeric(values, "wall_vertical_as"), "mm2/m"), wall_horizontal_as: q(numeric(values, "wall_vertical_as") * 1.5, "mm2/m"), base_x_as: q(numeric(values, "base_as"), "mm2/m"), base_y_as: q(numeric(values, "base_as"), "mm2/m"), wall_bar_diameter: q(14, "mm"), base_bar_diameter: q(16, "mm"), wall_cover: q(35, "mm"), base_cover: q(40, "mm"), minimum_reinforcement_ratio: q(0.002, "1"), crack_width_limit: q(0.2, "mm") },
+        water_levels: { full_internal_depth: q(numeric(values, "internal_water_depth_m"), "m"), empty_external_head: q(knownWater ? numeric(values, "external_head_empty_m") : 0, "m"), full_external_head: q(knownWater ? numeric(values, "external_head_full_m") : 0, "m") },
+        additional_ballast: q(numeric(values, "additional_ballast_kn"), "kN"),
+        antifloat_factor: q(numeric(values, "antifloat_factor"), "1"),
+      };
+    },
+  },
+  {
+    id: "pile_group_cap",
+    short: "PG",
+    title: "群桩与承台",
+    material: "concrete",
+    description: "勘察承载力驱动的四桩群桩分配、稳定与承台验算",
+    fields: [
+      { key: "pile_type", label: "桩型", type: "select", options: [{ value: "bored", label: "灌注桩" }, { value: "precast_pipe", label: "预制管桩" }, { value: "precast_square", label: "预制方桩" }] },
+      { key: "foundation_strategy", label: "基础支承策略", type: "select", options: [{ value: "four_pile_cap", label: "四桩矩形承台" }] },
+      { key: "pile_spacing_x_mm", label: "桩距 X", type: "number", unit: "mm", min: 600, step: 100 },
+      { key: "pile_spacing_y_mm", label: "桩距 Y", type: "number", unit: "mm", min: 600, step: 100 },
+      { key: "pile_size_mm", label: "桩径/边长", type: "number", unit: "mm", min: 200, step: 50 },
+      { key: "compression_capacity_kn", label: "单桩竖向承载力", type: "number", unit: "kN", min: 1, step: 50 },
+      { key: "uplift_capacity_kn", label: "单桩抗拔承载力", type: "number", unit: "kN", min: 1, step: 20 },
+      { key: "horizontal_capacity_kn", label: "单桩水平承载力", type: "number", unit: "kN", min: 1, step: 10 },
+      { key: "capacity_source", label: "勘察承载力来源", type: "text" },
+      { key: "cap_length_mm", label: "承台长度 X", type: "number", unit: "mm", min: 1000, step: 100 },
+      { key: "cap_width_mm", label: "承台宽度 Y", type: "number", unit: "mm", min: 1000, step: 100 },
+      { key: "cap_thickness_mm", label: "承台厚度", type: "number", unit: "mm", min: 300, step: 50 },
+      { key: "axial_kn", label: "组合轴力", type: "number", unit: "kN", step: 10 },
+      { key: "shear_x_kn", label: "组合剪力 X", type: "number", unit: "kN", step: 5 },
+      { key: "shear_y_kn", label: "组合剪力 Y", type: "number", unit: "kN", step: 5 },
+      { key: "moment_x_kn_m", label: "组合弯矩 X", type: "number", unit: "kN·m", step: 10 },
+      { key: "moment_y_kn_m", label: "组合弯矩 Y", type: "number", unit: "kN·m", step: 10 },
+      { key: "torsion_kn_m", label: "组合扭矩", type: "number", unit: "kN·m", step: 5 },
+    ],
+    defaults: { pile_type: "bored", foundation_strategy: "four_pile_cap", pile_spacing_x_mm: 1600, pile_spacing_y_mm: 1600, pile_size_mm: 400, compression_capacity_kn: 500, uplift_capacity_kn: 200, horizontal_capacity_kn: 100, capacity_source: "勘察报告单桩承载力表", cap_length_mm: 3000, cap_width_mm: 3000, cap_thickness_mm: 500, axial_kn: 800, shear_x_kn: 40, shear_y_kn: 20, moment_x_kn_m: 80, moment_y_kn_m: 40, torsion_kn_m: 30 },
+    defaultLoads: [],
+    buildTypedInputs: (values) => {
+      const hx = numeric(values, "pile_spacing_x_mm") / 2; const hy = numeric(values, "pile_spacing_y_mm") / 2;
+      const pileType = choice(values, "pile_type") as "bored" | "precast_pipe" | "precast_square";
+      return { module: "pile_group_cap", combination_id: "ULS-user", combination_name: "ULS 用户输入组合", limit_state: "ULS", piles: [["P1", -hx, -hy], ["P2", hx, -hy], ["P3", hx, hy], ["P4", -hx, hy]].map(([id, x, y]) => ({ id: String(id), x: q(Number(x), "mm"), y: q(Number(y), "mm"), diameter_or_side: q(numeric(values, "pile_size_mm"), "mm"), pile_type: pileType })), capacities: { compression: q(numeric(values, "compression_capacity_kn"), "kN"), uplift: q(numeric(values, "uplift_capacity_kn"), "kN"), horizontal: q(numeric(values, "horizontal_capacity_kn"), "kN"), source: choice(values, "capacity_source") }, cap: { length_x: q(numeric(values, "cap_length_mm"), "mm"), width_y: q(numeric(values, "cap_width_mm"), "mm"), thickness: q(numeric(values, "cap_thickness_mm"), "mm"), column_x: q(500, "mm"), column_y: q(500, "mm"), cover: q(70, "mm"), bar_diameter: q(20, "mm") }, material: { concrete_ft: q(1.43, "MPa"), rebar_fy: q(360, "MPa"), provided_rebar_x: q(2500, "mm2/m"), provided_rebar_y: q(2500, "mm2/m"), minimum_reinforcement_ratio: q(0.0015, "1") }, effects: { axial: q(numeric(values, "axial_kn"), "kN"), shear_x: q(numeric(values, "shear_x_kn"), "kN"), shear_y: q(numeric(values, "shear_y_kn"), "kN"), moment_x: q(numeric(values, "moment_x_kn_m"), "kN*m"), moment_y: q(numeric(values, "moment_y_kn_m"), "kN*m"), torsion: q(numeric(values, "torsion_kn_m"), "kN*m") } };
+    },
+  },
+  {
+    id: "bridge_steel_timber",
+    short: "BST",
+    title: "钢木景观人行桥",
+    material: "steel",
+    description: "木桥面、钢横纵梁、栏杆风荷载与有限竖向舒适度验算",
+    fields: [
+      { key: "span_count", label: "跨数", type: "number", unit: "跨", min: 1, step: 1 }, { key: "span_length_m", label: "单跨长度", type: "number", unit: "m", min: 1, step: 0.5 },
+      { key: "deck_width_m", label: "桥面宽度", type: "number", unit: "m", min: 1, step: 0.25 }, { key: "crossbeam_spacing_m", label: "横梁间距", type: "number", unit: "m", min: 0.3, step: 0.1 },
+      { key: "girder_count", label: "纵梁数量", type: "number", unit: "根", min: 2, step: 1 }, { key: "deck_thickness_mm", label: "木桥面厚度", type: "number", unit: "mm", min: 30, step: 10 },
+      { key: "crowd_load_kpa", label: "人群荷载", type: "number", unit: "kPa", min: 0, step: 0.5 }, { key: "dead_load_kpa", label: "附加恒载", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "railing_load_kn_m", label: "单侧栏杆恒载", type: "number", unit: "kN/m", min: 0, step: 0.1 }, { key: "wind_load_kn_m", label: "横向风线荷载", type: "number", unit: "kN/m", min: 0, step: 0.1 },
+      { key: "foundation_strategy", label: "墩台基础策略", type: "select", options: [{ value: "shallow", label: "全部浅基础" }, { value: "pile", label: "全部桩基础" }, { value: "mixed", label: "桥台浅基础＋中墩桩基础" }] },
+    ],
+    defaults: { span_count: 2, span_length_m: 8, deck_width_m: 3, crossbeam_spacing_m: 1, girder_count: 3, deck_thickness_mm: 80, crowd_load_kpa: 3.5, dead_load_kpa: 0.8, railing_load_kn_m: 0.5, wind_load_kn_m: 0.8, foundation_strategy: "mixed" },
+    defaultLoads: [],
+    buildTypedInputs: (values) => {
+      const spans = integer(values, "span_count"); const supports = spans + 1; const strategy = choice(values, "foundation_strategy");
+      const section = { area: q(9000, "mm2"), inertia: q(600000000, "mm4"), section_modulus: q(1200000, "mm3"), shear_area: q(5000, "mm2"), yield_strength: q(305, "MPa"), elastic_modulus: q(206000, "MPa"), unit_weight: q(78.5, "kN/m3") };
+      return { module: "bridge_steel_timber", geometry: { span_count: q(spans, "1"), span_length: q(numeric(values, "span_length_m"), "m"), deck_width: q(numeric(values, "deck_width_m"), "m"), crossbeam_spacing: q(numeric(values, "crossbeam_spacing_m"), "m"), longitudinal_girder_count: q(integer(values, "girder_count", 2), "1") }, actions: { crowd_load: q(numeric(values, "crowd_load_kpa"), "kPa"), additional_dead_load: q(numeric(values, "dead_load_kpa"), "kPa"), railing_dead_load_per_side: q(numeric(values, "railing_load_kn_m"), "kN/m"), wind_line_load: q(numeric(values, "wind_load_kn_m"), "kN/m"), span_live_load_factors: Array.from({ length: spans }, () => q(1, "1")) }, timber_deck: { thickness: q(numeric(values, "deck_thickness_mm"), "mm"), elastic_modulus: q(11000, "MPa"), bending_strength: q(18, "MPa"), shear_strength: q(2, "MPa"), unit_weight: q(6, "kN/m3"), deflection_limit_ratio: q(300, "1") }, crossbeam_section: section, longitudinal_section: section, comfort: { damping_ratio: q(0.02, "1"), walking_frequency: q(2, "Hz"), pedestrian_dynamic_force: q(280, "N"), acceleration_limit: q(0.5, "m/s2") }, foundation_types: Array.from({ length: supports }, (_, index) => strategy === "pile" || (strategy === "mixed" && index > 0 && index < supports - 1) ? "pile" as const : "shallow" as const) };
+    },
+  },
+  {
+    id: "bridge_rc",
+    short: "BRC",
+    title: "全混凝土景观人行桥",
+    material: "concrete",
+    description: "RC 桥面板与主梁、裂缝挠度、栏杆风荷载和墩台反力",
+    fields: [
+      { key: "span_count", label: "跨数", type: "number", unit: "跨", min: 1, step: 1 }, { key: "span_length_m", label: "单跨长度", type: "number", unit: "m", min: 1, step: 0.5 },
+      { key: "deck_width_m", label: "桥面宽度", type: "number", unit: "m", min: 1, step: 0.25 }, { key: "deck_elevation_m", label: "桥面标高", type: "number", unit: "m", min: 0, step: 0.1 },
+      { key: "slab_thickness_mm", label: "桥面板厚度", type: "number", unit: "mm", min: 120, step: 20 }, { key: "girder_count", label: "主梁数量", type: "number", unit: "根", min: 2, step: 1 },
+      { key: "girder_width_mm", label: "主梁宽度", type: "number", unit: "mm", min: 200, step: 50 }, { key: "girder_height_mm", label: "主梁高度", type: "number", unit: "mm", min: 300, step: 50 },
+      { key: "crowd_load_kpa", label: "人群荷载", type: "number", unit: "kPa", min: 0, step: 0.5 }, { key: "dead_load_kpa", label: "附加恒载", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "wind_pressure_kpa", label: "栏杆风压", type: "number", unit: "kPa", min: 0, step: 0.1 }, { key: "wind_height_m", label: "迎风高度", type: "number", unit: "m", min: 0, step: 0.1 },
+      { key: "foundation_strategy", label: "墩台基础策略", type: "select", options: [{ value: "shallow", label: "全部浅基础" }, { value: "pile", label: "全部桩基础" }, { value: "mixed", label: "桥台浅基础＋中墩桩基础" }] },
+    ],
+    defaults: { span_count: 2, span_length_m: 6, deck_width_m: 3, deck_elevation_m: 2, slab_thickness_mm: 180, girder_count: 3, girder_width_mm: 300, girder_height_mm: 600, crowd_load_kpa: 5, dead_load_kpa: 1, wind_pressure_kpa: 0.8, wind_height_m: 1.2, foundation_strategy: "mixed" },
+    defaultLoads: [],
+    buildTypedInputs: (values) => {
+      const spans = integer(values, "span_count"); const supports = spans + 1; const strategy = choice(values, "foundation_strategy");
+      return { module: "bridge_rc", geometry: { span_count: q(spans, "1"), span_length: q(numeric(values, "span_length_m"), "m"), deck_width: q(numeric(values, "deck_width_m"), "m"), deck_elevation: q(numeric(values, "deck_elevation_m"), "m"), slab_thickness: q(numeric(values, "slab_thickness_mm"), "mm"), girder_count: q(integer(values, "girder_count", 2), "1"), girder_width: q(numeric(values, "girder_width_mm"), "mm"), girder_height: q(numeric(values, "girder_height_mm"), "mm") }, material: { concrete_elastic_modulus: q(30000, "MPa"), concrete_compressive_strength: q(14.3, "MPa"), concrete_tensile_strength: q(1.43, "MPa"), rebar_yield_strength: q(360, "MPa"), concrete_density: q(25, "kN/m3"), minimum_reinforcement_ratio: q(0.0015, "1"), maximum_reinforcement_ratio: q(0.04, "1") }, reinforcement: { cover: q(40, "mm"), slab_bar_diameter: q(12, "mm"), slab_bar_spacing: q(150, "mm"), girder_bottom_area: q(4000, "mm2"), girder_top_area: q(3000, "mm2"), girder_stirrup_area: q(157, "mm2"), girder_stirrup_spacing: q(150, "mm") }, loads: { spans: Array.from({ length: spans }, () => ({ additional_dead: q(numeric(values, "dead_load_kpa"), "kPa"), crowd: q(numeric(values, "crowd_load_kpa"), "kPa") })), railing_left: q(1, "kN/m"), railing_right: q(1, "kN/m"), wind_pressure: q(numeric(values, "wind_pressure_kpa"), "kPa"), wind_exposed_height: q(numeric(values, "wind_height_m"), "m") }, supports: Array.from({ length: supports }, (_, index) => ({ id: `S${index + 1}`, node_index: q(index, "1"), foundation_type: strategy === "pile" || (strategy === "mixed" && index > 0 && index < supports - 1) ? "pile" as const : "shallow" as const })), service_limits: { crack_width_limit: q(0.3, "mm"), minimum_vertical_frequency: q(3, "Hz"), slab_deflection_ratio: q(250, "1"), girder_deflection_ratio: q(400, "1"), cracked_stiffness_factor: q(0.35, "1") } };
+    },
+  },
+  {
+    id: "gravity_retaining_wall",
+    short: "GRW",
+    title: "重力式挡土墙",
+    material: "concrete",
+    description: "墙体自重抗滑抗倾覆、基底压力、地下水与材料承压验算",
+    fields: [
+      { key: "retained_height_m", label: "挡土高度", type: "number", unit: "m", min: 0.5, step: 0.1 }, { key: "base_width_m", label: "基础总宽", type: "number", unit: "m", min: 0.8, step: 0.1 },
+      { key: "base_slab_thickness_m", label: "基础厚度", type: "number", unit: "m", min: 0.2, step: 0.05 }, { key: "wall_bottom_thickness_m", label: "墙底厚度", type: "number", unit: "m", min: 0.3, step: 0.1 },
+      { key: "wall_top_thickness_m", label: "墙顶厚度", type: "number", unit: "m", min: 0.2, step: 0.05 }, { key: "toe_projection_m", label: "墙前趾宽", type: "number", unit: "m", min: 0, step: 0.05 },
+      { key: "soil_friction_angle_deg", label: "土内摩擦角", type: "number", unit: "deg", min: 5, step: 1 }, { key: "surcharge_kpa", label: "地表附加荷载", type: "number", unit: "kPa", min: 0, step: 1 },
+      { key: "base_friction", label: "基底摩擦系数", type: "number", unit: "1", min: 0.05, step: 0.05 }, { key: "soil_bearing_kpa", label: "地基承载力", type: "number", unit: "kPa", min: 10, step: 10 },
+      { key: "foundation_strategy", label: "基础支承策略", type: "select", options: [{ value: "shallow_gravity_base", label: "重力式墙身＋浅基础" }] },
+      { key: "groundwater_condition", label: "地下水条件", type: "select", options: [{ value: "no_influence", label: "无地下水影响" }, { value: "known_water_table", label: "已知水位" }, { value: "unknown", label: "水位未知" }] },
+      { key: "water_depth_m", label: "墙后水深", type: "number", unit: "m", min: 0, step: 0.1, visible: (v) => v.groundwater_condition === "known_water_table" },
+      { key: "uplift_head_toe_m", label: "趾端扬压力水头", type: "number", unit: "m", min: 0, step: 0.1, visible: (v) => v.groundwater_condition === "known_water_table" },
+      { key: "uplift_head_heel_m", label: "踵端扬压力水头", type: "number", unit: "m", min: 0, step: 0.1, visible: (v) => v.groundwater_condition === "known_water_table" },
+      { key: "groundwater_source", label: "地下水资料来源", type: "text", visible: (v) => v.groundwater_condition !== "no_influence" },
+    ],
+    defaults: { retained_height_m: 2, base_width_m: 2.4, base_slab_thickness_m: 0.3, wall_bottom_thickness_m: 1.2, wall_top_thickness_m: 0.5, toe_projection_m: 0.7, soil_friction_angle_deg: 30, surcharge_kpa: 5, base_friction: 0.6, soil_bearing_kpa: 300, foundation_strategy: "shallow_gravity_base", groundwater_condition: "no_influence", water_depth_m: 0, uplift_head_toe_m: 0, uplift_head_heel_m: 0, groundwater_source: "" },
+    defaultLoads: [],
+    buildTypedInputs: (values) => {
+      const knownWater = choice(values, "groundwater_condition") === "known_water_table";
+      return { module: "gravity_retaining_wall", combination_id: "ULS-GRW-user", combination_name: "ULS 土压力主导组合", limit_state: "ULS", retained_height: q(numeric(values, "retained_height_m"), "m"), base_width: q(numeric(values, "base_width_m"), "m"), base_slab_thickness: q(numeric(values, "base_slab_thickness_m"), "m"), wall_bottom_thickness: q(numeric(values, "wall_bottom_thickness_m"), "m"), wall_top_thickness: q(numeric(values, "wall_top_thickness_m"), "m"), toe_projection: q(numeric(values, "toe_projection_m"), "m"), wall_unit_weight: q(24, "kN/m3"), soil_unit_weight: q(18, "kN/m3"), soil_friction_angle: q(numeric(values, "soil_friction_angle_deg"), "deg"), surcharge: q(numeric(values, "surcharge_kpa"), "kPa"), base_friction_coefficient: q(numeric(values, "base_friction"), "1"), soil_bearing_capacity: q(numeric(values, "soil_bearing_kpa"), "kPa"), material_compressive_design: q(1000, "kPa"), water_depth_behind: q(knownWater ? numeric(values, "water_depth_m") : 0, "m"), water_unit_weight: q(10, "kN/m3"), uplift_head_toe: q(knownWater ? numeric(values, "uplift_head_toe_m") : 0, "m"), uplift_head_heel: q(knownWater ? numeric(values, "uplift_head_heel_m") : 0, "m"), sliding_safety_factor: q(1, "1"), overturning_safety_factor: q(1, "1") };
+    },
+  },
+  {
+    id: "site_rc_wall",
+    short: "RCW",
+    title: "现浇 RC 景墙",
+    material: "concrete",
+    description: "直线等高现浇景墙的正反向风、弯剪、配筋与基础线荷载快算。",
+    applicability: [
+      "适用于直线、等高、规则小开洞的现浇钢筋混凝土景墙。",
+      "基础线荷载作为组合一致的支承反力输出；基础本体需另行验算。",
+      "不适用于曲线墙、大开洞、复杂边界或地震作用控制的墙体。",
+    ],
+    fields: [
+      { key: "height_m", label: "墙高", type: "number", unit: "m", min: 0.5, step: 0.1 },
+      { key: "length_m", label: "墙长", type: "number", unit: "m", min: 1, step: 0.5 },
+      { key: "thickness_mm", label: "墙厚", type: "number", unit: "mm", min: 100, step: 10 },
+      { key: "support_spacing_m", label: "支承间距", type: "number", unit: "m", min: 0.5, step: 0.1 },
+      { key: "opening_ratio", label: "开洞率", type: "number", unit: "1", min: 0, step: 0.01 },
+      { key: "additional_dead_load_kpa", label: "附加恒载", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "wind_positive_kpa", label: "正向风压", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "wind_negative_kpa", label: "反向风压绝对值", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "concrete_unit_weight_kn_m3", label: "混凝土重度", type: "number", unit: "kN/m3", min: 1, step: 0.5 },
+      { key: "concrete_fc_mpa", label: "混凝土抗压设计强度", type: "number", unit: "MPa", min: 0.1, step: 0.1 },
+      { key: "concrete_ft_mpa", label: "混凝土抗拉设计强度", type: "number", unit: "MPa", min: 0.1, step: 0.01 },
+      { key: "rebar_fy_mpa", label: "钢筋抗拉设计强度", type: "number", unit: "MPa", min: 1, step: 10 },
+      { key: "vertical_rebar_mm2_m", label: "竖向配筋面积", type: "number", unit: "mm2/m", min: 1, step: 50 },
+      { key: "horizontal_rebar_mm2_m", label: "水平配筋面积", type: "number", unit: "mm2/m", min: 1, step: 50 },
+      { key: "cover_mm", label: "保护层厚度", type: "number", unit: "mm", min: 10, step: 5 },
+      { key: "bar_diameter_mm", label: "钢筋直径", type: "number", unit: "mm", min: 6, step: 2 },
+      { key: "minimum_reinforcement_ratio", label: "最小配筋率", type: "number", unit: "1", min: 0, step: 0.0001 },
+      { key: "slenderness_limit", label: "允许高厚比", type: "number", unit: "1", min: 1, step: 1 },
+    ],
+    defaults: { height_m: 1.8, length_m: 6, thickness_mm: 180, support_spacing_m: 3, opening_ratio: 0.1, additional_dead_load_kpa: 0.2, wind_positive_kpa: 0.8, wind_negative_kpa: 0.6, concrete_unit_weight_kn_m3: 25, concrete_fc_mpa: 14.3, concrete_ft_mpa: 1.43, rebar_fy_mpa: 360, vertical_rebar_mm2_m: 1200, horizontal_rebar_mm2_m: 1200, cover_mm: 30, bar_diameter_mm: 12, minimum_reinforcement_ratio: 0.0015, slenderness_limit: 25 },
+    defaultLoads: [],
+    buildTypedInputs: (values) => ({ module: "site_rc_wall", height: q(numeric(values, "height_m"), "m"), length: q(numeric(values, "length_m"), "m"), thickness: q(numeric(values, "thickness_mm"), "mm"), support_spacing: q(numeric(values, "support_spacing_m"), "m"), opening_ratio: q(numeric(values, "opening_ratio"), "1"), concrete_unit_weight: q(numeric(values, "concrete_unit_weight_kn_m3"), "kN/m3"), concrete_fc: q(numeric(values, "concrete_fc_mpa"), "MPa"), concrete_ft: q(numeric(values, "concrete_ft_mpa"), "MPa"), rebar_fy: q(numeric(values, "rebar_fy_mpa"), "MPa"), vertical_rebar: q(numeric(values, "vertical_rebar_mm2_m"), "mm2/m"), horizontal_rebar: q(numeric(values, "horizontal_rebar_mm2_m"), "mm2/m"), cover: q(numeric(values, "cover_mm"), "mm"), bar_diameter: q(numeric(values, "bar_diameter_mm"), "mm"), minimum_reinforcement_ratio: q(numeric(values, "minimum_reinforcement_ratio"), "1"), slenderness_limit: q(numeric(values, "slenderness_limit"), "1"), load_cases: siteWallLoadCases(values) }),
+  },
+  {
+    id: "steel_infill_wall",
+    short: "SIW",
+    title: "钢立柱轻质填充墙",
+    material: "steel",
+    description: "钢立柱、轻质填充面层、正反向风与柱底基础线荷载快算。",
+    applicability: [
+      "适用于直线、等高、由等间距钢立柱支承的轻质填充景墙。",
+      "输出每根立柱控制内力和基础线荷载；柱脚与基础需另行验算。",
+      "不覆盖重型砌体填充、曲线墙、复杂开洞或面板连接设计。",
+    ],
+    fields: [
+      { key: "height_m", label: "墙高", type: "number", unit: "m", min: 0.5, step: 0.1 },
+      { key: "length_m", label: "墙长", type: "number", unit: "m", min: 1, step: 0.5 },
+      { key: "support_spacing_m", label: "钢立柱间距", type: "number", unit: "m", min: 0.3, step: 0.1 },
+      { key: "opening_ratio", label: "开洞率", type: "number", unit: "1", min: 0, step: 0.01 },
+      { key: "infill_dead_load_kpa", label: "填充面层恒载", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "additional_dead_load_kpa", label: "附加恒载", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "wind_positive_kpa", label: "正向风压", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "wind_negative_kpa", label: "反向风压绝对值", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "post_self_weight_kn_m", label: "钢立柱自重", type: "number", unit: "kN/m", min: 0, step: 0.01 },
+      { key: "post_area_mm2", label: "立柱截面面积", type: "number", unit: "mm2", min: 1, step: 100 },
+      { key: "post_inertia_mm4", label: "立柱截面惯性矩", type: "number", unit: "mm4", min: 1, step: 100000 },
+      { key: "post_section_modulus_mm3", label: "立柱截面模量", type: "number", unit: "mm3", min: 1, step: 1000 },
+      { key: "steel_elastic_modulus_gpa", label: "钢材弹性模量", type: "number", unit: "GPa", min: 1, step: 1 },
+      { key: "steel_yield_strength_mpa", label: "钢材屈服强度", type: "number", unit: "MPa", min: 1, step: 5 },
+      { key: "effective_length_factor", label: "计算长度系数", type: "number", unit: "1", min: 0.1, step: 0.1 },
+      { key: "slenderness_limit", label: "允许长细比", type: "number", unit: "1", min: 1, step: 5 },
+      { key: "maximum_post_spacing_m", label: "最大允许立柱间距", type: "number", unit: "m", min: 0.3, step: 0.1 },
+    ],
+    defaults: { height_m: 2, length_m: 8, support_spacing_m: 2, opening_ratio: 0.1, infill_dead_load_kpa: 0.5, additional_dead_load_kpa: 0.2, wind_positive_kpa: 0.8, wind_negative_kpa: 0.6, post_self_weight_kn_m: 0.12, post_area_mm2: 3000, post_inertia_mm4: 8000000, post_section_modulus_mm3: 80000, steel_elastic_modulus_gpa: 206, steel_yield_strength_mpa: 235, effective_length_factor: 1, slenderness_limit: 150, maximum_post_spacing_m: 3 },
+    defaultLoads: [],
+    buildTypedInputs: (values) => ({ module: "steel_infill_wall", height: q(numeric(values, "height_m"), "m"), length: q(numeric(values, "length_m"), "m"), support_spacing: q(numeric(values, "support_spacing_m"), "m"), opening_ratio: q(numeric(values, "opening_ratio"), "1"), infill_dead_load: q(numeric(values, "infill_dead_load_kpa"), "kPa"), post_self_weight: q(numeric(values, "post_self_weight_kn_m"), "kN/m"), post_area: q(numeric(values, "post_area_mm2"), "mm2"), post_inertia: q(numeric(values, "post_inertia_mm4"), "mm4"), post_section_modulus: q(numeric(values, "post_section_modulus_mm3"), "mm3"), steel_elastic_modulus: q(numeric(values, "steel_elastic_modulus_gpa"), "GPa"), steel_yield_strength: q(numeric(values, "steel_yield_strength_mpa"), "MPa"), effective_length_factor: q(numeric(values, "effective_length_factor"), "1"), slenderness_limit: q(numeric(values, "slenderness_limit"), "1"), maximum_post_spacing: q(numeric(values, "maximum_post_spacing_m"), "m"), load_cases: siteWallLoadCases(values) }),
+  },
+  {
+    id: "plain_masonry_wall",
+    short: "PMW",
+    title: "低矮纯砌体墙",
+    material: "masonry",
+    description: "受限高度、规则小开洞纯砌体墙的正反向风、弯剪、压应力和基础线荷载快算。",
+    applicability: [
+      "仅适用于直线、等高、规则小开洞的低矮纯砌体墙。",
+      "基础线荷载作为支承反力输出；条形基础需另行验算。",
+      "超过限制高度、复杂开洞或需要构造柱约束时应改用约束砌体景墙场景。",
+    ],
+    fields: [
+      { key: "height_m", label: "墙高", type: "number", unit: "m", min: 0.3, step: 0.1 },
+      { key: "length_m", label: "墙长", type: "number", unit: "m", min: 1, step: 0.5 },
+      { key: "thickness_mm", label: "墙厚", type: "number", unit: "mm", min: 100, step: 10 },
+      { key: "support_spacing_m", label: "侧向支承间距", type: "number", unit: "m", min: 0.5, step: 0.1 },
+      { key: "opening_ratio", label: "开洞率", type: "number", unit: "1", min: 0, step: 0.01 },
+      { key: "additional_dead_load_kpa", label: "附加恒载", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "wind_positive_kpa", label: "正向风压", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "wind_negative_kpa", label: "反向风压绝对值", type: "number", unit: "kPa", min: 0, step: 0.1 },
+      { key: "masonry_unit_weight_kn_m3", label: "砌体重度", type: "number", unit: "kN/m3", min: 1, step: 0.5 },
+      { key: "masonry_bending_strength_mpa", label: "砌体抗弯强度", type: "number", unit: "MPa", min: 0.01, step: 0.01 },
+      { key: "masonry_shear_strength_mpa", label: "砌体抗剪强度", type: "number", unit: "MPa", min: 0.01, step: 0.01 },
+      { key: "masonry_compression_strength_mpa", label: "砌体抗压强度", type: "number", unit: "MPa", min: 0.1, step: 0.1 },
+      { key: "slenderness_limit", label: "允许高厚比", type: "number", unit: "1", min: 1, step: 1 },
+      { key: "minimum_thickness_mm", label: "最小允许墙厚", type: "number", unit: "mm", min: 60, step: 10 },
+      { key: "maximum_height_m", label: "最大适用墙高", type: "number", unit: "m", min: 0.3, step: 0.1 },
+    ],
+    defaults: { height_m: 1, length_m: 6, thickness_mm: 240, support_spacing_m: 3, opening_ratio: 0.1, additional_dead_load_kpa: 0.2, wind_positive_kpa: 0.8, wind_negative_kpa: 0.6, masonry_unit_weight_kn_m3: 19, masonry_bending_strength_mpa: 0.4, masonry_shear_strength_mpa: 0.15, masonry_compression_strength_mpa: 2, slenderness_limit: 15, minimum_thickness_mm: 120, maximum_height_m: 1.5 },
+    defaultLoads: [],
+    buildTypedInputs: (values) => ({ module: "plain_masonry_wall", height: q(numeric(values, "height_m"), "m"), length: q(numeric(values, "length_m"), "m"), thickness: q(numeric(values, "thickness_mm"), "mm"), support_spacing: q(numeric(values, "support_spacing_m"), "m"), opening_ratio: q(numeric(values, "opening_ratio"), "1"), masonry_unit_weight: q(numeric(values, "masonry_unit_weight_kn_m3"), "kN/m3"), masonry_bending_strength: q(numeric(values, "masonry_bending_strength_mpa"), "MPa"), masonry_shear_strength: q(numeric(values, "masonry_shear_strength_mpa"), "MPa"), masonry_compression_strength: q(numeric(values, "masonry_compression_strength_mpa"), "MPa"), slenderness_limit: q(numeric(values, "slenderness_limit"), "1"), minimum_thickness: q(numeric(values, "minimum_thickness_mm"), "mm"), maximum_height: q(numeric(values, "maximum_height_m"), "m"), load_cases: siteWallLoadCases(values) }),
+  },
+];
+
+export const NEXTGEN_LIBRARY_ITEMS: CalculationLibraryItem[] = [
+  { id: "continuous-beam", title: "连续梁", task: "superstructure", task_title: "上部构件", material: "steel", module: "continuous_beam", maturity: "beta", description: "两跨连续梁内力、反力与挠度。", presets: [] },
+  { id: "planar-frame-nextgen", title: "参数化平面框架", task: "superstructure", task_title: "上部构件", material: "steel", module: "planar_frame", maturity: "beta", description: "二维框架轴剪弯和位移分析。", presets: [] },
+  { id: "planar-truss", title: "平面桁架", task: "superstructure", task_title: "上部构件", material: "steel", module: "planar_truss", maturity: "beta", description: "节点荷载、杆件轴力与位移。", presets: [] },
+  { id: "two-way-slab", title: "混凝土双向板", task: "superstructure", task_title: "上部构件", material: "concrete", module: "two_way_slab", maturity: "beta", description: "规则矩形双向板内力与挠度。", presets: [] },
+  { id: "timber-base", title: "木柱脚 / 金属连接件", task: "connections_supports", task_title: "连接与支承", material: "timber", module: "timber_connection", maturity: "beta", description: "木柱端承压、拉剪与连接件弯曲。", presets: [] },
+  { id: "wall-anchor", title: "墙附锚栓组", task: "connections_supports", task_title: "连接与支承", material: "steel", module: "wall_anchor", maturity: "beta", description: "RC 或有评估值实心砌体锚固。", presets: [] },
+  { id: "pool-structure", title: "矩形水景池体", task: "retaining_pool", task_title: "挡土与池体", material: "concrete", module: "pool_structure", maturity: "beta", description: "池壁、底板、土水压力与抗浮。", presets: [] },
+  { id: "pile-group-cap", title: "群桩与承台", task: "foundations_geotechnical", task_title: "基础与地基", material: "concrete", module: "pile_group_cap", maturity: "beta", description: "勘察承载力驱动的群桩与承台。", presets: [] },
+  { id: "bridge-steel-timber", title: "钢木景观人行桥", task: "superstructure", task_title: "上部构件", material: "steel", module: "bridge_steel_timber", maturity: "beta", description: "木桥面与钢梁参数化人行桥。", presets: [] },
+  { id: "bridge-rc", title: "全混凝土景观人行桥", task: "superstructure", task_title: "上部构件", material: "concrete", module: "bridge_rc", maturity: "beta", description: "RC 桥面板与主梁参数化人行桥。", presets: [] },
+  { id: "gravity-retaining-wall", title: "重力式挡土墙", task: "retaining_pool", task_title: "挡土与池体", material: "concrete", module: "gravity_retaining_wall", maturity: "beta", description: "重力稳定、基底压力与地下水。", presets: [] },
 ];
 
 export const MODULE_MAP = Object.fromEntries(

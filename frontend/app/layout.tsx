@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Steel-Compass V2",
-  description: "景观结构方案快算与专业计算 Beta",
+  description: "景观结构方案快算与专业计算",
 };
 
 export default function RootLayout({

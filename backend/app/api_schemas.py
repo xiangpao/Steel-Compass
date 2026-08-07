@@ -141,7 +141,6 @@ class SceneRevisionCreate(BaseModel):
     node_calculations: list[SceneNodeCalculation] = Field(
         default_factory=list, max_length=50
     )
-    confirmed_input_nodes: list[str] = Field(default_factory=list, max_length=50)
     load_cases: list[SceneLoadItem] = Field(default_factory=list, max_length=100)
 
 

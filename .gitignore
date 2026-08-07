@@ -10,6 +10,7 @@ htmlcov/
 backend/.venv/
 backend/steel_compass.db
 backend/*.db
+/test_api.db
 frontend/node_modules/
 frontend/.next/
 frontend/out/
