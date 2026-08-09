@@ -71,6 +71,7 @@ services:
     restart: unless-stopped
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
+      APP_SCHEME: ${APP_SCHEME:-http}
     ports:
       - "80:80"
       - "443:443"

@@ -6,13 +6,61 @@ Tension N (or Compression N), Bending M, Shear V according to GB 50010-2010 Sect
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from math import sqrt, ceil, pi, sin
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
 from .errors import CalculationInputError
-from .schemas import CheckResult, Quantity
+from .schemas import CheckResult, Quantity, TypedInputValue, WallAnchorInputs
+
+
+def _unit(unit: str) -> str:
+    return (
+        unit.strip()
+        .replace("·", "*")
+        .replace("⋅", "*")
+        .replace("路", "*")
+        .replace(" ", "")
+        .lower()
+    )
+
+
+LENGTH_MM = {"mm": 1.0, "m": 1000.0}
+FORCE_KN = {"kn": 1.0, "n": 0.001}
+MOMENT_KNM = {"kn*m": 1.0, "n*mm": 1.0e-6}
+STRESS_MPA = {"mpa": 1.0, "gpa": 1000.0}
+SCALAR = {"1": 1.0}
+ANGLE_DEG = {"deg": 1.0, "°": 1.0}
+
+
+def _convert(
+    value: TypedInputValue,
+    factors: Mapping[str, float],
+    *,
+    field: str,
+) -> float:
+    canonical = _unit(value.unit)
+    if canonical not in factors:
+        raise CalculationInputError(
+            "invalid_unit",
+            f"{field} 的单位 {value.unit!r} 不受支持。",
+            field=field,
+            details={"unit": value.unit, "supported_units": sorted(factors)},
+        )
+    return value.value * factors[canonical]
+
+
+def _integer(value: TypedInputValue, *, field: str) -> int:
+    number = _convert(value, SCALAR, field=field)
+    if not number.is_integer():
+        raise CalculationInputError(
+            "invalid_integer",
+            f"{field} 必须是整数。",
+            field=field,
+        )
+    return int(number)
 
 
 class EmbeddedPlateInput(BaseModel):
@@ -245,28 +293,58 @@ def calculate_wall_anchor(
 ) -> CalculationResult:
     """Standard engine adapter for GB 50010 embedded plate & anchor rebar design."""
 
-    plate_w = mode_number(request, "plate_width_mm", quick_default=250.0, minimum=80.0, maximum=1500.0)
-    plate_h = mode_number(request, "plate_height_mm", quick_default=250.0, minimum=80.0, maximum=1500.0)
-    plate_t = mode_number(request, "plate_thickness_mm", quick_default=12.0, minimum=6.0, maximum=50.0)
-
-    rebar_count = int(mode_number(request, "rebar_count", quick_default=4.0, minimum=2.0, maximum=32.0))
-    rebar_rows = int(mode_number(request, "rebar_rows", quick_default=2.0, minimum=2.0, maximum=8.0))
-    rebar_d = mode_number(request, "rebar_diameter_mm", quick_default=16.0, minimum=8.0, maximum=40.0)
-    rebar_fy = mode_number(request, "rebar_fy_mpa", quick_default=360.0, minimum=200.0, maximum=500.0)
-    rebar_la = mode_number(request, "rebar_length_mm", quick_default=400.0, minimum=100.0, maximum=1500.0)
-
-    bent_count = int(mode_number(request, "bent_rebar_count", quick_default=0.0, minimum=0.0, maximum=16.0))
-    bent_d = mode_number(request, "bent_rebar_diameter_mm", quick_default=0.0, minimum=0.0, maximum=40.0)
-    bent_angle = mode_number(request, "bent_rebar_angle_deg", quick_default=45.0, minimum=15.0, maximum=60.0)
-
-    fc = mode_number(request, "concrete_fc_mpa", quick_default=14.3, minimum=7.2, maximum=30.0)
-    ft = mode_number(request, "concrete_ft_mpa", quick_default=1.43, minimum=0.9, maximum=3.0)
-    cx = mode_number(request, "edge_distance_x_mm", quick_default=50.0, minimum=20.0, maximum=300.0)
-    cy = mode_number(request, "edge_distance_y_mm", quick_default=50.0, minimum=20.0, maximum=300.0)
-
-    n_kn = mode_number(request, "n_design_kn", quick_default=0.0, minimum=-1000.0, maximum=1000.0)
-    m_kn_m = mode_number(request, "m_design_kn_m", quick_default=0.0, minimum=0.0, maximum=500.0)
-    v_kn = mode_number(request, "v_design_kn", quick_default=20.0, minimum=0.0, maximum=500.0)
+    typed = request.typed_inputs
+    if isinstance(typed, WallAnchorInputs):
+        plate_w = _convert(typed.plate_width, LENGTH_MM, field="plate_width")
+        plate_h = _convert(typed.plate_height, LENGTH_MM, field="plate_height")
+        plate_t = _convert(typed.plate_thickness, LENGTH_MM, field="plate_thickness")
+        rebar_count = _integer(typed.rebar_count, field="rebar_count")
+        rebar_rows = _integer(typed.rebar_rows, field="rebar_rows")
+        rebar_d = _convert(typed.rebar_diameter, LENGTH_MM, field="rebar_diameter")
+        rebar_fy = _convert(typed.rebar_fy, STRESS_MPA, field="rebar_fy")
+        rebar_la = _convert(typed.rebar_length, LENGTH_MM, field="rebar_length")
+        bent_count = (
+            _integer(typed.bent_rebar_count, field="bent_rebar_count")
+            if typed.bent_rebar_count is not None
+            else 0
+        )
+        bent_d = (
+            _convert(typed.bent_rebar_diameter, LENGTH_MM, field="bent_rebar_diameter")
+            if typed.bent_rebar_diameter is not None
+            else 0.0
+        )
+        bent_angle = (
+            _convert(typed.bent_rebar_angle, ANGLE_DEG, field="bent_rebar_angle")
+            if typed.bent_rebar_angle is not None
+            else 45.0
+        )
+        fc = _convert(typed.concrete_fc, STRESS_MPA, field="concrete_fc")
+        ft = _convert(typed.concrete_ft, STRESS_MPA, field="concrete_ft")
+        cx = _convert(typed.edge_distance_x, LENGTH_MM, field="edge_distance_x")
+        cy = _convert(typed.edge_distance_y, LENGTH_MM, field="edge_distance_y")
+        n_kn = _convert(typed.n_design, FORCE_KN, field="n_design")
+        m_kn_m = _convert(typed.m_design, MOMENT_KNM, field="m_design")
+        v_kn = _convert(typed.v_design, FORCE_KN, field="v_design")
+    else:
+        # Read compatibility for pre-Schema-3.2 saved requests.
+        plate_w = mode_number(request, "plate_width_mm", quick_default=250.0, minimum=80.0, maximum=1500.0)
+        plate_h = mode_number(request, "plate_height_mm", quick_default=250.0, minimum=80.0, maximum=1500.0)
+        plate_t = mode_number(request, "plate_thickness_mm", quick_default=12.0, minimum=6.0, maximum=50.0)
+        rebar_count = int(mode_number(request, "rebar_count", quick_default=4.0, minimum=2.0, maximum=32.0))
+        rebar_rows = int(mode_number(request, "rebar_rows", quick_default=2.0, minimum=2.0, maximum=8.0))
+        rebar_d = mode_number(request, "rebar_diameter_mm", quick_default=16.0, minimum=8.0, maximum=40.0)
+        rebar_fy = mode_number(request, "rebar_fy_mpa", quick_default=360.0, minimum=200.0, maximum=500.0)
+        rebar_la = mode_number(request, "rebar_length_mm", quick_default=400.0, minimum=100.0, maximum=1500.0)
+        bent_count = int(mode_number(request, "bent_rebar_count", quick_default=0.0, minimum=0.0, maximum=16.0))
+        bent_d = mode_number(request, "bent_rebar_diameter_mm", quick_default=0.0, minimum=0.0, maximum=40.0)
+        bent_angle = mode_number(request, "bent_rebar_angle_deg", quick_default=45.0, minimum=15.0, maximum=60.0)
+        fc = mode_number(request, "concrete_fc_mpa", quick_default=14.3, minimum=7.2, maximum=30.0)
+        ft = mode_number(request, "concrete_ft_mpa", quick_default=1.43, minimum=0.9, maximum=3.0)
+        cx = mode_number(request, "edge_distance_x_mm", quick_default=50.0, minimum=20.0, maximum=300.0)
+        cy = mode_number(request, "edge_distance_y_mm", quick_default=50.0, minimum=20.0, maximum=300.0)
+        n_kn = mode_number(request, "n_design_kn", quick_default=0.0, minimum=-1000.0, maximum=1000.0)
+        m_kn_m = mode_number(request, "m_design_kn_m", quick_default=0.0, minimum=0.0, maximum=500.0)
+        v_kn = mode_number(request, "v_design_kn", quick_default=20.0, minimum=0.0, maximum=500.0)
 
     input_data = EmbeddedPlateInput(
         plate_width_mm=plate_w,
@@ -299,7 +377,7 @@ def calculate_wall_anchor(
         mode=request.mode,
         status=res.status,
         result_class="professional_check",
-        standards=[*STANDARDS["concrete"]],
+        standards=[*STANDARDS["concrete"], "GB 50010-2010 第 9.7 节 预埋件"],
         input_summary=quantity_summary(
             {
                 "plate_dimensions": f"{plate_w:.0f}x{plate_h:.0f}x{plate_t:.0f} mm",
@@ -341,4 +419,3 @@ def calculate_wall_anchor(
         ],
         disclaimer=DISCLAIMER,
     )
-

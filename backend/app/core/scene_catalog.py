@@ -518,7 +518,7 @@ def _wall_canopy_graph() -> SceneGraphTemplate:
             _node("environment", "覆盖层与风雪作用", "load", maturity="verified", verification_status="independently_verified"),
             _node("secondary_beam", "次梁 / 悬挑构件", "secondary_member", "steel_beam"),
             _node("wall_substrate", "墙体基材与边界", "column_wall", quick_assumption="快算仅确认基材类别和可锚固厚度，不评价既有墙体承载力。"),
-            _node("wall_anchor", "墙体锚栓组", "connection", quick_assumption="快算按理想固定端传力；锚栓拉剪、边距和基材破坏须专项复核。"),
+            _node("wall_anchor", "墙体预埋件锚筋", "connection", quick_assumption="快算按理想固定端传力；预埋件拉剪、锚筋构造和混凝土破坏须专项复核。"),
         ],
         [
             _connection("c1", "environment", "secondary_beam", "area_to_line", output_unit="kN/m", input_unit="kN/m"),
@@ -722,12 +722,12 @@ SCENE_FAMILIES: list[SceneFamily] = [
         availability="public",
         default_variant_id="wall-cantilever",
         variants=[
-            _variant("wall-cantilever", "墙附悬挑", "墙体与锚栓真实验算尚未实现。", ["钢"], [_number("cantilever_m", "悬挑长度", "m", 1.8), _number("width_m", "雨棚宽度", "m", 3.0), _choice("wall_substrate", "墙体基材", ["钢筋混凝土", "实心砌体", "其他/待鉴定"], "钢筋混凝土")], support_system="墙体锚固", roof_form="平顶", graph=CANOPY_WALL_GRAPH, load_package=CANOPY_LOAD_PACKAGE, availability="development", missing_capabilities=["既有墙体承载力", "锚栓组", "墙体基材破坏"]),
+            _variant("wall-cantilever", "墙附悬挑", "墙体预埋件锚筋按 GB 50010 进行拉剪复合受力与构造验算。", ["钢"], [_number("cantilever_m", "悬挑长度", "m", 1.8), _number("width_m", "雨棚宽度", "m", 3.0), _choice("wall_substrate", "墙体基材", ["钢筋混凝土", "实心砌体", "其他/待鉴定"], "钢筋混凝土")], support_system="墙体锚固", roof_form="平顶", graph=CANOPY_WALL_GRAPH, load_package=CANOPY_LOAD_PACKAGE, availability="development", missing_capabilities=["既有墙体承载力", "预埋件边界与构造资料", "混凝土破坏专项复核"]),
             _variant("single-row", "单排柱", "柱脚锚栓和单排框架传力尚未闭合。", ["钢", "木"], COMMON_FRAME_PARAMETERS, support_system="单排柱", roof_form="平顶", graph=CANOPY_SINGLE_GRAPH, load_package=CANOPY_LOAD_PACKAGE, availability="development", missing_capabilities=["单排框架", "柱脚锚栓", "材料体系映射"]),
             _variant("double-row", "双排柱", "双排框架和材料体系尚未真实映射。", ["钢", "木"], COMMON_FRAME_PARAMETERS, support_system="双排柱", roof_form="平顶", graph=CANOPY_DOUBLE_GRAPH, load_package=CANOPY_LOAD_PACKAGE, availability="development", missing_capabilities=["双排框架", "柱脚锚栓", "材料体系映射"]),
         ],
         graph_template=CANOPY_WALL_GRAPH,
-        boundaries=["墙附式必须提供墙体基材和锚固资料", "墙附式不生成基础节点或基础输入"],
+        boundaries=["墙附式必须提供墙体基材和预埋件锚筋构造资料", "墙附式不生成基础节点或基础输入"],
     ),
     SceneFamily(
         id="signage-billboard",
@@ -1413,7 +1413,7 @@ CANOPY_WALL_PUBLIC_GRAPH = _graph(
         ),
         _node(
             "wall_anchor",
-            "墙体锚栓组",
+            "墙体预埋件锚筋",
             "connection",
             "wall_anchor",
         ),
@@ -2263,7 +2263,7 @@ _replace_public_variant(
     _variant(
         "wall-cantilever",
         "墙附悬挑钢雨棚",
-        "覆盖层作用传至悬挑钢梁与墙体锚栓组；墙附体系不生成基础节点。",
+        "覆盖层作用传至悬挑钢梁与墙体预埋件锚筋；墙附体系不生成基础节点。",
         ["钢"],
         [
             _number("cantilever_m", "悬挑长度", "m", 1.8),

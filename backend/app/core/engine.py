@@ -32,7 +32,6 @@ from .nextgen import (
     calculate_planar_truss,
     calculate_timber_connection,
     calculate_two_way_slab,
-    calculate_wall_anchor,
 )
 from .site_wall_api import (
     calculate_plain_masonry_wall,
@@ -49,6 +48,7 @@ from .schemas import (
 )
 from .steel import calculate_steel_beam, calculate_steel_column
 from .timber import calculate_timber_beam, calculate_timber_column
+from .wall_anchor import calculate_wall_anchor
 
 
 # A module may move to independently_verified only when its immutable hand

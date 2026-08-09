@@ -9,9 +9,7 @@ from .connections import (
     ConnectionEffect,
     FastenerPosition,
     TimberPostBaseInput,
-    WallAnchorGroupInput,
     calculate_timber_post_base,
-    calculate_wall_anchor_group,
 )
 from .errors import CalculationInputError
 from .parametric_frame import (
@@ -42,7 +40,6 @@ from .schemas import (
     TimberConnectionInputs,
     TwoWaySlabInputs,
     TypedInputValue,
-    WallAnchorInputs,
 )
 from .structural_solvers import (
     ContinuousBeamModel,
@@ -71,7 +68,6 @@ def _unit(unit: str) -> str:
         .replace(" ", "")
         .lower()
     )
-
 
 def _convert(
     value: TypedInputValue,
@@ -946,50 +942,5 @@ def calculate_timber_connection(
             "fastener_count": Quantity(value=len(data.fastener_positions), unit="1"),
             "post_width": Quantity(value=model.post_width_mm, unit="mm"),
             "post_depth": Quantity(value=model.post_depth_mm, unit="mm"),
-        },
-    )
-
-
-def calculate_wall_anchor(
-    request: CalculationRequest, trace_id: str
-) -> CalculationResult:
-    data: WallAnchorInputs = _typed(request, WallAnchorInputs)
-    model = WallAnchorGroupInput(
-        base_material=data.base_material,
-        plate_width_mm=_convert(data.plate_width, LENGTH_MM, field="plate_width"),
-        plate_depth_mm=_convert(data.plate_depth, LENGTH_MM, field="plate_depth"),
-        anchor_diameter_mm=_convert(data.anchor_diameter, LENGTH_MM, field="anchor_diameter"),
-        anchor_positions=[
-            FastenerPosition(
-                x_mm=_convert(item.x, LENGTH_MM, field="anchor_positions.x"),
-                y_mm=_convert(item.y, LENGTH_MM, field="anchor_positions.y"),
-            )
-            for item in data.anchor_positions
-        ],
-        anchor_fu_mpa=_optional(data.anchor_fu, STRESS_MPA, field="anchor_fu"),
-        anchor_tension_design_capacity_kn=_optional(data.anchor_tension_design_capacity, FORCE_KN, field="anchor_tension_design_capacity"),
-        anchor_shear_design_capacity_kn=_optional(data.anchor_shear_design_capacity, FORCE_KN, field="anchor_shear_design_capacity"),
-        minimum_spacing_mm=_optional(data.minimum_spacing, LENGTH_MM, field="minimum_spacing"),
-        minimum_edge_distance_mm=_optional(data.minimum_edge_distance, LENGTH_MM, field="minimum_edge_distance"),
-        concrete_capacity_method=data.concrete_capacity_method,
-        concrete_cone_design_capacity_kn=_optional(data.concrete_cone_design_capacity, FORCE_KN, field="concrete_cone_design_capacity"),
-        concrete_pullout_design_capacity_kn=_optional(data.concrete_pullout_design_capacity, FORCE_KN, field="concrete_pullout_design_capacity"),
-        concrete_splitting_design_capacity_kn=_optional(data.concrete_splitting_design_capacity, FORCE_KN, field="concrete_splitting_design_capacity"),
-        concrete_fc_mpa=_optional(data.concrete_fc, STRESS_MPA, field="concrete_fc"),
-        effective_embedment_mm=_optional(data.effective_embedment, LENGTH_MM, field="effective_embedment"),
-        masonry_evaluated_tension_capacity_kn=_optional(data.masonry_evaluated_tension_capacity, FORCE_KN, field="masonry_evaluated_tension_capacity"),
-        masonry_evaluated_shear_capacity_kn=_optional(data.masonry_evaluated_shear_capacity, FORCE_KN, field="masonry_evaluated_shear_capacity"),
-        masonry_capacity_source=data.masonry_capacity_source,
-    )
-    result = calculate_wall_anchor_group(model, [_effect(item) for item in data.effects])
-    return _connection_result(
-        request,
-        trace_id,
-        result=result,
-        standards=[*STANDARDS["steel"], *STANDARDS["concrete"]],
-        input_summary={
-            "base_material": data.base_material,
-            "anchor_count": Quantity(value=len(data.anchor_positions), unit="1"),
-            "anchor_diameter": Quantity(value=model.anchor_diameter_mm, unit="mm"),
         },
     )

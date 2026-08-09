@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from math import hypot
 
 from .engine import calculate
 from .errors import CalculationInputError
@@ -249,7 +250,46 @@ def _typed_reaction_input(
         return typed.model_copy(update={"uniform_loads": uniform_loads}, deep=True)
 
     if connection.transfer in {"reaction_package", "combination_package"} and isinstance(
-        typed, (WallAnchorInputs, TimberConnectionInputs)
+        typed, WallAnchorInputs
+    ):
+        def component_value(item: dict, key: str) -> float:
+            raw = item.get("components", {}).get(key)
+            return float(raw.get("value", 0.0)) if isinstance(raw, dict) else 0.0
+
+        governing_axial = max(selected, key=lambda item: abs(component_value(item, "N")))
+        bending = max(
+            (
+                max(
+                    abs(component_value(item, "Mx")),
+                    abs(component_value(item, "My")),
+                )
+                for item in selected
+            ),
+            default=0.0,
+        )
+        shear = max(
+            (
+                hypot(
+                    component_value(item, "Vx"),
+                    component_value(item, "Vy"),
+                )
+                for item in selected
+            ),
+            default=0.0,
+        )
+        return typed.model_copy(
+            update={
+                "n_design": TypedInputValue(
+                    value=component_value(governing_axial, "N"), unit="kN"
+                ),
+                "m_design": TypedInputValue(value=bending, unit="kN*m"),
+                "v_design": TypedInputValue(value=shear, unit="kN"),
+            },
+            deep=True,
+        )
+
+    if connection.transfer in {"reaction_package", "combination_package"} and isinstance(
+        typed, TimberConnectionInputs
     ):
         def component(item: dict, key: str, unit: str) -> TypedInputValue:
             raw = item.get("components", {}).get(key)

@@ -166,23 +166,24 @@ export interface ApiTimberConnectionInputs {
 
 export interface ApiWallAnchorInputs {
   module: "wall_anchor";
-  base_material: "reinforced_concrete" | "solid_masonry" | "unknown";
   plate_width: ApiTypedValue;
-  plate_depth: ApiTypedValue;
-  anchor_diameter: ApiTypedValue;
-  anchor_positions: ApiPosition[];
-  effects: ApiConnectionEffect[];
-  anchor_tension_design_capacity?: ApiTypedValue;
-  anchor_shear_design_capacity?: ApiTypedValue;
-  minimum_spacing?: ApiTypedValue;
-  minimum_edge_distance?: ApiTypedValue;
-  concrete_capacity_method: "provided" | "simplified";
-  concrete_cone_design_capacity?: ApiTypedValue;
-  concrete_pullout_design_capacity?: ApiTypedValue;
-  concrete_splitting_design_capacity?: ApiTypedValue;
-  masonry_evaluated_tension_capacity?: ApiTypedValue;
-  masonry_evaluated_shear_capacity?: ApiTypedValue;
-  masonry_capacity_source?: string;
+  plate_height: ApiTypedValue;
+  plate_thickness: ApiTypedValue;
+  rebar_count: ApiTypedValue;
+  rebar_rows: ApiTypedValue;
+  rebar_diameter: ApiTypedValue;
+  rebar_fy: ApiTypedValue;
+  rebar_length: ApiTypedValue;
+  bent_rebar_count?: ApiTypedValue;
+  bent_rebar_diameter?: ApiTypedValue;
+  bent_rebar_angle?: ApiTypedValue;
+  concrete_fc: ApiTypedValue;
+  concrete_ft: ApiTypedValue;
+  edge_distance_x: ApiTypedValue;
+  edge_distance_y: ApiTypedValue;
+  n_design: ApiTypedValue;
+  m_design: ApiTypedValue;
+  v_design: ApiTypedValue;
 }
 
 export interface ApiPoolStructureInputs {

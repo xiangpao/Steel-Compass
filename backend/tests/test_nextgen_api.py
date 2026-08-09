@@ -213,20 +213,24 @@ def _timber_connection() -> dict:
 def _wall_anchor() -> dict:
     return {
         "module": "wall_anchor",
-        "base_material": "reinforced_concrete",
         "plate_width": q(300, "mm"),
-        "plate_depth": q(300, "mm"),
-        "anchor_diameter": q(16, "mm"),
-        "anchor_positions": _positions(),
-        "effects": [_effect()],
-        "anchor_tension_design_capacity": q(40, "kN"),
-        "anchor_shear_design_capacity": q(30, "kN"),
-        "minimum_spacing": q(48, "mm"),
-        "minimum_edge_distance": q(24, "mm"),
-        "concrete_capacity_method": "provided",
-        "concrete_cone_design_capacity": q(160, "kN"),
-        "concrete_pullout_design_capacity": q(140, "kN"),
-        "concrete_splitting_design_capacity": q(120, "kN"),
+        "plate_height": q(300, "mm"),
+        "plate_thickness": q(14, "mm"),
+        "rebar_count": q(4, "1"),
+        "rebar_rows": q(2, "1"),
+        "rebar_diameter": q(16, "mm"),
+        "rebar_fy": q(360, "MPa"),
+        "rebar_length": q(600, "mm"),
+        "bent_rebar_count": q(0, "1"),
+        "bent_rebar_diameter": q(0, "mm"),
+        "bent_rebar_angle": q(45, "deg"),
+        "concrete_fc": q(14.3, "MPa"),
+        "concrete_ft": q(1.43, "MPa"),
+        "edge_distance_x": q(60, "mm"),
+        "edge_distance_y": q(60, "mm"),
+        "n_design": q(20, "kN"),
+        "m_design": q(10, "kN*m"),
+        "v_design": q(30, "kN"),
     }
 
 
@@ -249,11 +253,14 @@ def test_new_modules_run_through_calculation_api(
     result = response.json()
     assert result["module"] == module
     assert result["verification_status"] == "unverified"
-    assert result["combinations"]
+    if module != "wall_anchor":
+        assert result["combinations"]
     assert result["checks"]
     assert result["steps"]
     assert result["applicability"]
     assert result["schema_version"] == "3.2"
+    if module == "wall_anchor":
+        assert any("GB 50010" in standard for standard in result["standards"])
 
 
 def test_openapi_exposes_module_discriminator() -> None:

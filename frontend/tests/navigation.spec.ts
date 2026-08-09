@@ -141,7 +141,7 @@ const families = [
       {
         id: "wall-cantilever",
         title: "墙附悬挑",
-        description: "通过墙体基材和锚栓组支承。",
+        description: "通过墙体预埋件与锚筋支承。",
         availability: "public",
         support_system: "wall_attached",
         material_systems: ["钢"],
@@ -154,7 +154,7 @@ const families = [
           nodes: [
             { id: "cover", label: "覆盖层与风雪", role: "load", required: true, applicability: "required", maturity: "verified", verification_status: "independently_verified", description: "" },
             { id: "cantilever", label: "悬挑梁", role: "primary_member", calculation_module: "steel_beam", required: true, applicability: "required", maturity: "beta", verification_status: "independently_verified", description: "" },
-            { id: "wall_anchor", label: "墙体基材与锚栓组", role: "connection", required: true, applicability: "required", maturity: "beta", verification_status: "unverified", quick_assumption: "快算按已确认墙体基材与锚固假定。", description: "" },
+            { id: "wall_anchor", label: "墙体预埋件锚筋", role: "connection", required: true, applicability: "required", maturity: "beta", verification_status: "unverified", quick_assumption: "快算按理想固定端传力，预埋件与锚筋构造须专项复核。", description: "" },
           ],
           connections: [],
         },
@@ -268,10 +268,10 @@ test("墙附悬挑雨棚不显示基础和120kPa通用默认值", async ({ page 
   await page.goto("/");
   await page.locator("aside.left-rail").getByRole("button", { name: /雨棚/ }).click();
   await expect(page.getByRole("heading", { name: "雨棚" })).toBeVisible();
-  await expect(page.getByText("墙体基材与锚栓组", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("墙体预埋件锚筋", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("基础策略")).not.toBeVisible();
   await expect(page.getByText("地基承载力特征值")).not.toBeVisible();
-  await expect(page.getByText("当前变体通过墙体基材与锚栓组支承")).toBeVisible();
+  await expect(page.getByText("当前变体通过墙体预埋件与锚筋支承")).toBeVisible();
 });
 
 test("结果可复制为服务端方案并在修改输入后立即标记过期", async ({ page }) => {
@@ -372,7 +372,7 @@ test("十一个Schema 3.2单项模块均生成判别输入并沿用通用结果�
   await rail.getByRole("button", { name: "连接与支承" }).click();
   for (const [label, moduleId] of [
     ["木柱脚 / 金属连接件", "timber_connection"],
-    ["墙附锚栓组", "wall_anchor"],
+    ["混凝土预埋件锚筋", "wall_anchor"],
   ] as const) {
     const button = rail.getByRole("button", { name: new RegExp(label) });
     await expect(button).toBeEnabled();

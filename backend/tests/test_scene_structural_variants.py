@@ -191,34 +191,28 @@ def test_reaction_to_line_updates_only_nonvertical_frame_members() -> None:
     assert updated.inputs["reaction_source_trace_id"] == "trace-upstream"
 
 
-def test_reaction_package_replaces_wall_anchor_effects_without_losing_trace() -> None:
+def test_reaction_package_maps_wall_anchor_design_actions_without_losing_trace() -> None:
     request = CalculationRequest.model_validate(
         {
             "mode": "quick",
             "module": "wall_anchor",
             "typed_inputs": {
                 "module": "wall_anchor",
-                "base_material": "reinforced_concrete",
                 "plate_width": {"value": 300, "unit": "mm"},
-                "plate_depth": {"value": 300, "unit": "mm"},
-                "anchor_diameter": {"value": 16, "unit": "mm"},
-                "anchor_positions": [
-                    {"x": {"value": -75, "unit": "mm"}, "y": {"value": -75, "unit": "mm"}},
-                    {"x": {"value": 75, "unit": "mm"}, "y": {"value": 75, "unit": "mm"}},
-                ],
-                "effects": [
-                    {
-                        "combination_id": "placeholder",
-                        "combination_name": "placeholder",
-                        "limit_state": "ULS",
-                        "axial": {"value": 0, "unit": "kN"},
-                        "shear_x": {"value": 0, "unit": "kN"},
-                        "shear_y": {"value": 0, "unit": "kN"},
-                        "moment_x": {"value": 0, "unit": "kN*m"},
-                        "moment_y": {"value": 0, "unit": "kN*m"},
-                        "torsion": {"value": 0, "unit": "kN*m"},
-                    }
-                ],
+                "plate_height": {"value": 300, "unit": "mm"},
+                "plate_thickness": {"value": 14, "unit": "mm"},
+                "rebar_count": {"value": 4, "unit": "1"},
+                "rebar_rows": {"value": 2, "unit": "1"},
+                "rebar_diameter": {"value": 16, "unit": "mm"},
+                "rebar_fy": {"value": 360, "unit": "MPa"},
+                "rebar_length": {"value": 600, "unit": "mm"},
+                "concrete_fc": {"value": 14.3, "unit": "MPa"},
+                "concrete_ft": {"value": 1.43, "unit": "MPa"},
+                "edge_distance_x": {"value": 60, "unit": "mm"},
+                "edge_distance_y": {"value": 60, "unit": "mm"},
+                "n_design": {"value": 0, "unit": "kN"},
+                "m_design": {"value": 0, "unit": "kN*m"},
+                "v_design": {"value": 0, "unit": "kN"},
             },
         }
     )
@@ -244,7 +238,7 @@ def test_reaction_package_replaces_wall_anchor_effects_without_losing_trace() ->
     )
     updated = _apply_reaction(request, connection, source)
     assert updated.typed_inputs is not None
-    assert updated.typed_inputs.effects[0].combination_id == "ULS-WIND"
-    assert updated.typed_inputs.effects[0].shear_x.value == pytest.approx(12)
-    assert updated.typed_inputs.effects[0].moment_y.value == pytest.approx(18)
+    assert updated.typed_inputs.n_design.value == pytest.approx(0)
+    assert updated.typed_inputs.v_design.value == pytest.approx(12)
+    assert updated.typed_inputs.m_design.value == pytest.approx(18)
     assert updated.inputs["reaction_source_trace_id"] == "trace-upstream"

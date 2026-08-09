@@ -895,24 +895,21 @@ export const MODULES: ModuleDefinition[] = [
   {
     id: "wall_anchor",
     short: "WA",
-    title: "墙附锚栓组",
-    material: "steel",
-    description: "RC 或有评估承载力实心砌体的墙附锚栓组",
+    title: "混凝土预埋件锚筋",
+    material: "concrete",
+    description: "GB 50010 预埋件直锚筋、弯折锚筋及拉剪复合受力验算",
     fields: [
-      { key: "base_material", label: "墙体基材", type: "select", options: [{ value: "reinforced_concrete", label: "钢筋混凝土" }, { value: "solid_masonry", label: "实心砌体（有评估值）" }, { value: "unknown", label: "未知基材" }] },
-      { key: "plate_width_mm", label: "锚板宽度", type: "number", unit: "mm", min: 80, step: 10 }, { key: "plate_depth_mm", label: "锚板高度", type: "number", unit: "mm", min: 80, step: 10 },
-      { key: "anchor_diameter_mm", label: "锚栓直径", type: "number", unit: "mm", min: 6, step: 2 }, { key: "anchor_spacing_mm", label: "锚栓中心间距", type: "number", unit: "mm", min: 20, step: 5 },
-      { key: "axial_kn", label: "轴力（受压为正）", type: "number", unit: "kN", step: 1 }, { key: "shear_kn", label: "水平剪力", type: "number", unit: "kN", min: 0, step: 1 }, { key: "moment_kn_m", label: "锚板弯矩", type: "number", unit: "kN·m", step: 1 },
-      { key: "anchor_tension_capacity_kn", label: "单锚栓钢材拉力设计值", type: "number", unit: "kN", min: 0.1, step: 1 }, { key: "anchor_shear_capacity_kn", label: "单锚栓钢材剪力设计值", type: "number", unit: "kN", min: 0.1, step: 1 },
-      { key: "substrate_tension_capacity_kn", label: "基材锚固组受拉设计值", type: "number", unit: "kN", min: 0.1, step: 5 }, { key: "substrate_shear_capacity_kn", label: "砌体锚固组受剪设计值", type: "number", unit: "kN", min: 0.1, step: 5, visible: (v) => v.base_material === "solid_masonry" }, { key: "masonry_capacity_source", label: "砌体评估报告来源", type: "text", visible: (v) => v.base_material === "solid_masonry" },
+      { key: "plate_width_mm", label: "锚板宽度", type: "number", unit: "mm", min: 80, step: 10 }, { key: "plate_height_mm", label: "锚板高度", type: "number", unit: "mm", min: 80, step: 10 }, { key: "plate_thickness_mm", label: "锚板厚度", type: "number", unit: "mm", min: 6, step: 1 },
+      { key: "rebar_count", label: "直锚筋根数", type: "number", unit: "根", min: 2, step: 1 }, { key: "rebar_rows", label: "直锚筋排数", type: "number", unit: "排", min: 2, step: 1 }, { key: "rebar_diameter_mm", label: "直锚筋直径", type: "number", unit: "mm", min: 8, step: 2 },
+      { key: "rebar_fy_mpa", label: "直锚筋抗拉设计强度", type: "number", unit: "MPa", min: 200, step: 10 }, { key: "rebar_length_mm", label: "直锚筋锚固长度", type: "number", unit: "mm", min: 100, step: 10 },
+      { key: "bent_rebar_count", label: "弯折锚筋根数", type: "number", unit: "根", min: 0, step: 1 }, { key: "bent_rebar_diameter_mm", label: "弯折锚筋直径", type: "number", unit: "mm", min: 0, step: 2 }, { key: "bent_rebar_angle_deg", label: "弯折锚筋倾角", type: "number", unit: "deg", min: 15, step: 5 },
+      { key: "concrete_fc_mpa", label: "混凝土轴心抗压强度设计值", type: "number", unit: "MPa", min: 7.2, step: 0.1 }, { key: "concrete_ft_mpa", label: "混凝土轴心抗拉强度设计值", type: "number", unit: "MPa", min: 0.9, step: 0.1 },
+      { key: "edge_distance_x_mm", label: "锚筋横向边距", type: "number", unit: "mm", min: 20, step: 5 }, { key: "edge_distance_y_mm", label: "锚筋竖向边距", type: "number", unit: "mm", min: 20, step: 5 },
+      { key: "n_design_kn", label: "轴向设计力（拉为正）", type: "number", unit: "kN", step: 1 }, { key: "m_design_kn_m", label: "设计弯矩", type: "number", unit: "kN·m", min: 0, step: 1 }, { key: "v_design_kn", label: "设计剪力", type: "number", unit: "kN", min: 0, step: 1 },
     ],
-    defaults: { base_material: "reinforced_concrete", plate_width_mm: 300, plate_depth_mm: 300, anchor_diameter_mm: 16, anchor_spacing_mm: 150, axial_kn: -20, shear_kn: 5, moment_kn_m: 2, anchor_tension_capacity_kn: 40, anchor_shear_capacity_kn: 30, substrate_tension_capacity_kn: 160, substrate_shear_capacity_kn: 80, masonry_capacity_source: "项目拉拔试验/评估报告" },
+    defaults: { plate_width_mm: 300, plate_height_mm: 300, plate_thickness_mm: 14, rebar_count: 4, rebar_rows: 2, rebar_diameter_mm: 16, rebar_fy_mpa: 360, rebar_length_mm: 600, bent_rebar_count: 0, bent_rebar_diameter_mm: 0, bent_rebar_angle_deg: 45, concrete_fc_mpa: 14.3, concrete_ft_mpa: 1.43, edge_distance_x_mm: 60, edge_distance_y_mm: 60, n_design_kn: 20, m_design_kn_m: 10, v_design_kn: 30 },
     defaultLoads: [],
-    buildTypedInputs: (values) => {
-      const half = numeric(values, "anchor_spacing_mm") / 2; const positions = [[-half, -half], [half, -half], [half, half], [-half, half]].map(([x, y]) => ({ x: q(x, "mm"), y: q(y, "mm") })); const material = String(values.base_material) as "reinforced_concrete" | "solid_masonry" | "unknown";
-      const common = { module: "wall_anchor" as const, base_material: material, plate_width: q(numeric(values, "plate_width_mm"), "mm"), plate_depth: q(numeric(values, "plate_depth_mm"), "mm"), anchor_diameter: q(numeric(values, "anchor_diameter_mm"), "mm"), anchor_positions: positions, effects: [{ combination_id: "ULS-user", combination_name: "ULS 用户输入组合", limit_state: "ULS" as const, axial: q(numeric(values, "axial_kn"), "kN"), shear_x: q(numeric(values, "shear_kn"), "kN"), shear_y: q(0, "kN"), moment_x: q(numeric(values, "moment_kn_m"), "kN·m"), moment_y: q(0, "kN·m"), torsion: q(0, "kN·m") }], anchor_tension_design_capacity: q(numeric(values, "anchor_tension_capacity_kn"), "kN"), anchor_shear_design_capacity: q(numeric(values, "anchor_shear_capacity_kn"), "kN"), minimum_spacing: q(3 * numeric(values, "anchor_diameter_mm"), "mm"), minimum_edge_distance: q(1.5 * numeric(values, "anchor_diameter_mm"), "mm"), concrete_capacity_method: "provided" as const };
-      return material === "solid_masonry" ? { ...common, masonry_evaluated_tension_capacity: q(numeric(values, "substrate_tension_capacity_kn"), "kN"), masonry_evaluated_shear_capacity: q(numeric(values, "substrate_shear_capacity_kn"), "kN"), masonry_capacity_source: String(values.masonry_capacity_source ?? "") } : material === "reinforced_concrete" ? { ...common, concrete_cone_design_capacity: q(numeric(values, "substrate_tension_capacity_kn"), "kN"), concrete_pullout_design_capacity: q(numeric(values, "substrate_tension_capacity_kn"), "kN"), concrete_splitting_design_capacity: q(numeric(values, "substrate_tension_capacity_kn"), "kN") } : common;
-    },
+    buildTypedInputs: (values) => ({ module: "wall_anchor", plate_width: q(numeric(values, "plate_width_mm"), "mm"), plate_height: q(numeric(values, "plate_height_mm"), "mm"), plate_thickness: q(numeric(values, "plate_thickness_mm"), "mm"), rebar_count: q(numeric(values, "rebar_count"), "1"), rebar_rows: q(numeric(values, "rebar_rows"), "1"), rebar_diameter: q(numeric(values, "rebar_diameter_mm"), "mm"), rebar_fy: q(numeric(values, "rebar_fy_mpa"), "MPa"), rebar_length: q(numeric(values, "rebar_length_mm"), "mm"), bent_rebar_count: q(numeric(values, "bent_rebar_count"), "1"), bent_rebar_diameter: q(numeric(values, "bent_rebar_diameter_mm"), "mm"), bent_rebar_angle: q(numeric(values, "bent_rebar_angle_deg"), "deg"), concrete_fc: q(numeric(values, "concrete_fc_mpa"), "MPa"), concrete_ft: q(numeric(values, "concrete_ft_mpa"), "MPa"), edge_distance_x: q(numeric(values, "edge_distance_x_mm"), "mm"), edge_distance_y: q(numeric(values, "edge_distance_y_mm"), "mm"), n_design: q(numeric(values, "n_design_kn"), "kN"), m_design: q(numeric(values, "m_design_kn_m"), "kN·m"), v_design: q(numeric(values, "v_design_kn"), "kN") }),
   },
   {
     id: "pool_structure",
@@ -1170,7 +1167,7 @@ export const NEXTGEN_LIBRARY_ITEMS: CalculationLibraryItem[] = [
   { id: "planar-truss", title: "平面桁架", task: "superstructure", task_title: "上部构件", material: "steel", module: "planar_truss", maturity: "beta", description: "节点荷载、杆件轴力与位移。", presets: [] },
   { id: "two-way-slab", title: "混凝土双向板", task: "superstructure", task_title: "上部构件", material: "concrete", module: "two_way_slab", maturity: "beta", description: "规则矩形双向板内力与挠度。", presets: [] },
   { id: "timber-base", title: "木柱脚 / 金属连接件", task: "connections_supports", task_title: "连接与支承", material: "timber", module: "timber_connection", maturity: "beta", description: "木柱端承压、拉剪与连接件弯曲。", presets: [] },
-  { id: "wall-anchor", title: "墙附锚栓组", task: "connections_supports", task_title: "连接与支承", material: "steel", module: "wall_anchor", maturity: "beta", description: "RC 或有评估值实心砌体锚固。", presets: [] },
+  { id: "wall-anchor", title: "混凝土预埋件锚筋", task: "connections_supports", task_title: "连接与支承", material: "concrete", module: "wall_anchor", maturity: "beta", description: "GB 50010 预埋件直锚筋、弯折锚筋及拉剪复合受力验算。", presets: [] },
   { id: "pool-structure", title: "矩形水景池体", task: "retaining_pool", task_title: "挡土与池体", material: "concrete", module: "pool_structure", maturity: "beta", description: "池壁、底板、土水压力与抗浮。", presets: [] },
   { id: "pile-group-cap", title: "群桩与承台", task: "foundations_geotechnical", task_title: "基础与地基", material: "concrete", module: "pile_group_cap", maturity: "beta", description: "勘察承载力驱动的群桩与承台。", presets: [] },
   { id: "bridge-steel-timber", title: "钢木景观人行桥", task: "superstructure", task_title: "上部构件", material: "steel", module: "bridge_steel_timber", maturity: "beta", description: "木桥面与钢梁参数化人行桥。", presets: [] },

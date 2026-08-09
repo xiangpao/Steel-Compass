@@ -108,7 +108,7 @@ docker compose --env-file .env up -d --build
 docker compose --env-file .env ps
 ```
 
-等待 `postgres`、`backend`、`frontend` 和 `caddy` 的健康检查通过后，访问 `http://localhost`。Docker 模式只有 Caddy 将端口 `80/443` 发布到主机；`frontend:3000` 和 `backend:8000` 是 Compose 内部端口，所以不要用 `http://localhost:3000` 作为 Docker 模式入口。若 Caddy 将本地请求跳转到 `https://localhost`，按浏览器提示接受本机开发证书即可。首次登录使用 `.env` 中的引导管理员账号，登录后必须立即修改临时密码。
+等待 `postgres`、`backend`、`frontend` 和 `caddy` 的健康检查通过后，访问 `http://localhost`。本地 Docker 默认 `APP_SCHEME=http`，不会要求浏览器信任容器内的自签名证书；真实域名部署时可在 `.env` 设置 `APP_SCHEME=https`。Docker 模式只有 Caddy 将端口 `80/443` 发布到主机；`frontend:3000` 和 `backend:8000` 是 Compose 内部端口，所以不要用 `http://localhost:3000` 作为 Docker 模式入口。首次登录使用 `.env` 中的引导管理员账号，登录后必须立即修改临时密码。
 
 常用操作：
 

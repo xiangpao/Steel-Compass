@@ -296,26 +296,24 @@ class TimberConnectionInputs(BaseModel):
 
 class WallAnchorInputs(BaseModel):
     module: Literal[CalculationModule.WALL_ANCHOR]
-    base_material: Literal["reinforced_concrete", "solid_masonry", "unknown"]
     plate_width: TypedInputValue
-    plate_depth: TypedInputValue
-    anchor_diameter: TypedInputValue
-    anchor_positions: list[ConnectionPositionInput] = Field(min_length=2)
-    effects: list[ConnectionEffectInput] = Field(min_length=1)
-    anchor_fu: TypedInputValue | None = None
-    anchor_tension_design_capacity: TypedInputValue | None = None
-    anchor_shear_design_capacity: TypedInputValue | None = None
-    minimum_spacing: TypedInputValue | None = None
-    minimum_edge_distance: TypedInputValue | None = None
-    concrete_capacity_method: Literal["provided", "simplified"] = "provided"
-    concrete_cone_design_capacity: TypedInputValue | None = None
-    concrete_pullout_design_capacity: TypedInputValue | None = None
-    concrete_splitting_design_capacity: TypedInputValue | None = None
-    concrete_fc: TypedInputValue | None = None
-    effective_embedment: TypedInputValue | None = None
-    masonry_evaluated_tension_capacity: TypedInputValue | None = None
-    masonry_evaluated_shear_capacity: TypedInputValue | None = None
-    masonry_capacity_source: str | None = None
+    plate_height: TypedInputValue
+    plate_thickness: TypedInputValue
+    rebar_count: TypedInputValue
+    rebar_rows: TypedInputValue
+    rebar_diameter: TypedInputValue
+    rebar_fy: TypedInputValue
+    rebar_length: TypedInputValue
+    bent_rebar_count: TypedInputValue | None = None
+    bent_rebar_diameter: TypedInputValue | None = None
+    bent_rebar_angle: TypedInputValue | None = None
+    concrete_fc: TypedInputValue
+    concrete_ft: TypedInputValue
+    edge_distance_x: TypedInputValue
+    edge_distance_y: TypedInputValue
+    n_design: TypedInputValue
+    m_design: TypedInputValue
+    v_design: TypedInputValue
 
 
 class PoolGeometryInputs(BaseModel):

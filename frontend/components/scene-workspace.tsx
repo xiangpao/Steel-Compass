@@ -1322,7 +1322,7 @@ export function SceneWorkspace({
                   </div>
                   {!hasFoundation && (
                     <div className="boundary-note success-note">
-                      当前变体通过墙体基材与锚栓组支承，不需要基础或地勘输入。
+                      当前变体通过墙体预埋件与锚筋支承，不需要基础或地勘输入。
                     </div>
                   )}
                 </div>
