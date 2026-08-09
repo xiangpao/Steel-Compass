@@ -46,9 +46,13 @@
 - 水景池体继续复用水压力、主动土压力和浮力核心；RC 池壁、池底板和完整抗浮链路完成前不开放场景。
 - 小型景观桥、桩基/承台、挡土墙复杂工况和任意三维建模不在本里程碑。
 
-## 本地开发
+## 本地运行
 
-需要 Python 3.11+、uv、Node.js 22 和 Docker。
+需要 Python 3.11+、uv、Node.js 22 和 Docker。运行时请选择下面一种方式；两种方式不要同时占用相同端口。
+
+### 方式 A：本地进程开发
+
+终端一启动 FastAPI：
 
 ```powershell
 cd backend
@@ -58,7 +62,7 @@ $env:STEEL_COMPASS_BOOTSTRAP_ADMIN_PASSWORD = "replace-with-a-long-random-passwo
 uv run uvicorn app.main:app --reload
 ```
 
-另开终端：
+另开终端二启动 Next.js：
 
 ```powershell
 cd frontend
@@ -66,7 +70,7 @@ npm ci
 npm run dev
 ```
 
-访问 `http://127.0.0.1:3000`。首次登录必须修改管理员临时密码。
+访问 `http://127.0.0.1:3000`；后端健康检查为 `http://127.0.0.1:8000/health`。这种方式只启动两个本地进程，不会在 Docker Desktop 中创建 Steel-Compass 容器。首次登录必须修改管理员临时密码。
 
 ## 验证
 
@@ -87,14 +91,39 @@ docker compose build
 
 当前自动化基线：后端全量测试、独立闭式算例、应用代码覆盖率检查和前端 lint/build 已通过；浏览器回归以本地应用浏览器为准，CLI Playwright 需要预装 Chromium。CI 任一步失败都应阻止开放对应能力。
 
-## Docker Compose
+## Docker Compose 全栈运行
+
+Docker Desktop 仅提供 Docker 引擎，不会自动读取本项目的 `docker-compose.yml`，因此“打开 Docker”后看不到 Steel-Compass 容器是正常的。必须在仓库根目录执行一次 `up`，Compose 才会创建容器。
+
+首次运行（PowerShell）：
 
 ```powershell
-Copy-Item .env.example .env
-docker compose config --quiet
-docker compose up -d --build
-docker compose ps
+# 当前目录必须是 Steel-Compass 仓库根目录
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+# 编辑 .env，至少替换 POSTGRES_PASSWORD 和 STEEL_COMPASS_BOOTSTRAP_ADMIN_PASSWORD
+notepad .env
+
+docker compose --env-file .env config --quiet
+docker compose --env-file .env up -d --build
+docker compose --env-file .env ps
 ```
+
+等待 `postgres`、`backend`、`frontend` 和 `caddy` 的健康检查通过后，访问 `http://localhost`。Docker 模式只有 Caddy 将端口 `80/443` 发布到主机；`frontend:3000` 和 `backend:8000` 是 Compose 内部端口，所以不要用 `http://localhost:3000` 作为 Docker 模式入口。若 Caddy 将本地请求跳转到 `https://localhost`，按浏览器提示接受本机开发证书即可。首次登录使用 `.env` 中的引导管理员账号，登录后必须立即修改临时密码。
+
+常用操作：
+
+```powershell
+# 查看本项目容器和健康状态
+docker compose --env-file .env ps
+
+# 查看启动失败或计算请求相关日志
+docker compose --env-file .env logs -f backend frontend caddy
+
+# 停止容器（保留 PostgreSQL 数据卷）
+docker compose --env-file .env down
+```
+
+如果 `docker compose ps` 没有 Steel-Compass 服务，通常是尚未在本仓库根目录执行 `up`，或执行时没有加载 `.env`；先重新执行上面的 `config` 和 `up`。如果页面能打开但计算失败，先确认 `backend` 为 `healthy`，再查看 `backend` 和 `frontend` 日志。只有明确要删除本地数据库时才使用 `docker compose --env-file .env down -v`，该命令会删除 PostgreSQL 数据卷。
 
 本里程碑只完成本地实现和验证，不推送、不部署。生产环境还必须配置真实域名、HTTPS、安全组、密钥、日志、每日备份和恢复演练。
 
