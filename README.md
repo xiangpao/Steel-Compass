@@ -108,7 +108,7 @@ docker compose --env-file .env up -d --build
 docker compose --env-file .env ps
 ```
 
-等待 `postgres`、`backend`、`frontend` 和 `caddy` 的健康检查通过后，访问 `http://localhost`。本地 Docker 默认 `APP_SCHEME=http`，不会要求浏览器信任容器内的自签名证书；真实域名部署时可在 `.env` 设置 `APP_SCHEME=https`。Docker 模式只有 Caddy 将端口 `80/443` 发布到主机；`frontend:3000` 和 `backend:8000` 是 Compose 内部端口，所以不要用 `http://localhost:3000` 作为 Docker 模式入口。首次登录使用 `.env` 中的引导管理员账号，登录后必须立即修改临时密码。
+等待 `postgres`、`backend`、`frontend` 和 `caddy` 的健康检查通过后，访问 `http://127.0.0.1`。本地 Docker 默认使用明确的 IPv4 回环地址，避免部分 Windows/Docker Desktop 组合把 `localhost` 解析为未发布的 `::1` 后超时；不要改用 `http://localhost`。本地默认 `APP_SCHEME=http`，不会要求浏览器信任容器内的自签名证书；真实域名部署时可在 `.env` 设置 `APP_SCHEME=https` 并同步修改 `APP_DOMAIN` 与 `STEEL_COMPASS_FRONTEND_ORIGIN`。Docker 模式只有 Caddy 将端口 `80/443` 发布到主机；`frontend:3000` 和 `backend:8000` 是 Compose 内部端口，所以也不要使用带 `:3000` 的地址。首次登录使用 `.env` 中的引导管理员账号，登录后必须立即修改临时密码。
 
 常用操作：
 
