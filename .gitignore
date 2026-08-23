@@ -16,6 +16,9 @@ frontend/.next/
 frontend/out/
 frontend/playwright-report/
 frontend/test-results/
+frontend/.playwright-cli/
+frontend/output/
+frontend/tsconfig.tsbuildinfo
 frontend/.env.local
 reports/
 artifacts/
