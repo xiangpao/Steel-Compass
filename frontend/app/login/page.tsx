@@ -51,7 +51,7 @@ export default function LoginPage() {
           <span className="eyebrow">LANDSCAPE STRUCTURAL WORKSPACE</span>
           <h1>让每一次方案判断，都有清楚的工程依据。</h1>
           <p>
-            从场景快算到专业计算，共用同一套可追溯计算核心、规范基线和版本报告。
+            面向非结构设计人员的景观结构方案筛查工具：用统一项目条件向导完成风雪与地震输入，并保留可追溯的版本报告。
           </p>
         </div>
         <div className="trust-row">

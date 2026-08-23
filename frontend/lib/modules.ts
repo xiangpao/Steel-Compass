@@ -10,7 +10,24 @@ export interface FieldDefinition {
   step?: number;
   options?: Array<{ value: string; label: string }>;
   visible?: (values: Record<string, unknown>) => boolean;
+  help?: { what: string; adopted: string; changeWhen: string };
+  section?: string;
+  level?: "basic" | "advanced";
 }
+
+export const FIELD_HELP: Record<string, NonNullable<FieldDefinition["help"]>> = {
+  allowable_bearing_kpa: { what: "地基在正常使用条件下允许采用的承载能力。", adopted: "用于基础底面压力筛查。", changeWhen: "取得项目岩土勘察报告后按报告采用。" },
+  bearing_capacity_kpa: { what: "地基在正常使用条件下允许采用的承载能力。", adopted: "用于基础底面压力筛查。", changeWhen: "取得项目岩土勘察报告后按报告采用。" },
+  soil_capacity_kpa: { what: "地基在当前持力层允许采用的承载能力。", adopted: "用于基础和挡土结构的基底压力筛查。", changeWhen: "取得项目岩土勘察报告或持力层变化时。" },
+  soil_bearing_kpa: { what: "地基在当前持力层允许采用的承载能力。", adopted: "用于重力式挡墙的基底压力筛查。", changeWhen: "取得项目岩土勘察报告或持力层变化时。" },
+  groundwater_depth_m: { what: "地下水位到场地或构件基准面的距离。", adopted: "判断浮力及有效自重。", changeWhen: "勘察或运营水位资料与当前输入不一致时。" },
+  water_table_depth_m: { what: "地下水位到场地或构件基准面的距离。", adopted: "判断浮力及有效自重。", changeWhen: "勘察或运营水位资料与当前输入不一致时。" },
+  groundwater_condition: { what: "地下水是否可能影响当前结构或基础。", adopted: "决定是否计入水压力、浮力和有效自重。", changeWhen: "取得勘察、最高水位或运营水位资料时。" },
+  soil_friction_angle_deg: { what: "土体抗剪强度的摩擦参数。", adopted: "用于主动土压力和稳定筛查。", changeWhen: "按岩土勘察报告对应土层参数修改。" },
+  base_friction: { what: "基础或墙底与地基接触面的抗滑摩擦参数。", adopted: "用于抗滑稳定的方案筛查。", changeWhen: "勘察报告或基础做法明确不同界面条件时。" },
+  wind_positive_kpa: { what: "作用于构筑物正向的设计风压力。", adopted: "与反向风分开进入作用组合。", changeWhen: "统一项目条件向导或专项风环境资料更新时。" },
+  wind_negative_kpa: { what: "作用于构筑物反向的设计风压力。", adopted: "与正向风分开进入作用组合。", changeWhen: "统一项目条件向导或专项风环境资料更新时。" },
+};
 
 export interface ModuleDefinition {
   id: Module;
@@ -1160,6 +1177,78 @@ export const MODULES: ModuleDefinition[] = [
     buildTypedInputs: (values) => ({ module: "plain_masonry_wall", height: q(numeric(values, "height_m"), "m"), length: q(numeric(values, "length_m"), "m"), thickness: q(numeric(values, "thickness_mm"), "mm"), support_spacing: q(numeric(values, "support_spacing_m"), "m"), opening_ratio: q(numeric(values, "opening_ratio"), "1"), masonry_unit_weight: q(numeric(values, "masonry_unit_weight_kn_m3"), "kN/m3"), masonry_bending_strength: q(numeric(values, "masonry_bending_strength_mpa"), "MPa"), masonry_shear_strength: q(numeric(values, "masonry_shear_strength_mpa"), "MPa"), masonry_compression_strength: q(numeric(values, "masonry_compression_strength_mpa"), "MPa"), slenderness_limit: q(numeric(values, "slenderness_limit"), "1"), minimum_thickness: q(numeric(values, "minimum_thickness_mm"), "mm"), maximum_height: q(numeric(values, "maximum_height_m"), "m"), load_cases: siteWallLoadCases(values) }),
   },
 ];
+
+const ADVANCED_FIELD_KEYS = new Set([
+  "concrete_fc_mpa",
+  "concrete_ft_mpa",
+  "rebar_fy_mpa",
+  "steel_yield_strength_mpa",
+  "steel_elastic_modulus_gpa",
+  "elastic_modulus_gpa",
+  "post_area_mm2",
+  "post_inertia_mm4",
+  "post_section_modulus_mm3",
+  "short_moment_capacity_kn_m_m",
+  "long_moment_capacity_kn_m_m",
+  "stem_moment_capacity_kn_m_per_m",
+  "minimum_reinforcement_ratio",
+  "slenderness_limit",
+  "deflection_limit_mm",
+  "effective_length_factor",
+  "base_friction_coefficient",
+  "antifloat_factor",
+]);
+
+const ADVANCED_FIELD_FRAGMENTS = [
+  "capacity",
+  "strength",
+  "elastic_modulus",
+  "inertia",
+  "section_modulus",
+  "effective_length",
+  "slenderness",
+  "reinforcement",
+  "rebar_",
+  "cover",
+  "bar_dia",
+  "stirrup",
+  "safety_factor",
+  "combination_factor",
+];
+
+const MATERIAL_FIELD_FRAGMENTS = ["grade", "material", "steel", "concrete", "masonry", "timber"];
+const LOAD_FIELD_FRAGMENTS = [
+  "load",
+  "n_design",
+  "m_design",
+  "v_design",
+  "surcharge",
+  "wind_",
+  "water_",
+  "uplift",
+];
+
+function withFieldMetadata(field: FieldDefinition): FieldDefinition {
+  const key = field.key;
+  const advanced = field.level === "advanced"
+    || ADVANCED_FIELD_KEYS.has(key)
+    || ADVANCED_FIELD_FRAGMENTS.some((fragment) => key.includes(fragment));
+  const section = field.section
+    ?? (advanced
+      ? "高级参数"
+      : MATERIAL_FIELD_FRAGMENTS.some((fragment) => key.includes(fragment))
+        ? "材料类别"
+        : LOAD_FIELD_FRAGMENTS.some((fragment) => key.includes(fragment))
+          ? "主要荷载"
+          : "几何与构造");
+  return { ...field, section, level: advanced ? "advanced" : "basic" };
+}
+
+// The metadata is assigned once at catalog construction.  Components consume
+// it declaratively instead of keeping module-specific field branches.
+for (const definition of MODULES) {
+  definition.fields = definition.fields.map(withFieldMetadata);
+}
 
 export const NEXTGEN_LIBRARY_ITEMS: CalculationLibraryItem[] = [
   { id: "continuous-beam", title: "连续梁", task: "superstructure", task_title: "上部构件", material: "steel", module: "continuous_beam", maturity: "beta", description: "两跨连续梁内力、反力与挠度。", presets: [] },

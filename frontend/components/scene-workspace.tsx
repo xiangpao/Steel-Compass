@@ -10,25 +10,42 @@ import {
   FileClock,
   GitCompare,
   Pencil,
+  Plus,
   RotateCcw,
   Save,
-  Sparkles,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { api, errorMessage } from "@/lib/api";
+import { HelpTip } from "@/components/help-tip";
+import { PergolaWorkbenchV2 } from "@/components/pergola-workbench-v2";
+import { SceneModelPreview } from "@/components/scene-model-preview";
 import { MODULE_MAP, normalizeInputs } from "@/lib/modules";
 import type {
-  ClimateCatalog,
+  ClimateRegionCatalog,
+  ClimateRegionId,
+  CustomSectionDefinition,
   LoadItem,
   Mode,
   Module,
   Project,
+  ProjectSiteProfile,
+  ProjectGeotechnicalProfile,
+  RoofAssembly,
+  SceneStructuralProfile,
+  SectionCatalogEntry,
+  MemberSpecification,
+  FoundationDesignSpecification,
   SceneFamily,
   SceneGraphTemplate,
+  SceneGeometryProfile,
+  SceneConditionProfile,
   SceneInstance,
   SceneLoadCase,
   SceneRevision,
   SceneVariant,
+  SeismicDesignCatalog,
+  SeismicLevel,
 } from "@/lib/types";
 
 const STATUS_LABELS = {
@@ -43,11 +60,58 @@ type Props = {
   family: SceneFamily;
   projects: Project[];
   onProjectsChange: (projects: Project[]) => void;
-  climateCatalog?: ClimateCatalog | null;
+  climateCatalog?: ClimateRegionCatalog | null;
+  seismicCatalog?: SeismicDesignCatalog | null;
 };
 
 type WorkspaceTab = "settings" | "results";
 type GroundwaterCondition = "no_influence" | "known_water_table" | "unknown";
+type SnowExposure = "exposed" | "not_applicable";
+type DesignStage = "scheme_estimate" | "project_check";
+
+const PlanModelEditor = dynamic(
+  () => import("@/components/plan-model-editor").then((module) => module.PlanModelEditor),
+  { ssr: false },
+);
+
+const LEGACY_SCENE_CONDITIONS: Record<string, SceneConditionProfile> = {
+  "pergola-pavilion": { wind: "required", snow: "required", seismic: "required", wind_semantics: "roof", snow_semantics: "roof", height_parameter_keys: ["height_m", "column_height_m"], geotechnical_mode: "generic" },
+  canopy: { wind: "required", snow: "required", seismic: "required", wind_semantics: "roof", snow_semantics: "roof", height_parameter_keys: ["height_m", "column_height_m"], geotechnical_mode: "generic" },
+  "signage-billboard": { wind: "required", snow: "not_applicable", seismic: "required", wind_semantics: "solid_panel", snow_semantics: "not_applicable", height_parameter_keys: ["height_m", "post_height_m", "panel_cg_height_m"], geotechnical_mode: "generic" },
+  "landscape-wall-fence": { wind: "required", snow: "not_applicable", seismic: "required", wind_semantics: "solid_panel", snow_semantics: "not_applicable", height_parameter_keys: ["height_m", "wall_height_m"], geotechnical_mode: "generic" },
+  "entrance-frame": { wind: "required", snow: "not_applicable", seismic: "required", wind_semantics: "solid_panel", snow_semantics: "not_applicable", height_parameter_keys: ["height_m", "right_height_m"], geotechnical_mode: "generic" },
+  "boardwalk-platform": { wind: "not_applicable", snow: "required", seismic: "required", wind_semantics: "not_applicable", snow_semantics: "exposed_horizontal", height_parameter_keys: [], geotechnical_mode: "generic" },
+  "bench-planter": { wind: "not_applicable", snow: "not_applicable", seismic: "not_applicable", wind_semantics: "not_applicable", snow_semantics: "not_applicable", height_parameter_keys: [], geotechnical_mode: "generic" },
+  "water-feature-pool": { wind: "not_applicable", snow: "not_applicable", seismic: "not_supported", wind_semantics: "not_applicable", snow_semantics: "not_applicable", height_parameter_keys: [], geotechnical_mode: "variant_owned" },
+  "landscape-bridge": { wind: "required", snow: "not_applicable", seismic: "not_supported", wind_semantics: "bridge_side", snow_semantics: "not_applicable", height_parameter_keys: ["deck_width_m"], geotechnical_mode: "variant_owned" },
+  "retaining-facility": { wind: "not_applicable", snow: "not_applicable", seismic: "not_supported", wind_semantics: "not_applicable", snow_semantics: "not_applicable", height_parameter_keys: [], geotechnical_mode: "variant_owned" },
+};
+
+function sceneConditionProfile(
+  family: SceneFamily,
+  variant: SceneVariant | undefined,
+): SceneConditionProfile {
+  if (!variant?.condition_profile && family.id === "bench-planter" && variant?.id === "planter") {
+    return { wind: "optional", snow: "not_applicable", seismic: "not_supported", wind_semantics: "solid_panel", snow_semantics: "not_applicable", height_parameter_keys: ["wall_height_m"], geotechnical_mode: "variant_owned" };
+  }
+  return variant?.condition_profile ?? LEGACY_SCENE_CONDITIONS[family.id] ?? {
+    wind: "not_applicable",
+    snow: "not_applicable",
+    seismic: "not_applicable",
+    wind_semantics: "not_applicable",
+    snow_semantics: "not_applicable",
+    height_parameter_keys: [],
+    geotechnical_mode: "generic",
+  };
+}
+
+function toRoofForm(value: unknown): "flat" | "single_slope" | "double_slope" | "other" {
+  const name = String(value ?? "");
+  if (name.includes("单坡")) return "single_slope";
+  if (name.includes("双坡")) return "double_slope";
+  if (name.includes("平")) return "flat";
+  return "other";
+}
 
 function initialValues(family: SceneFamily, variantId: string) {
   const variant =
@@ -135,10 +199,10 @@ function controllingUtilization(revision: SceneRevision): number | null {
 }
 
 function resultStatus(revision: SceneRevision): string {
-  if (revision.scene_result.result_class === "quick_estimate") {
+  if (["quick_estimate", "scheme_estimate"].includes(revision.scene_result.result_class ?? "")) {
     return revision.scene_result.quick_outcome === "screening_failed"
-      ? "方案快算需调整"
-      : "方案快算完成";
+      ? "方案筛查需调整"
+      : "方案筛查完成";
   }
   return revision.scene_result.engineering_status === "passed"
     ? "专业检查通过"
@@ -172,11 +236,51 @@ function foundationTypeForGraph(graph: SceneGraphTemplate | undefined): string {
   return "独立基础";
 }
 
-export function SceneWorkspace({
+function normalizedFoundations(items: FoundationDesignSpecification[]): FoundationDesignSpecification[] {
+  return items.map((item) => ({
+    ...item,
+    concrete_grade: item.concrete_grade ?? "C30",
+    rebar_grade: item.rebar_grade ?? "HRB400",
+    bar_diameter_mm: item.bar_diameter_mm ?? 14,
+    bar_spacing_mm: item.bar_spacing_mm ?? 150,
+    reinforcement: item.reinforcement ?? {
+      bottom_x_diameter_mm: item.bar_diameter_mm ?? 14,
+      bottom_x_spacing_mm: item.bar_spacing_mm ?? 150,
+      bottom_y_diameter_mm: item.bar_diameter_mm ?? 14,
+      bottom_y_spacing_mm: item.bar_spacing_mm ?? 150,
+    },
+  }));
+}
+
+function defaultCustomSectionDimensions(family: "SHS" | "RHS" | "CHS" | "H" | "I"): Record<string, number> {
+  if (family === "SHS") return { h_mm: 150, b_mm: 150, t_mm: 6 };
+  if (family === "RHS") return { h_mm: 200, b_mm: 100, t_mm: 6 };
+  if (family === "CHS") return { diameter_mm: 168, t_mm: 6 };
+  return { h_mm: 250, b_mm: 125, tw_mm: 6, tf_mm: 9 };
+}
+
+const CUSTOM_SECTION_DIMENSION_LABELS: Record<string, string> = {
+  h_mm: "截面高度",
+  b_mm: "截面宽度",
+  t_mm: "壁厚",
+  diameter_mm: "外径",
+  tw_mm: "腹板厚度",
+  tf_mm: "翼缘厚度",
+};
+
+export function SceneWorkspace(props: Props) {
+  if (props.family.id === "pergola-pavilion") {
+    return <PergolaWorkbenchV2 mode="project" projects={props.projects} onProjectsChange={props.onProjectsChange} />;
+  }
+  return <LegacySceneWorkspace {...props} />;
+}
+
+function LegacySceneWorkspace({
   family,
   projects,
   onProjectsChange,
   climateCatalog,
+  seismicCatalog,
 }: Props) {
   const initialVariantId =
     family.default_variant_id ?? family.variants[0]?.id ?? "";
@@ -197,11 +301,60 @@ export function SceneWorkspace({
     useState<GroundwaterCondition>("unknown");
   const [waterTableDepth, setWaterTableDepth] = useState<number | "">("");
   const [groundwaterSource, setGroundwaterSource] = useState("");
-  const [climateLocationId, setClimateLocationId] = useState("");
+  const [designStage, setDesignStage] = useState<DesignStage>("scheme_estimate");
+  const [soilHintId, setSoilHintId] = useState("zj-inland-alluvial");
+  const [soilClass, setSoilClass] = useState("可塑黏性土或中密粉土");
+  const [bearingSource, setBearingSource] = useState("浙江区域参考档，用户已确认现场土质类别");
+  const [constructionWaterLevel, setConstructionWaterLevel] = useState<number | "">("");
+  const [serviceWaterLevel, setServiceWaterLevel] = useState<number | "">("");
+  const [antifloatWaterLevel, setAntifloatWaterLevel] = useState<number | "">("");
+  const [geotechnicalReportName, setGeotechnicalReportName] = useState("");
+  const [geotechnicalReportDate, setGeotechnicalReportDate] = useState("");
+  const [deformationModulus, setDeformationModulus] = useState<number | "">("");
+  const [steelSections, setSteelSections] = useState<SectionCatalogEntry[]>([]);
+  const [customSections, setCustomSections] = useState<CustomSectionDefinition[]>([]);
+  const [customSectionOpen, setCustomSectionOpen] = useState(false);
+  const [customSectionName, setCustomSectionName] = useState("项目自定义矩形管");
+  const [customSectionFamily, setCustomSectionFamily] = useState<"SHS" | "RHS" | "CHS" | "H" | "I">("RHS");
+  const [customSectionDimensions, setCustomSectionDimensions] = useState<Record<string, number>>({ h_mm: 200, b_mm: 100, t_mm: 6 });
+  const [customCornerRadius, setCustomCornerRadius] = useState<number | "">("");
+  const [customSectionPreview, setCustomSectionPreview] = useState<CustomSectionDefinition | null>(null);
+  const [roofAssemblies, setRoofAssemblies] = useState<RoofAssembly[]>([]);
+  const [roofAssemblyId, setRoofAssemblyId] = useState("steel-panel");
+  const [layoutMode, setLayoutMode] = useState<"preset" | "custom_grid">("custom_grid");
+  const [xBaySpans, setXBaySpans] = useState("4");
+  const [yBaySpans, setYBaySpans] = useState("3,3");
+  const [columnHeights, setColumnHeights] = useState("3");
+  const [omittedColumns, setOmittedColumns] = useState("");
+  const [roofGeometry, setRoofGeometry] = useState<"flat" | "single_slope" | "double_slope" | "custom_heights">("flat");
+  const [roofSlopeDeg, setRoofSlopeDeg] = useState(8);
+  const [roofDirectionDeg, setRoofDirectionDeg] = useState(0);
+  const [geometryOverride, setGeometryOverride] = useState<SceneGeometryProfile | null>(null);
+  const [modelSelection, setModelSelection] = useState<{ kind: "node" | "member"; id: string } | null>(null);
+  const [modelMessage, setModelMessage] = useState("选择构件可查看并修改属性。");
+  const [memberGroupSections, setMemberGroupSections] = useState<Record<string, string>>({});
+  const [memberSectionOverrides, setMemberSectionOverrides] = useState<Record<string, string>>({});
+  const [memberSpecifications, setMemberSpecifications] = useState<MemberSpecification[]>([]);
+  const [foundationSpecifications, setFoundationSpecifications] = useState<FoundationDesignSpecification[]>([]);
+  const [verticalEnclosure, setVerticalEnclosure] = useState<"none" | "open_members" | "perforated_panel" | "solid_panel">("none");
+  const [topCover, setTopCover] = useState<"none" | "louver_grid" | "permeable_cover" | "solid_roof">("none");
+  const [verticalOpenRatio, setVerticalOpenRatio] = useState<number | "">("");
+  const [topOpenRatio, setTopOpenRatio] = useState<number | "">("");
+  const [climateLocationId, setClimateLocationId] = useState<ClimateRegionId>("zhejiang_inland");
   const [recurrence, setRecurrence] = useState<"10" | "50" | "100">("50");
-  const [heightFactor, setHeightFactor] = useState(1);
-  const [shapeFactor, setShapeFactor] = useState(1);
-  const [snowRoofFactor, setSnowRoofFactor] = useState(1);
+  const [terrainCategory, setTerrainCategory] = useState<"A" | "B" | "C" | "D">("B");
+  const [seismicLevel, setSeismicLevel] = useState<SeismicLevel | "">("");
+  const [snowExposure, setSnowExposure] = useState<SnowExposure>("exposed");
+  const [snowExemptionReason, setSnowExemptionReason] = useState("");
+  const [optionalWindEnabled, setOptionalWindEnabled] = useState(false);
+  const [manualWind, setManualWind] = useState<number | "">("");
+  const [manualSnow, setManualSnow] = useState<number | "">("");
+  const [manualClimateSource, setManualClimateSource] = useState("");
+  const [advancedClimateOpen, setAdvancedClimateOpen] = useState(false);
+  const [heightFactorOverride, setHeightFactorOverride] = useState<number | "">("");
+  const [shapeFactorOverride, setShapeFactorOverride] = useState<number | "">("");
+  const [snowFactorOverride, setSnowFactorOverride] = useState<number | "">("");
+  const [factorOverrideReason, setFactorOverrideReason] = useState("");
   const [selectedProject, setSelectedProject] = useState<number | "new">("new");
   const [sceneTitle, setSceneTitle] = useState(family.title);
   const [instance, setInstance] = useState<SceneInstance | null>(null);
@@ -218,6 +371,7 @@ export function SceneWorkspace({
   const hydrated = useRef(false);
   const projectLoadSequence = useRef(0);
   const suppressNextProjectLoad = useRef(false);
+  const preserveHydratedGeometry = useRef(false);
 
   const variant = useMemo(
     () =>
@@ -225,6 +379,33 @@ export function SceneWorkspace({
       family.variants[0],
     [family, variantId],
   );
+  const isParametricPergola = family.id === "pergola-pavilion";
+  const availableSections = useMemo<SectionCatalogEntry[]>(
+    () => [
+      ...steelSections,
+      ...customSections.map((item) => ({
+        id: item.id,
+        family: item.family,
+        designation: `${item.name}（项目自定义）`,
+        dimensions: item.dimensions,
+        area_mm2: item.area_mm2,
+        self_weight_kn_m: item.self_weight_kn_m,
+        material_grades: ["Q235B", "Q355B"],
+        source_reference: item.source_reference,
+      })),
+    ],
+    [customSections, steelSections],
+  );
+  const conditionProfile = useMemo(
+    () => sceneConditionProfile(family, variant),
+    [family, variant],
+  );
+  const needsWind =
+    conditionProfile.wind === "required" ||
+    (conditionProfile.wind === "optional" && optionalWindEnabled);
+  const needsSnow = conditionProfile.snow === "required";
+  const needsSeismic = conditionProfile.seismic === "required";
+  const hasConditions = needsWind || needsSnow || needsSeismic;
   const graph = useMemo(() => graphFor(family, variant), [family, variant]);
   const visibleNodes = useMemo(
     () =>
@@ -244,15 +425,412 @@ export function SceneWorkspace({
     [visibleNodes],
   );
   const hasFoundation = foundationModules.size > 0;
+  const hasGenericFoundation =
+    hasFoundation && conditionProfile.geotechnical_mode !== "variant_owned";
+  const visibleParameters = isParametricPergola
+    ? []
+    : (variant?.parameters ?? []).filter(
+        (parameter) => !parameter.hidden_when_condition_driven,
+      );
   const stale = Boolean(revision && inputVersion !== calculatedVersion);
   const loadPackageTitle = variant?.load_package?.title ?? "场景荷载包";
   const comparisonInstances = projectInstances.slice(0, 3);
 
   useEffect(() => {
-    if (!climateLocationId && climateCatalog?.items.length) {
-      setClimateLocationId(climateCatalog.items[0].id);
+    api<{ items: SectionCatalogEntry[] }>("/api/v2/catalogs/steel-sections")
+      .then((catalog) => setSteelSections(catalog.items))
+      .catch(() => setSteelSections([]));
+  }, []);
+
+  useEffect(() => {
+    if (selectedProject === "new") {
+      setCustomSections([]);
+      return;
     }
-  }, [climateCatalog, climateLocationId]);
+    api<{ items: CustomSectionDefinition[] }>(`/api/v2/projects/${selectedProject}/custom-sections`)
+      .then((result) => setCustomSections(result.items))
+      .catch(() => setCustomSections([]));
+  }, [selectedProject]);
+
+  useEffect(() => {
+    api<{ items: RoofAssembly[] }>("/api/v2/catalogs/roof-assemblies")
+      .then((catalog) => setRoofAssemblies(catalog.items))
+      .catch(() => setRoofAssemblies([]));
+  }, []);
+
+  useEffect(() => {
+    if (!customSectionOpen || !customSectionName.trim()) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      api<CustomSectionDefinition>("/api/v2/catalogs/custom-section-properties", {
+        method: "POST",
+        body: JSON.stringify({
+          id: "custom-preview",
+          name: customSectionName.trim(),
+          family: customSectionFamily,
+          dimensions: customSectionDimensions,
+          corner_radius_mm: customCornerRadius === "" ? null : customCornerRadius,
+          source_reference: "用户几何实时计算预览",
+        }),
+      }).then((value) => { if (active) setCustomSectionPreview(value); })
+        .catch(() => { if (active) setCustomSectionPreview(null); });
+    }, 250);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [customCornerRadius, customSectionDimensions, customSectionFamily, customSectionName, customSectionOpen]);
+
+  useEffect(() => {
+    if (!availableSections.length) return;
+    const steelNodes = visibleNodes.filter((node) =>
+      ["steel_beam", "steel_column", "portal_frame"].includes(
+        node.calculation_module ?? "",
+      ),
+    );
+    setMemberSpecifications((current) => {
+      const currentByKey = new Map(
+        current.map((item) => [`${item.node_id}:${item.member_role}`, item]),
+      );
+      return steelNodes.flatMap((node) => {
+        const roles =
+          node.calculation_module === "portal_frame"
+            ? ["beam", "column"]
+            : [node.calculation_module === "steel_beam" ? "beam" : "column"];
+        return roles.map((role) => {
+          const existing = currentByKey.get(`${node.id}:${role}`);
+          if (existing) return existing;
+          const preferred = availableSections.find((item) =>
+            role === "column"
+              ? item.id === "shs-150x6"
+              : item.id === "rhs-200x100x6",
+          ) ?? availableSections[0];
+          const length = Number(
+            role === "column"
+              ? parameters.height_m ?? parameters.column_height_m ?? 3
+              : parameters.span_m ?? parameters.length_m ?? 5,
+          );
+          return {
+            node_id: node.id,
+            member_role: role,
+            material_grade: "Q355B",
+            section_catalog_id: preferred.id,
+            section_type: preferred.family,
+            section_name: preferred.designation,
+            orientation: "strong_axis" as const,
+            effective_length_m: length,
+            unbraced_length_m: length,
+            selection_source: "recommended" as const,
+          };
+        });
+      });
+    });
+  }, [availableSections, visibleNodes, parameters.height_m, parameters.column_height_m, parameters.span_m, parameters.length_m]);
+
+  useEffect(() => {
+    const nodes = visibleNodes.filter(
+      (node) =>
+        node.role === "foundation" &&
+        ["spread_footing", "strip_footing"].includes(node.calculation_module ?? ""),
+    );
+    setFoundationSpecifications((current) => {
+      const currentByNode = new Map(current.map((item) => [item.node_id, item]));
+      return nodes.map(
+        (node) =>
+          currentByNode.has(node.id) ? {
+            ...currentByNode.get(node.id)!,
+            concrete_grade: currentByNode.get(node.id)!.concrete_grade ?? "C30",
+            rebar_grade: currentByNode.get(node.id)!.rebar_grade ?? "HRB400",
+            bar_diameter_mm: currentByNode.get(node.id)!.bar_diameter_mm ?? 14,
+            bar_spacing_mm: currentByNode.get(node.id)!.bar_spacing_mm ?? 150,
+            section_shape: currentByNode.get(node.id)!.section_shape ?? "stepped",
+            reinforcement: currentByNode.get(node.id)!.reinforcement ?? {
+              bottom_x_diameter_mm: 14, bottom_x_spacing_mm: 150,
+              bottom_y_diameter_mm: 14, bottom_y_spacing_mm: 150,
+            },
+          } : {
+            node_id: node.id,
+            foundation_system_id:
+              node.calculation_module === "strip_footing" ? "strip" : "spread",
+            selection_source: "recommended" as const,
+            length_m: node.calculation_module === "strip_footing" ? 1 : 2,
+            width_m: node.calculation_module === "strip_footing" ? 1.2 : 2,
+            thickness_mm: node.calculation_module === "strip_footing" ? 400 : 500,
+            embedment_m: 1,
+            concrete_grade: "C30",
+            rebar_grade: "HRB400",
+            bar_diameter_mm: 14,
+            bar_spacing_mm: 150,
+            plan_shape: "rectangular" as const,
+            section_shape: node.calculation_module === "spread_footing" ? "stepped" as const : "prismatic" as const,
+            steps: node.calculation_module === "spread_footing" ? [{ length_m: 1.2, width_m: 1.2, height_mm: 250 }] : [],
+            pedestal: { enabled: false },
+            reinforcement: {
+              bottom_x_diameter_mm: 14, bottom_x_spacing_mm: 150,
+              bottom_y_diameter_mm: 14, bottom_y_spacing_mm: 150,
+            },
+          },
+      );
+    });
+  }, [visibleNodes]);
+
+  useEffect(() => {
+    setVerticalEnclosure(
+      conditionProfile.wind_semantics === "solid_panel" ? "solid_panel" : "none",
+    );
+    setTopCover(conditionProfile.wind_semantics === "roof" ? "solid_roof" : "none");
+    setVerticalOpenRatio("");
+    setTopOpenRatio("");
+  }, [conditionProfile.wind_semantics, variantId]);
+
+  const selectedClimate = climateCatalog?.items.find((item) => item.id === climateLocationId);
+  const semanticFactors = useMemo(() => {
+    const height = conditionProfile.height_parameter_keys
+      .map((key) => Number(parameters[key]))
+      .find((value) => Number.isFinite(value) && value > 0)
+      ?? Number(parameters.height_m ?? parameters.height ?? parameters.column_height_m ?? 5);
+    const terrain = { A: 0.85, B: 1, C: 1.15, D: 1.3 }[terrainCategory];
+    const effectiveStructureShape =
+      conditionProfile.wind_semantics === "roof"
+        ? "roof"
+        : conditionProfile.wind_semantics === "solid_panel"
+          ? "solid_panel"
+          : "open_frame";
+    const roofSource = isParametricPergola
+      ? roofGeometry === "single_slope"
+        ? "单坡"
+        : roofGeometry === "double_slope"
+          ? "双坡"
+          : roofGeometry === "flat"
+            ? "平顶"
+            : "其他"
+      : (conditionProfile.roof_form_parameter_key
+        ? parameters[conditionProfile.roof_form_parameter_key]
+        : undefined) ?? variant?.roof_form;
+    const effectiveRoofForm =
+      conditionProfile.snow_semantics === "exposed_horizontal"
+        ? "flat"
+        : toRoofForm(roofSource);
+    const heightFactor = heightFactorOverride === "" ? terrain * (height <= 5 ? 0.9 : height <= 10 ? 1 : 1.1) : heightFactorOverride;
+    const windShape = shapeFactorOverride === "" ? { open_frame: 0.8, solid_panel: 1.3, roof: 0.9 }[effectiveStructureShape] : shapeFactorOverride;
+    const snowShape = snowFactorOverride === "" ? { flat: 0.8, single_slope: 1, double_slope: 1, other: 1.2 }[effectiveRoofForm] : snowFactorOverride;
+    return {
+      heightFactor: Number(heightFactor.toFixed(3)),
+      windShape,
+      snowShape,
+      structureShape: effectiveStructureShape,
+      roofForm: effectiveRoofForm,
+    };
+  }, [parameters, terrainCategory, conditionProfile, variant, heightFactorOverride, shapeFactorOverride, snowFactorOverride, isParametricPergola, roofGeometry]);
+
+  const generatedGeometryProfile = useMemo<SceneGeometryProfile | null>(() => {
+    if (family.id !== "pergola-pavilion") return null;
+    const parsePositive = (text: string, fallback: number[]) => {
+      const values = text.split(/[,，\s]+/).map(Number).filter((value) => Number.isFinite(value) && value > 0);
+      return values.length ? values : fallback;
+    };
+    const xSpans = layoutMode === "custom_grid" ? parsePositive(xBaySpans, [4]) : [Number(parameters.span_m ?? 4)];
+    const ySpans = layoutMode === "custom_grid" ? parsePositive(yBaySpans, [3, 3]) : [Number(parameters.frame_spacing_m ?? parameters.bay_spacing_m ?? 3)];
+    const positions = (spans: number[]) => spans.reduce<number[]>((all, span) => [...all, all[all.length - 1] + span], [0]);
+    const xs = positions(xSpans);
+    const ys = positions(ySpans);
+    const customHeights = parsePositive(columnHeights, [Number(parameters.height_m ?? 3)]);
+    const baseHeight = customHeights[0] ?? 3;
+    const angle = (roofDirectionDeg * Math.PI) / 180;
+    const projections = xs.flatMap((x) => ys.map((y) => x * Math.cos(angle) + y * Math.sin(angle)));
+    const minProjection = Math.min(...projections);
+    const maxProjection = Math.max(...projections);
+    const projectionRange = Math.max(maxProjection - minProjection, 1);
+    const roofRise = Math.tan((roofSlopeDeg * Math.PI) / 180) * projectionRange;
+    const omitted = new Set(omittedColumns.split(/[,，\s]+/).map((item) => item.trim()).filter(Boolean));
+    const nodes: SceneGeometryProfile["nodes"] = [];
+    xs.forEach((x, ix) => ys.forEach((y, iy) => {
+      const customHeight = customHeights[ix * ys.length + iy] ?? customHeights[customHeights.length - 1];
+      const normalizedProjection = (x * Math.cos(angle) + y * Math.sin(angle) - minProjection) / projectionRange;
+      const height = roofGeometry === "single_slope"
+        ? baseHeight + roofRise * normalizedProjection
+        : roofGeometry === "double_slope"
+          ? baseHeight + roofRise * (1 - Math.abs(2 * normalizedProjection - 1)) / 2
+          : roofGeometry === "flat"
+            ? baseHeight
+            : customHeight;
+      if (!omitted.has(`${ix + 1}-${iy + 1}`)) nodes.push({ id: `B-${ix + 1}-${iy + 1}`, x_m: x, y_m: y, z_m: 0, support: "none", column_top: false });
+      nodes.push({ id: `T-${ix + 1}-${iy + 1}`, x_m: x, y_m: y, z_m: height, support: "none", column_top: true });
+    }));
+    const known = new Set(nodes.map((node) => node.id));
+    const members: SceneGeometryProfile["members"] = [];
+    nodes.filter((node) => node.column_top && known.has(`B-${node.id.slice(2)}`)).forEach((node) => members.push({ id: `C-${node.id.slice(2)}`, start_node_id: `B-${node.id.slice(2)}`, end_node_id: node.id, role: "column", group_id: "columns", behavior: "frame", end_release: "rigid" }));
+    const addBeam = (a: string, b: string, id: string) => { if (known.has(a) && known.has(b)) members.push({ id, start_node_id: a, end_node_id: b, role: "beam", group_id: "roof-beams", behavior: "frame", end_release: "rigid" }); };
+    xs.forEach((_x, ix) => ys.slice(0, -1).forEach((_y, iy) => addBeam(`T-${ix + 1}-${iy + 1}`, `T-${ix + 1}-${iy + 2}`, `BY-${ix + 1}-${iy + 1}`)));
+    ys.forEach((_y, iy) => xs.slice(0, -1).forEach((_x, ix) => addBeam(`T-${ix + 1}-${iy + 1}`, `T-${ix + 2}-${iy + 1}`, `BX-${ix + 1}-${iy + 1}`)));
+    const roofSurfaces: SceneGeometryProfile["roof_surfaces"] = [];
+    xs.slice(0, -1).forEach((_x, ix) => ys.slice(0, -1).forEach((_y, iy) => {
+      const nodeIds = [`T-${ix + 1}-${iy + 1}`, `T-${ix + 2}-${iy + 1}`, `T-${ix + 2}-${iy + 2}`, `T-${ix + 1}-${iy + 2}`];
+      if (nodeIds.every((id) => known.has(id))) roofSurfaces.push({ id: `R-${ix + 1}-${iy + 1}`, node_ids: nodeIds, form: roofGeometry === "custom_heights" ? "faceted" : roofGeometry, load_path_group_ids: ["roof-beams"] });
+    }));
+    return {
+      profile_version: "2.0",
+      layout_mode: "free_plan",
+      axes: [{ id: "X", direction: "x", positions_m: xs }, { id: "Y", direction: "y", positions_m: ys }],
+      nodes,
+      members,
+      roof_surfaces: roofSurfaces,
+      supports: nodes.filter((node) => node.id.startsWith("B-")).map((node) => ({ id: `SUP-${node.id}`, node_id: node.id, restraint: "fixed", foundation_id: `F-${node.id}` })),
+      plan_boundary: {
+        outer_points: [
+          { id: "BP-1", x_m: xs[0], y_m: ys[0] },
+          { id: "BP-2", x_m: xs[xs.length - 1], y_m: ys[0] },
+          { id: "BP-3", x_m: xs[xs.length - 1], y_m: ys[ys.length - 1] },
+          { id: "BP-4", x_m: xs[0], y_m: ys[ys.length - 1] },
+        ],
+        outer_segments: [
+          { id: "BS-1", start_point_id: "BP-1", end_point_id: "BP-2", kind: "line" },
+          { id: "BS-2", start_point_id: "BP-2", end_point_id: "BP-3", kind: "line" },
+          { id: "BS-3", start_point_id: "BP-3", end_point_id: "BP-4", kind: "line" },
+          { id: "BS-4", start_point_id: "BP-4", end_point_id: "BP-1", kind: "line" },
+        ],
+        source: "参数化轴网生成，可在二维编辑器修改",
+      },
+      roof_elevation: {
+        kind: roofGeometry === "custom_heights" ? "node_elevations" : roofGeometry,
+        datum_height_m: baseHeight,
+        slope_deg: roofGeometry === "flat" || roofGeometry === "custom_heights" ? null : roofSlopeDeg,
+        direction_deg: roofGeometry === "flat" || roofGeometry === "custom_heights" ? null : roofDirectionDeg,
+        ridge_start: roofGeometry === "double_slope" ? [xs[0], (ys[0] + ys[ys.length - 1]) / 2] : null,
+        ridge_end: roofGeometry === "double_slope" ? [xs[xs.length - 1], (ys[0] + ys[ys.length - 1]) / 2] : null,
+        opposite_slope_deg: roofGeometry === "double_slope" ? roofSlopeDeg : null,
+      },
+      source: layoutMode === "custom_grid" ? "用户引导式自定义轴网" : "亭廊快捷模板生成",
+    };
+  }, [family.id, layoutMode, xBaySpans, yBaySpans, columnHeights, omittedColumns, parameters, roofGeometry, roofSlopeDeg, roofDirectionDeg]);
+
+  const geometryProfile = geometryOverride ?? generatedGeometryProfile;
+  const selectedModelMember = modelSelection?.kind === "member"
+    ? geometryProfile?.members.find((item) => item.id === modelSelection.id) ?? null
+    : null;
+  const selectedMemberNodes = selectedModelMember && geometryProfile
+    ? [
+        geometryProfile.nodes.find((item) => item.id === selectedModelMember.start_node_id),
+        geometryProfile.nodes.find((item) => item.id === selectedModelMember.end_node_id),
+      ]
+    : [];
+  const selectedMemberLength = selectedMemberNodes[0] && selectedMemberNodes[1]
+    ? Math.hypot(
+        selectedMemberNodes[1].x_m - selectedMemberNodes[0].x_m,
+        selectedMemberNodes[1].y_m - selectedMemberNodes[0].y_m,
+        selectedMemberNodes[1].z_m - selectedMemberNodes[0].z_m,
+      )
+    : null;
+
+  useEffect(() => {
+    if (preserveHydratedGeometry.current) {
+      preserveHydratedGeometry.current = false;
+      return;
+    }
+    setGeometryOverride(null);
+  }, [family.id, xBaySpans, yBaySpans, columnHeights, omittedColumns, roofGeometry, roofSlopeDeg, roofDirectionDeg]);
+
+  const climateInputsReady = useMemo(() => {
+    if (!(needsWind || needsSnow)) return true;
+    if (climateLocationId === "manual") {
+      return (!needsWind || (manualWind !== "" && Number(manualWind) > 0)) &&
+        (!needsSnow || (manualSnow !== "" && Number(manualSnow) >= 0)) &&
+        manualClimateSource.trim().length >= 4;
+    }
+    return Boolean(selectedClimate);
+  }, [needsWind, needsSnow, climateLocationId, manualWind, manualSnow, manualClimateSource, selectedClimate]);
+
+  useEffect(() => {
+    if (!climateInputsReady || !(needsWind || needsSnow)) return;
+    const basicWind = climateLocationId === "manual"
+      ? Number(manualWind)
+      : Number(selectedClimate?.wind_kpa[recurrence]);
+    const basicSnow = climateLocationId === "manual"
+      ? Number(manualSnow)
+      : Number(selectedClimate?.snow_kpa[recurrence]);
+    const windAdopted = Number((basicWind * semanticFactors.heightFactor * semanticFactors.windShape).toFixed(3));
+    const snowAdopted = Number((basicSnow * semanticFactors.snowShape).toFixed(3));
+    setLoadCases((current) => {
+      let changed = false;
+      const next = current.map((item) => {
+        const adopted = item.kind === "wind" && needsWind
+          ? windAdopted
+          : item.kind === "snow" && needsSnow
+            ? (snowExposure === "not_applicable" ? 0 : snowAdopted)
+            : null;
+        if (adopted === null || item.adopted_value === adopted) return item;
+        changed = true;
+        return {
+          ...item,
+          value_type: item.kind === "snow" && snowExposure === "not_applicable" ? "project_defined" as const : "calculated" as const,
+          adopted_value: adopted,
+          source_reference: `${climateCatalog?.version ?? "climate"} · ${recurrence}年 · 自动随项目条件更新`,
+          override_reason: "统一项目条件向导自动采用",
+        };
+      });
+      if (changed) setInputVersion((value) => value + 1);
+      return changed ? next : current;
+    });
+    const drivenWindParameter = variant?.parameters.find((parameter) => parameter.hidden_when_condition_driven);
+    if (needsWind && drivenWindParameter) {
+      setParameters((current) => current[drivenWindParameter.key] === windAdopted
+        ? current
+        : { ...current, [drivenWindParameter.key]: windAdopted });
+    }
+  }, [climateInputsReady, needsWind, needsSnow, climateLocationId, manualWind, manualSnow, selectedClimate, recurrence, semanticFactors, snowExposure, climateCatalog?.version, variant]);
+
+  useEffect(() => {
+    if (conditionProfile.wind_semantics !== "roof") return;
+    const assembly = roofAssemblies.find((item) => item.id === roofAssemblyId);
+    if (!assembly) return;
+    setLoadCases((current) => current.map((item) =>
+      item.id === "roof-finish" || item.id === "canopy-finish"
+        ? {
+            ...item,
+            adopted_value: topCover === "none" ? 0 : assembly.total_dead_load_kn_m2,
+            value_type: "calculated" as const,
+            source_reference: `${assembly.source_reference} · ${assembly.reference_range_kn_m2[0]}～${assembly.reference_range_kn_m2[1]} kN/m²`,
+          }
+        : item,
+    ));
+  }, [conditionProfile.wind_semantics, roofAssemblies, roofAssemblyId, topCover]);
+
+  useEffect(() => {
+    if (selectedProject === "new") return;
+    const profile = projects.find((item) => item.id === selectedProject)?.site_profile;
+    if (!profile) return;
+    if (profile.region_preset) setClimateLocationId(profile.region_preset);
+    setRecurrence(String(profile.recurrence_period_years) as "10" | "50" | "100");
+    setTerrainCategory(profile.terrain_category);
+    if (profile.seismic_level) setSeismicLevel(profile.seismic_level);
+    setManualWind(profile.region_preset === "manual" ? profile.basic_wind_pressure_kpa ?? "" : "");
+    setManualSnow(profile.region_preset === "manual" ? profile.basic_snow_pressure_kpa ?? "" : "");
+    setManualClimateSource(profile.region_preset === "manual" ? profile.climate_source_reference ?? "" : "");
+    setHeightFactorOverride(profile.height_factor_override ?? "");
+    setShapeFactorOverride(profile.wind_shape_factor_override ?? "");
+    setSnowFactorOverride(profile.snow_shape_factor_override ?? "");
+    setFactorOverrideReason(profile.override_reason ?? "");
+  }, [projects, selectedProject]);
+
+  useEffect(() => {
+    if (selectedProject === "new") return;
+    const profile = projects.find((item) => item.id === selectedProject)?.geotechnical_profile;
+    if (!profile) return;
+    setDesignStage(profile.stage);
+    setSoilHintId(profile.regional_hint_id ?? "");
+    setSoilClass(profile.confirmed_soil_class);
+    setBearingCapacity(profile.bearing_capacity_kpa);
+    setBearingSource(profile.bearing_capacity_source);
+    setGroundwaterCondition(
+      profile.groundwater.condition === "known_levels"
+        ? "known_water_table"
+        : profile.groundwater.condition,
+    );
+    setConstructionWaterLevel(profile.groundwater.construction_level_m ?? "");
+    setServiceWaterLevel(profile.groundwater.service_level_m ?? "");
+    setAntifloatWaterLevel(profile.groundwater.antifloat_level_m ?? "");
+    setGroundwaterSource(profile.groundwater.source);
+    setGeotechnicalReportName(profile.report_name ?? "");
+    setGeotechnicalReportDate(profile.report_date ?? "");
+    setDeformationModulus(profile.deformation_modulus_mpa ?? "");
+  }, [projects, selectedProject]);
 
   useEffect(() => {
     hydrated.current = false;
@@ -275,10 +853,17 @@ export function SceneWorkspace({
           groundwaterCondition?: GroundwaterCondition;
           waterTableDepth?: number | "";
           groundwaterSource?: string;
+          snowExposure?: SnowExposure;
+          snowExemptionReason?: string;
+          optionalWindEnabled?: boolean;
           // Legacy local draft compatibility.
           groundwaterKnown?: boolean;
           sceneTitle?: string;
           selectedProject?: number | "new";
+          designStage?: DesignStage;
+          memberSpecifications?: MemberSpecification[];
+          foundationSpecifications?: FoundationDesignSpecification[];
+          guidedGrid?: { layoutMode?: "preset" | "custom_grid"; xBaySpans?: string; yBaySpans?: string; columnHeights?: string; omittedColumns?: string; roofGeometry?: "flat" | "single_slope" | "double_slope" | "custom_heights"; roofSlopeDeg?: number };
         };
         if (family.variants.some((item) => item.id === draft.variantId)) {
           nextVariantId = draft.variantId!;
@@ -288,7 +873,7 @@ export function SceneWorkspace({
         );
         const nextGraph = graphFor(family, nextVariant);
         setVariantId(nextVariantId);
-        setMode(draft.mode ?? "quick");
+        setMode("quick");
         setMaterial(
           draft.material ?? nextVariant?.material_systems[0] ?? "",
         );
@@ -322,6 +907,21 @@ export function SceneWorkspace({
         );
         setWaterTableDepth(draft.waterTableDepth ?? "");
         setGroundwaterSource(draft.groundwaterSource ?? "");
+        setSnowExposure(draft.snowExposure ?? "exposed");
+        setSnowExemptionReason(draft.snowExemptionReason ?? "");
+        setOptionalWindEnabled(draft.optionalWindEnabled ?? false);
+        setDesignStage(draft.designStage ?? "scheme_estimate");
+        if (draft.memberSpecifications) setMemberSpecifications(draft.memberSpecifications);
+        if (draft.foundationSpecifications) setFoundationSpecifications(normalizedFoundations(draft.foundationSpecifications));
+        if (draft.guidedGrid) {
+          setLayoutMode(draft.guidedGrid.layoutMode ?? "custom_grid");
+          setXBaySpans(draft.guidedGrid.xBaySpans ?? "4");
+          setYBaySpans(draft.guidedGrid.yBaySpans ?? "3,3");
+          setColumnHeights(draft.guidedGrid.columnHeights ?? "3");
+          setOmittedColumns(draft.guidedGrid.omittedColumns ?? "");
+          setRoofGeometry(draft.guidedGrid.roofGeometry ?? "flat");
+          setRoofSlopeDeg(draft.guidedGrid.roofSlopeDeg ?? 8);
+        }
         setSceneTitle(draft.sceneTitle ?? family.title);
         if (typeof draft.selectedProject === "number") {
           setSelectedProject(draft.selectedProject);
@@ -370,8 +970,15 @@ export function SceneWorkspace({
         groundwaterCondition,
         waterTableDepth,
         groundwaterSource,
+        snowExposure,
+        snowExemptionReason,
+        optionalWindEnabled,
         sceneTitle,
         selectedProject,
+        designStage,
+        memberSpecifications,
+        foundationSpecifications,
+        guidedGrid: { layoutMode, xBaySpans, yBaySpans, columnHeights, omittedColumns, roofGeometry, roofSlopeDeg },
       }),
     );
   }, [
@@ -387,6 +994,19 @@ export function SceneWorkspace({
     sceneTitle,
     selectedProject,
     waterTableDepth,
+    snowExposure,
+    snowExemptionReason,
+    optionalWindEnabled,
+    designStage,
+    memberSpecifications,
+    foundationSpecifications,
+    layoutMode,
+    xBaySpans,
+    yBaySpans,
+    columnHeights,
+    omittedColumns,
+    roofGeometry,
+    roofSlopeDeg,
     variantId,
   ]);
 
@@ -410,6 +1030,7 @@ export function SceneWorkspace({
     selected: SceneInstance,
     revisions: SceneRevision[],
   ) {
+    preserveHydratedGeometry.current = true;
     const selectedVariant = family.variants.find(
       (item) => item.id === selected.variant_id,
     );
@@ -418,7 +1039,7 @@ export function SceneWorkspace({
     const restoredLoads = state.load_cases as SceneLoadCase[] | undefined;
     setInstance(selected);
     setVariantId(selected.variant_id);
-    setMode(selected.mode);
+    setMode("quick");
     setSceneTitle(selected.title);
     setMaterial(
       (state.material_system as string | undefined) ??
@@ -460,6 +1081,40 @@ export function SceneWorkspace({
     setGroundwaterSource(
       (state.groundwater_source as string | undefined) ?? "",
     );
+    setSnowExposure(
+      (state.snow_exposure as SnowExposure | undefined) ?? "exposed",
+    );
+    setSnowExemptionReason(
+      (state.snow_exemption_reason as string | undefined) ?? "",
+    );
+    setOptionalWindEnabled(
+      (state.optional_wind_enabled as boolean | undefined) ?? false,
+    );
+    setDesignStage((state.design_stage as DesignStage | undefined) ?? "scheme_estimate");
+    setMemberSpecifications((state.member_specifications as MemberSpecification[] | undefined) ?? []);
+    setFoundationSpecifications(normalizedFoundations((state.foundation_specifications as FoundationDesignSpecification[] | undefined) ?? []));
+    const exposure = state.surface_exposure as SceneStructuralProfile["exposure"] | undefined;
+    if (exposure) {
+      setVerticalEnclosure(exposure.vertical_enclosure);
+      setTopCover(exposure.top_cover);
+      setVerticalOpenRatio(exposure.vertical_open_ratio ?? "");
+      setTopOpenRatio(exposure.top_open_ratio ?? "");
+    }
+    const guidedGrid = state.guided_grid as { layoutMode?: "preset" | "custom_grid"; xBaySpans?: string; yBaySpans?: string; columnHeights?: string; omittedColumns?: string; roofGeometry?: "flat" | "single_slope" | "double_slope" | "custom_heights"; roofSlopeDeg?: number; roofDirectionDeg?: number } | undefined;
+    if (guidedGrid) {
+      setLayoutMode(guidedGrid.layoutMode ?? "custom_grid");
+      setXBaySpans(guidedGrid.xBaySpans ?? "4");
+      setYBaySpans(guidedGrid.yBaySpans ?? "3,3");
+      setColumnHeights(guidedGrid.columnHeights ?? "3");
+      setOmittedColumns(guidedGrid.omittedColumns ?? "");
+      setRoofGeometry(guidedGrid.roofGeometry ?? "flat");
+      setRoofSlopeDeg(guidedGrid.roofSlopeDeg ?? 8);
+      setRoofDirectionDeg(guidedGrid.roofDirectionDeg ?? 0);
+    }
+    setGeometryOverride((state.geometry_profile as SceneGeometryProfile | undefined) ?? null);
+    const structural = state.structural_profile as SceneStructuralProfile | undefined;
+    setMemberGroupSections(Object.fromEntries((structural?.member_groups ?? []).map((item) => [item.group_id, item.section_catalog_id ?? item.custom_section_id ?? ""])));
+    setMemberSectionOverrides(Object.fromEntries((structural?.member_overrides ?? []).map((item) => [item.member_id, item.section_id])));
     const latest = revisions[0] ?? null;
     setRevision(latest);
     setInputVersion(0);
@@ -564,40 +1219,92 @@ export function SceneWorkspace({
     markChanged(visibleNodes.map((node) => node.id));
   }
 
-  function applyClimateGuide() {
-    const location = climateCatalog?.items.find(
-      (item) => item.id === climateLocationId,
-    );
-    if (!location) {
-      setError("请选择已复核的城市或气象站数据。");
-      return;
+  function currentSiteProfile(): ProjectSiteProfile | null {
+    const existing = selectedProject === "new"
+      ? null
+      : projects.find((item) => item.id === selectedProject)?.site_profile ?? null;
+    if (!hasConditions) return existing;
+
+    const completed = new Set(existing?.completed_conditions ?? []);
+    const profile: ProjectSiteProfile = {
+      ...(existing ?? {}),
+      profile_version: "1.1",
+      recurrence_period_years: Number(recurrence) as 10 | 50 | 100,
+      terrain_category: terrainCategory,
+      structure_shape: semanticFactors.structureShape as NonNullable<ProjectSiteProfile["structure_shape"]>,
+      roof_form: semanticFactors.roofForm as NonNullable<ProjectSiteProfile["roof_form"]>,
+      catalog_versions: {
+        ...(existing?.catalog_versions ?? {}),
+        climate_regions: climateCatalog?.version ?? "unknown",
+        seismic: seismicCatalog?.version ?? "unknown",
+        standards: "CN-2026.6",
+      },
+    };
+
+    if (needsWind || needsSnow) {
+      const location = selectedClimate;
+      if (!location) {
+        setError("请选择项目地区档。 ");
+        return null;
+      }
+      const isManual = climateLocationId === "manual";
+      const wind = isManual ? Number(manualWind) : location.wind_kpa[recurrence];
+      const snow = isManual ? Number(manualSnow) : location.snow_kpa[recurrence];
+      if (needsWind && (!Number.isFinite(wind) || wind <= 0)) {
+        setError("请填写有效的基本风压。");
+        return null;
+      }
+      if (needsSnow && (!Number.isFinite(snow) || snow < 0)) {
+        setError("请填写有效的基本雪压。");
+        return null;
+      }
+      if (isManual && manualClimateSource.trim().length < 4) {
+        setError("其他地区必须填写项目资料来源。 ");
+        return null;
+      }
+      if (needsSnow && snowExposure === "not_applicable" && snowExemptionReason.trim().length < 4) {
+        setError("不计露天积雪时，请填写项目依据。 ");
+        return null;
+      }
+      profile.region_preset = climateLocationId;
+      profile.climate_source_reference = isManual
+        ? manualClimateSource.trim()
+        : location.source_reference;
+      if (needsWind) {
+        profile.basic_wind_pressure_kpa = wind;
+        completed.add("wind");
+      }
+      if (needsSnow) {
+        profile.basic_snow_pressure_kpa = snow;
+        completed.add("snow");
+      }
     }
-    setLoadCases((current) =>
-      current.map((item) => {
-        if (item.value_type !== "calculated") return item;
-        const isWind = item.kind === "wind";
-        const isSnow = item.kind === "snow";
-        if (!isWind && !isSnow) return item;
-        const basic = isWind
-          ? location.wind_kpa[recurrence]
-          : location.snow_kpa[recurrence];
-        if (basic === null) return item;
-        const adopted = isWind
-          ? basic * heightFactor * shapeFactor
-          : basic * snowRoofFactor;
-        return {
-          ...item,
-          adopted_value: Number(adopted.toFixed(3)),
-          source_reference: `${climateCatalog?.version ?? "climate"} · ${location.province}${location.city}/${location.station} · ${recurrence}年 · ${isWind ? `高度系数${heightFactor}×体型系数${shapeFactor}` : `屋面积雪系数${snowRoofFactor}`}`,
-          override_reason: "风雪向导计算值",
-        };
-      }),
-    );
-    markChanged(
-      visibleNodes
-        .filter((node) => node.role === "load" || node.role === "surface")
-        .map((node) => node.id),
-    );
+    if (needsSeismic) {
+      if (!seismicLevel) {
+        setError("请选择地震烈度与设计基本加速度；软件不会代填默认值。 ");
+        return null;
+      }
+      profile.seismic_level = seismicLevel;
+      completed.add("seismic");
+    }
+    const changedWindFactor = needsWind && (heightFactorOverride !== "" || shapeFactorOverride !== "");
+    const changedSnowFactor = needsSnow && snowFactorOverride !== "";
+    if ((changedWindFactor || changedSnowFactor) && !factorOverrideReason.trim()) {
+      setError("修改高级系数时必须填写覆盖原因。 ");
+      return null;
+    }
+    if (needsWind) {
+      profile.height_factor_override = heightFactorOverride === "" ? null : heightFactorOverride;
+      profile.wind_shape_factor_override = shapeFactorOverride === "" ? null : shapeFactorOverride;
+    }
+    if (needsSnow) {
+      profile.snow_shape_factor_override = snowFactorOverride === "" ? null : snowFactorOverride;
+    }
+    if (changedWindFactor || changedSnowFactor) {
+      profile.override_reason = factorOverrideReason.trim();
+    }
+    profile.completed_conditions = Array.from(completed);
+    return profile;
   }
 
   function draftState() {
@@ -607,26 +1314,254 @@ export function SceneWorkspace({
       geometry: parameters,
       load_package_id: variant?.load_package?.id,
       load_cases: loadCases,
-      foundation_type: hasFoundation ? foundationType : null,
-      allowable_bearing_kpa: hasFoundation ? bearingCapacity : null,
-      groundwater_condition: hasFoundation ? groundwaterCondition : null,
+      foundation_type: hasGenericFoundation ? foundationType : null,
+      allowable_bearing_kpa: hasGenericFoundation ? bearingCapacity : null,
+      groundwater_condition: hasGenericFoundation ? groundwaterCondition : null,
       water_table_depth_m:
-        hasFoundation && groundwaterCondition === "known_water_table"
+        hasGenericFoundation && groundwaterCondition === "known_water_table"
           ? waterTableDepth
           : null,
-      groundwater_source: hasFoundation ? groundwaterSource : null,
+      groundwater_source: hasGenericFoundation ? groundwaterSource : null,
+      snow_exposure: needsSnow ? snowExposure : null,
+      snow_exemption_reason:
+        needsSnow && snowExposure === "not_applicable" ? snowExemptionReason : null,
+      optional_wind_enabled:
+        conditionProfile.wind === "optional" ? optionalWindEnabled : null,
+      design_stage: designStage,
+      member_specifications: memberSpecifications,
+      foundation_specifications: foundationSpecifications,
+      surface_exposure: needsWind
+        ? { vertical_enclosure: verticalEnclosure, top_cover: topCover }
+        : null,
+      geometry_profile: geometryProfile,
+      structural_profile: currentStructuralProfile(),
+      guided_grid: { layoutMode, xBaySpans, yBaySpans, columnHeights, omittedColumns, roofGeometry, roofSlopeDeg, roofDirectionDeg },
     };
   }
 
+  function currentGeotechnicalProfile(): ProjectGeotechnicalProfile | null {
+    if (!hasGenericFoundation) {
+      return selectedProject === "new"
+        ? null
+        : projects.find((item) => item.id === selectedProject)?.geotechnical_profile ?? null;
+    }
+    if (!bearingCapacity || !soilClass.trim() || !bearingSource.trim()) {
+      setError("请确认土质类别、地基承载力和资料来源；软件不再代填 120 kPa。");
+      return null;
+    }
+    if (!groundwaterSource.trim() || groundwaterCondition === "unknown") {
+      setError("请明确地下水边界及资料来源；未知水位不能作为基础计算输入。");
+      return null;
+    }
+    if (
+      groundwaterCondition === "known_water_table" &&
+      [constructionWaterLevel, serviceWaterLevel, antifloatWaterLevel].some(
+        (value) => value === "",
+      )
+    ) {
+      setError("已知地下水时必须填写施工期、正常使用和抗浮设计水位标高。");
+      return null;
+    }
+    if (
+      designStage === "project_check" &&
+      (!geotechnicalReportName.trim() || !geotechnicalReportDate || !deformationModulus)
+    ) {
+      setError("工程校核需要勘察报告名称、日期及沉降计算参数；资料不足时请选择方案测算。");
+      return null;
+    }
+    return {
+      profile_version: "1.0",
+      stage: designStage,
+      regional_hint_id: designStage === "scheme_estimate" ? soilHintId : null,
+      confirmed_soil_class: soilClass.trim(),
+      bearing_capacity_kpa: Number(bearingCapacity),
+      bearing_capacity_source: bearingSource.trim(),
+      deformation_modulus_mpa:
+        deformationModulus === "" ? null : Number(deformationModulus),
+      groundwater: {
+        condition:
+          groundwaterCondition === "known_water_table"
+            ? "known_levels"
+            : groundwaterCondition,
+        construction_level_m:
+          constructionWaterLevel === "" ? null : Number(constructionWaterLevel),
+        service_level_m:
+          serviceWaterLevel === "" ? null : Number(serviceWaterLevel),
+        antifloat_level_m:
+          antifloatWaterLevel === "" ? null : Number(antifloatWaterLevel),
+        source: groundwaterSource.trim(),
+      },
+      report_name: geotechnicalReportName.trim() || null,
+      report_date: geotechnicalReportDate || null,
+      catalog_versions: { geotechnical_hints: "zhejiang-geotech-2026.1-unverified" },
+    };
+  }
+
+  function currentStructuralProfile(): SceneStructuralProfile | null {
+    const steelNodeIds = new Set(
+      visibleNodes
+        .filter((node) => ["steel_beam", "steel_column", "portal_frame"].includes(node.calculation_module ?? ""))
+        .map((node) => node.id),
+    );
+    const foundationNodeIds = new Set(
+      visibleNodes
+        .filter((node) => node.role === "foundation" && ["spread_footing", "strip_footing"].includes(node.calculation_module ?? ""))
+        .map((node) => node.id),
+    );
+    const members = memberSpecifications.filter((item) => steelNodeIds.has(item.node_id));
+    const foundations = foundationSpecifications
+      .filter((item) => foundationNodeIds.has(item.node_id))
+      .map((item) => ({
+        ...item,
+        concrete_grade: item.concrete_grade ?? "C30",
+        rebar_grade: item.rebar_grade ?? "HRB400",
+        bar_diameter_mm: item.bar_diameter_mm ?? 14,
+        bar_spacing_mm: item.bar_spacing_mm ?? 150,
+        section_shape: item.section_shape ?? "stepped" as const,
+        steps: item.section_shape === "tapered" || item.section_shape === "prismatic"
+          ? (item.steps ?? [])
+          : (item.steps?.length ? item.steps : [{ length_m: Math.max(0.5, item.length_m - 0.6), width_m: Math.max(0.5, item.width_m - 0.6), height_mm: 250 }]),
+        reinforcement: item.reinforcement ?? {
+          bottom_x_diameter_mm: item.bar_diameter_mm ?? 14,
+          bottom_x_spacing_mm: item.bar_spacing_mm ?? 150,
+          bottom_y_diameter_mm: item.bar_diameter_mm ?? 14,
+          bottom_y_spacing_mm: item.bar_spacing_mm ?? 150,
+        },
+      }));
+    if ((steelNodeIds.size && !members.length) || (foundationNodeIds.size && !foundations.length)) {
+      setError("请先明确所有钢构件截面和基础尺寸。");
+      return null;
+    }
+    return {
+      profile_version: "3.0",
+      stage: designStage,
+      exposure: needsWind
+        ? {
+            vertical_enclosure: verticalEnclosure,
+            top_cover: topCover,
+            vertical_open_ratio:
+              verticalOpenRatio === "" ? null : Number(verticalOpenRatio),
+            top_open_ratio: topOpenRatio === "" ? null : Number(topOpenRatio),
+            roof_form:
+              topCover === "solid_roof"
+                ? (semanticFactors.roofForm as "flat" | "single_slope" | "double_slope" | "other")
+                : null,
+            source: "场景几何与用户确认的围护/顶部覆盖",
+          }
+        : null,
+      members,
+      member_groups: Array.from(new Set((geometryProfile?.members ?? []).map((item) => item.group_id))).map((groupId) => {
+        const representative = geometryProfile?.members.find((item) => item.group_id === groupId);
+        const legacy = members.find((item) => item.member_role === (representative?.role === "column" ? "column" : "beam"));
+        const sectionId = memberGroupSections[groupId] || legacy?.section_catalog_id || availableSections[0]?.id || null;
+        return {
+          group_id: groupId,
+          role: representative?.role ?? "beam",
+          material_grade: legacy?.material_grade ?? "Q355B",
+          section_catalog_id: customSections.some((item) => item.id === sectionId) ? null : sectionId,
+          custom_section_id: customSections.some((item) => item.id === sectionId) ? sectionId : null,
+          strong_axis_unbraced_length_m: legacy?.unbraced_length_m ?? 3,
+          weak_axis_unbraced_length_m: legacy?.unbraced_length_m ?? 3,
+          effective_length_factor_y: 1,
+          effective_length_factor_z: 1,
+        };
+      }),
+      member_overrides: Object.entries(memberSectionOverrides).map(([memberId, sectionId]) => ({
+        member_id: memberId,
+        material_grade: "Q355B",
+        section_id: sectionId,
+        orientation: "strong_axis" as const,
+        source: "用户仅应用到选中构件",
+      })),
+      foundations,
+      geometry: geometryProfile,
+      roof_assembly: conditionProfile.wind_semantics === "roof"
+        ? roofAssemblies.find((item) => item.id === (topCover === "none" ? "none" : roofAssemblyId)) ?? null
+        : null,
+      catalog_versions: {
+        steel_sections: "steel-sections-2026.2-unverified",
+        foundation_systems: "foundation-systems-2026.2-unverified",
+        roof_assemblies: "roof-assemblies-2026.1-unverified",
+      },
+    };
+  }
+
+  async function createCustomSection() {
+    setWorking(true);
+    setError("");
+    try {
+      const id = `custom-${Date.now().toString(36)}`;
+      const created = await api<CustomSectionDefinition>("/api/v2/catalogs/custom-section-properties", {
+        method: "POST",
+        body: JSON.stringify({
+          id,
+          name: customSectionName.trim(),
+          family: customSectionFamily,
+          dimensions: customSectionDimensions,
+          corner_radius_mm: customCornerRadius === "" ? null : customCornerRadius,
+          source_reference: "用户按厂家资料或实测尺寸输入；截面性质由软件根据几何计算",
+        }),
+      });
+      setCustomSections((current) => [...current.filter((item) => item.id !== created.id), created]);
+      setCustomSectionOpen(false);
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function persistCustomSections(projectId: number) {
+    if (!customSections.length) return;
+    await api<{ items: CustomSectionDefinition[] }>(`/api/v2/projects/${projectId}/custom-sections`, {
+      method: "PUT",
+      body: JSON.stringify({ items: customSections }),
+    });
+  }
+
   async function ensureProject(): Promise<number> {
-    if (selectedProject !== "new") return selectedProject;
+    const profile = currentSiteProfile();
+    const geotechnicalProfile = currentGeotechnicalProfile();
+    if (hasConditions && !profile) throw new Error("项目条件尚未完成");
+    if (hasGenericFoundation && !geotechnicalProfile) throw new Error("项目地勘条件尚未完成");
+    if (selectedProject !== "new") {
+      if (profile) {
+        const savedProfile = await api<ProjectSiteProfile>(`/api/v2/projects/${selectedProject}/site-profile`, {
+          method: "PUT",
+          body: JSON.stringify(profile),
+        });
+        onProjectsChange(
+          projects.map((item) =>
+            item.id === selectedProject
+              ? { ...item, site_profile: savedProfile }
+              : item,
+          ),
+        );
+      }
+      if (geotechnicalProfile) {
+        const savedGeotechnical = await api<ProjectGeotechnicalProfile>(`/api/v2/projects/${selectedProject}/geotechnical-profile`, {
+          method: "PUT",
+          body: JSON.stringify(geotechnicalProfile),
+        });
+        onProjectsChange(
+          projects.map((item) =>
+            item.id === selectedProject
+              ? { ...item, geotechnical_profile: savedGeotechnical }
+              : item,
+          ),
+        );
+      }
+      await persistCustomSections(selectedProject);
+      return selectedProject;
+    }
     const created = await api<Project>("/api/v2/projects", {
       method: "POST",
-      body: JSON.stringify({ name: sceneTitle, description: family.description }),
+      body: JSON.stringify({ name: sceneTitle, description: family.description, ...(profile ? { site_profile: profile } : {}), ...(geotechnicalProfile ? { geotechnical_profile: geotechnicalProfile } : {}) }),
     });
     suppressNextProjectLoad.current = true;
     setSelectedProject(created.id);
     onProjectsChange([created, ...projects]);
+    await persistCustomSections(created.id);
     return created.id;
   }
 
@@ -640,7 +1575,7 @@ export function SceneWorkspace({
           body: JSON.stringify({
             variant_id: variantId,
             title: sceneTitle,
-            mode,
+            mode: "quick",
             draft_state: draftState(),
             changed_node_ids: changedNodeIds,
           }),
@@ -660,7 +1595,7 @@ export function SceneWorkspace({
           family_id: family.id,
           variant_id: variantId,
           title: sceneTitle,
-          mode,
+          mode: "quick",
           draft_state: draftState(),
         }),
       },
@@ -690,11 +1625,13 @@ export function SceneWorkspace({
         ? ["kN/m", "kN/m2"]
         : ["kN"],
     );
+    const roofLoadsDisabled = conditionProfile.wind_semantics === "roof" && topCover === "none";
     const targeted = loadCases.filter(
       (item) =>
-        item.application_target === nodeId ||
+        !(roofLoadsDisabled && ["roof-finish", "roof-maintenance", "roof-snow"].includes(item.id)) &&
+        (item.application_target === nodeId ||
           item.application_target === "scene" ||
-          item.application_target === "all",
+          item.application_target === "all"),
     );
     const incomingReaction = graph.connections.find(
       (connection) =>
@@ -757,29 +1694,97 @@ export function SceneWorkspace({
             : [[targetInput, parameters[sceneParameter]]],
       ),
     );
-    const nextInputs = {
+    const geometryDrivenInputs = isParametricPergola && geometryProfile
+      ? {
+          span_m: Math.max(
+            ...geometryProfile.axes
+              .filter((axis) => axis.direction === "x")
+              .flatMap((axis) => axis.positions_m.slice(1).map((value, index) => value - axis.positions_m[index])),
+            0.1,
+          ),
+          frame_spacing_m: Math.max(
+            ...geometryProfile.axes
+              .filter((axis) => axis.direction === "y")
+              .flatMap((axis) => axis.positions_m.slice(1).map((value, index) => value - axis.positions_m[index])),
+            0.1,
+          ),
+          height_m: Math.max(...geometryProfile.nodes.map((item) => item.z_m), 0.1),
+          column_height_m: Math.max(...geometryProfile.nodes.map((item) => item.z_m), 0.1),
+          roof_slope_deg: roofGeometry === "flat" || roofGeometry === "custom_heights" ? 0 : roofSlopeDeg,
+        }
+      : {};
+    const nextInputs: Record<string, unknown> = {
       ...definition.defaults,
       ...Object.fromEntries(
         Object.entries(parameters).filter(([key]) => key in definition.defaults),
       ),
       ...boundInputs,
+      ...geometryDrivenInputs,
     };
-    if (calculationModule === "spread_footing" || calculationModule === "strip_footing") {
-      Object.assign(nextInputs, {
-        soil_capacity_kpa: bearingCapacity || 120,
-        groundwater_condition: groundwaterCondition,
-        groundwater_source: groundwaterSource,
-        soil_source:
-          mode === "professional" ? "项目勘察资料" : "方案快算显式假定",
-      });
-      if (
-        groundwaterCondition === "known_water_table" &&
-        waterTableDepth !== ""
-      ) {
-        nextInputs.water_table_depth_m = waterTableDepth;
-      } else {
-        delete nextInputs.water_table_depth_m;
+    const hiddenCriticalInputs: Record<string, string[]> = {
+      steel_beam: ["steel_grade", "section_type", "h_mm", "b_mm", "t_mm", "diameter_mm", "tw_mm", "tf_mm", "effective_length_m", "unbraced_length_m"],
+      steel_column: ["steel_grade", "section_type", "h_mm", "b_mm", "t_mm", "diameter_mm", "tw_mm", "tf_mm", "effective_length_m", "unbraced_length_m"],
+      portal_frame: ["steel_grade", "beam_h_mm", "beam_b_mm", "beam_t_mm", "column_b_mm", "column_t_mm", "beam_section", "column_section"],
+      spread_footing: ["length_m", "width_m", "thickness_mm", "embedment_m", "soil_capacity_kpa", "groundwater_depth_m", "water_table_depth_m"],
+      strip_footing: ["length_m", "width_m", "thickness_mm", "embedment_m", "soil_capacity_kpa", "groundwater_depth_m", "water_table_depth_m"],
+    };
+    hiddenCriticalInputs[calculationModule]?.forEach((key) => delete nextInputs[key]);
+    const memberSpecs = memberSpecifications.filter((item) => item.node_id === nodeId);
+    if (calculationModule === "steel_beam" || calculationModule === "steel_column") {
+      const specification = memberSpecs[0];
+      const section = availableSections.find((item) => item.id === specification?.section_catalog_id);
+      if (specification && section) {
+        Object.assign(nextInputs, section.dimensions, {
+          steel_grade: specification.material_grade,
+          section_type: section.family,
+          effective_length_m: specification.effective_length_m,
+          unbraced_length_m: specification.unbraced_length_m,
+        });
       }
+    }
+    if (calculationModule === "portal_frame") {
+      const beam = memberSpecs.find((item) => item.member_role === "beam");
+      const column = memberSpecs.find((item) => item.member_role === "column");
+      const beamSection = availableSections.find((item) => item.id === beam?.section_catalog_id);
+      const columnSection = availableSections.find((item) => item.id === column?.section_catalog_id);
+      if (beam && column && beamSection && columnSection) {
+        Object.assign(nextInputs, {
+          steel_grade: beam.material_grade,
+          beam_section: beamSection.family,
+          column_section: columnSection.family,
+          beam_h_mm: beamSection.dimensions.h_mm ?? beamSection.dimensions.b_mm,
+          beam_b_mm: beamSection.dimensions.b_mm,
+          beam_t_mm: beamSection.dimensions.t_mm ?? beamSection.dimensions.tw_mm,
+          column_b_mm: columnSection.dimensions.b_mm,
+          column_t_mm: columnSection.dimensions.t_mm ?? columnSection.dimensions.tw_mm,
+        });
+      }
+    }
+    if (calculationModule === "spread_footing" || calculationModule === "strip_footing") {
+      const foundation = foundationSpecifications.find((item) => item.node_id === nodeId);
+      if (foundation) {
+        Object.assign(nextInputs, {
+          length_m: foundation.length_m,
+          width_m: foundation.width_m,
+          thickness_mm: foundation.thickness_mm,
+          embedment_m: foundation.embedment_m,
+          soil_capacity_kpa: Number(bearingCapacity),
+          bar_dia_x_mm: foundation.reinforcement?.bottom_x_diameter_mm ?? foundation.bar_diameter_mm ?? 14,
+          bar_spacing_x_mm: foundation.reinforcement?.bottom_x_spacing_mm ?? foundation.bar_spacing_mm ?? 150,
+          bar_dia_y_mm: foundation.reinforcement?.bottom_y_diameter_mm ?? foundation.bar_diameter_mm ?? 14,
+          bar_spacing_y_mm: foundation.reinforcement?.bottom_y_spacing_mm ?? foundation.bar_spacing_mm ?? 150,
+        });
+      }
+    }
+    if (
+      conditionProfile.geotechnical_mode === "variant_owned" &&
+      calculationModule === "pile_group_cap" &&
+      parameters.allowable_bearing_kpa !== undefined
+    ) {
+      // Pool/bridge variants own their geotechnical inputs.  Do not add the
+      // generic foundation panel, while preserving the existing parameter for
+      // older graph bindings and revision replays.
+      nextInputs.capacity_source = "场景地基/桩基资料";
     }
     const targetLoads = loadCases.filter(
       (item) => item.application_target === nodeId,
@@ -825,11 +1830,11 @@ export function SceneWorkspace({
     return {
       node_id: nodeId,
       calculation: {
-        schema_version: "3.2",
+        schema_version: "3.3",
         mode,
         module: calculationModule,
         project_name: `${sceneTitle} · ${nodeId}`,
-        standard_profile: "CN-2026.1",
+        standard_profile: "CN-2026.6",
         typed_inputs: {
           module: calculationModule,
           values: typedValues,
@@ -841,6 +1846,9 @@ export function SceneWorkspace({
   }
 
   function validateSettings() {
+    if (geometryProfile && (geometryProfile.nodes.length > 200 || geometryProfile.members.length > 400)) {
+      return "当前三维轴网超过 200 个节点或 400 根杆件，请拆分为多个场景。";
+    }
     if (!loadCases.length) return "当前场景没有可用荷载包。";
     const invalidCustom = loadCases.find(
       (item) =>
@@ -868,7 +1876,7 @@ export function SceneWorkspace({
     if (missingOverride) {
       return `“${missingOverride.label}”覆盖了建议值，请填写调整原因。`;
     }
-    if (hasFoundation && mode === "professional") {
+    if (hasGenericFoundation && mode === "professional") {
       if (!bearingCapacity) {
         return "专业模式需要填写勘察承载力。";
       }
@@ -886,6 +1894,8 @@ export function SceneWorkspace({
     setWorking(true);
     setError("");
     try {
+      const structuralProfile = currentStructuralProfile();
+      if (!structuralProfile) throw new Error("构件与基础选型尚未完成");
       const saved = await saveDraft();
       const nodeCalculations = visibleNodes.flatMap((node) => {
         const calculationModule = node.calculation_module as Module | undefined;
@@ -901,6 +1911,7 @@ export function SceneWorkspace({
             scene_instance_id: saved.id,
             node_calculations: nodeCalculations,
             load_cases: loadCases,
+            structural_profile: structuralProfile,
           }),
         },
       );
@@ -994,10 +2005,10 @@ export function SceneWorkspace({
     if (stale) return "输入已修改，结果已过期";
     const status =
       revision.scene_result.engineering_status ?? revision.scene_result.status;
-    if (revision.scene_result.result_class === "quick_estimate") {
+    if (["quick_estimate", "scheme_estimate"].includes(revision.scene_result.result_class ?? "")) {
       return revision.scene_result.quick_outcome === "screening_failed"
-        ? "方案快算需调整"
-        : "方案快算已完成";
+        ? "方案筛查需调整"
+        : "方案筛查已完成";
     }
     if (status === "passed") return "当前输入和适用范围内通过";
     if (status === "failed") return "存在不满足项";
@@ -1059,26 +2070,6 @@ export function SceneWorkspace({
           <h1>{family.title}</h1>
           <p>{family.description}</p>
         </div>
-        <div className="inline-mode-switch" aria-label="场景计算模式">
-          <button
-            className={mode === "quick" ? "active" : ""}
-            onClick={() => {
-              setMode("quick");
-              markChanged(visibleNodes.map((node) => node.id));
-            }}
-          >
-            <Sparkles size={16} /> 方案快算
-          </button>
-          <button
-            className={mode === "professional" ? "active" : ""}
-            onClick={() => {
-              setMode("professional");
-              markChanged(visibleNodes.map((node) => node.id));
-            }}
-          >
-            专业计算
-          </button>
-        </div>
       </section>
 
       <nav className="scene-tabs" aria-label="场景工作台">
@@ -1108,7 +2099,7 @@ export function SceneWorkspace({
         </div>
       )}
 
-      <div className="scene-layout workbench-layout">
+      <div className={`scene-layout workbench-layout ${tab === "settings" && isParametricPergola ? "free-model-layout" : ""}`}>
         <section className="scene-workbench">
           {tab === "settings" ? (
             <div className="settings-stack">
@@ -1118,7 +2109,12 @@ export function SceneWorkspace({
                   <ChevronDown size={17} />
                 </summary>
                 <div className="settings-section-body">
-                  <div className="variant-grid compact-grid">
+                  {isParametricPergola ? (
+                    <div className="parametric-scene-intro">
+                      <strong>参数化亭廊模型</strong>
+                      <span>不再区分“平顶单跨、单坡、双坡、多跨”。轴网、柱高和屋面分区共同决定实际形态。</span>
+                    </div>
+                  ) : <div className="variant-grid compact-grid">
                     {family.variants.map((item) => {
                       const disabled = item.availability === "development";
                       return (
@@ -1134,7 +2130,7 @@ export function SceneWorkspace({
                         </button>
                       );
                     })}
-                  </div>
+                  </div>}
                   {variant && (
                     <div className="parameter-grid compact-parameters">
                       <label>
@@ -1163,14 +2159,92 @@ export function SceneWorkspace({
                 </div>
               </details>
 
+              {(memberSpecifications.length > 0 || foundationSpecifications.length > 0) && (
+                <details className="settings-section" open>
+                  <summary><span><strong>构件与基础选型</strong><small>所有关键规格均显式保存</small></span><ChevronDown size={17} /></summary>
+                  <div className="settings-section-body">
+                    {memberSpecifications.length > 0 && (
+                      <div className="custom-section-toolbar">
+                        <div><strong>截面目录</strong><span>标准规格与项目自定义截面统一用于自重、刚度和验算。</span></div>
+                        <button type="button" onClick={() => setCustomSectionOpen((value) => !value)}><Plus size={16} /> 新建自定义截面</button>
+                      </div>
+                    )}
+                    {customSectionOpen && (
+                      <div className="custom-section-editor">
+                        <div className="parameter-grid compact-parameters">
+                          <label><span>截面名称</span><input value={customSectionName} onChange={(event) => setCustomSectionName(event.target.value)} /></label>
+                          <label><span>截面类型</span><select value={customSectionFamily} onChange={(event) => { const next = event.target.value as "SHS" | "RHS" | "CHS" | "H" | "I"; setCustomSectionFamily(next); setCustomSectionDimensions(defaultCustomSectionDimensions(next)); }}><option value="SHS">方管 SHS</option><option value="RHS">矩形管 RHS</option><option value="CHS">圆管 CHS</option><option value="H">H型钢</option><option value="I">工字钢</option></select></label>
+                          {Object.entries(customSectionDimensions).map(([key, value]) => <label key={key}><span>{CUSTOM_SECTION_DIMENSION_LABELS[key] ?? key}</span><div className="input-with-unit"><input type="number" min="1" step="1" value={value} onChange={(event) => setCustomSectionDimensions((current) => ({ ...current, [key]: Number(event.target.value) }))} /><span>mm</span></div></label>)}
+                          {(customSectionFamily === "SHS" || customSectionFamily === "RHS") && <label><span>外圆角半径（可选）</span><div className="input-with-unit"><input type="number" min="0" step="0.5" value={customCornerRadius} placeholder="方案测算可留空" onChange={(event) => setCustomCornerRadius(event.target.value === "" ? "" : Number(event.target.value))} /><span>mm</span></div><small>留空按锐角理论截面；工程校核应采用产品或厂家截面性质。</small></label>}
+                        </div>
+                        {customSectionPreview ? <div className="custom-section-preview"><strong>实时计算结果</strong><span>A = {customSectionPreview.area_mm2.toFixed(2)} mm²</span><span>理论质量 = {customSectionPreview.theoretical_mass_kg_m?.toFixed(3)} kg/m</span><span>理论线重 = {customSectionPreview.self_weight_kn_m.toFixed(5)} kN/m</span><span>Iy / Iz = {customSectionPreview.iy_mm4.toExponential(3)} / {customSectionPreview.iz_mm4.toExponential(3)} mm⁴</span>{customSectionPreview.property_trace?.map((line) => <small key={line}>{line}</small>)}</div> : <div className="inline-error">尺寸组合无效，请检查外形尺寸与厚度。</div>}
+                        <div className="custom-section-actions"><span>面积、惯性矩、扭转常数和自重由后端按几何计算，不能手工伪造。</span><button type="button" disabled={working || !customSectionName.trim()} onClick={createCustomSection}>计算并加入项目截面库</button></div>
+                      </div>
+                    )}
+                    {memberSpecifications.map((specification, index) => (
+                      <div className="scene-climate-guide" key={`${specification.node_id}-${specification.member_role}`}>
+                        <div><strong>{visibleNodes.find((node) => node.id === specification.node_id)?.label} · {specification.member_role === "beam" ? "梁" : "柱"}</strong><span>目录推荐仅作为起始候选，利用率与控制项以计算结果为准。</span></div>
+                        <div className="parameter-grid compact-parameters">
+                          <label><span>钢材牌号</span><select value={specification.material_grade} onChange={(event) => setMemberSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, material_grade: event.target.value, selection_source: "user_locked", override_reason: "用户调整钢材牌号" } : item))}><option>Q235B</option><option>Q355B</option></select></label>
+                          <label><span>截面规格</span><select value={specification.section_catalog_id} onChange={(event) => { if (event.target.value === "__custom__") { setCustomSectionOpen(true); return; } const selected = availableSections.find((item) => item.id === event.target.value); if (!selected) return; setMemberSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, section_catalog_id: selected.id, section_type: selected.family as MemberSpecification["section_type"], section_name: selected.designation, selection_source: "user_locked", override_reason: "用户锁定截面规格" } : item)); }}><option value="">请选择</option>{availableSections.map((item) => <option key={item.id} value={item.id}>{item.designation} · {item.self_weight_kn_m} kN/m</option>)}<option value="__custom__">＋ 输入自定义尺寸与厚度</option></select><small>目录截面和自定义几何都会参与自重、刚度、位移及基础反力计算。</small></label>
+                          <label><span>计算长度</span><div className="input-with-unit"><input type="number" min="0.1" step="0.1" value={specification.effective_length_m} onChange={(event) => setMemberSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, effective_length_m: Number(event.target.value) } : item))} /><span>m</span></div></label>
+                          <label><span>无侧向支撑长度</span><div className="input-with-unit"><input type="number" min="0.1" step="0.1" value={specification.unbraced_length_m} onChange={(event) => setMemberSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, unbraced_length_m: Number(event.target.value) } : item))} /><span>m</span></div></label>
+                        </div>
+                        {customSections.find((item) => item.id === specification.section_catalog_id) && (() => { const section = customSections.find((item) => item.id === specification.section_catalog_id)!; return <details className="section-property-trace"><summary>查看截面计算依据</summary><dl><div><dt>面积 A</dt><dd>{section.area_mm2.toFixed(2)} mm²</dd></div><div><dt>理论质量</dt><dd>{section.theoretical_mass_kg_m?.toFixed(3) ?? "—"} kg/m</dd></div><div><dt>理论线重</dt><dd>{section.self_weight_kn_m.toFixed(5)} kN/m</dd></div><div><dt>Iy / Iz</dt><dd>{section.iy_mm4.toExponential(3)} / {section.iz_mm4.toExponential(3)} mm⁴</dd></div><div><dt>J</dt><dd>{section.torsion_mm4.toExponential(3)} mm⁴</dd></div><div><dt>iy / iz</dt><dd>{section.radius_y_mm?.toFixed(2) ?? "—"} / {section.radius_z_mm?.toFixed(2) ?? "—"} mm</dd></div></dl>{section.property_trace?.map((line) => <p key={line}>{line}</p>)}<small>{section.assumptions?.join("；")}</small></details>; })()}
+                      </div>
+                    ))}
+                    {foundationSpecifications.map((specification, index) => (
+                      <div className="scene-climate-guide" key={specification.node_id}>
+                        <div><strong>{visibleNodes.find((node) => node.id === specification.node_id)?.label} · {specification.foundation_system_id === "spread" ? "独立基础" : "条形基础"}</strong><span>尺寸为显式起始候选；不满足时返回失败，不自动切换桩基。</span></div>
+                        <div className="parameter-grid compact-parameters">
+                          {specification.foundation_system_id === "spread" && <label><span>基础形式</span><select value={specification.section_shape ?? "stepped"} onChange={(event) => { const shape = event.target.value as "prismatic" | "stepped" | "tapered"; setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, section_shape: shape, steps: shape === "stepped" ? (item.steps?.length ? item.steps : [{ length_m: Math.max(0.5, item.length_m - 0.6), width_m: Math.max(0.5, item.width_m - 0.6), height_mm: 250 }]) : [], tapered_top_length_m: shape === "tapered" ? (item.tapered_top_length_m ?? 0.6) : null, tapered_top_width_m: shape === "tapered" ? (item.tapered_top_width_m ?? 0.6) : null } : item)); }}><option value="stepped">阶形独立基础</option><option value="tapered">锥形独立基础</option><option value="prismatic">等厚独立基础</option></select></label>}
+                          <label><span>基础长</span><div className="input-with-unit"><input type="number" min="0.5" step="0.1" value={specification.length_m} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, length_m: Number(event.target.value), selection_source: "user_locked", override_reason: "用户调整基础尺寸" } : item))} /><span>m</span></div></label>
+                          <label><span>基础宽</span><div className="input-with-unit"><input type="number" min="0.5" step="0.1" value={specification.width_m} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, width_m: Number(event.target.value), selection_source: "user_locked", override_reason: "用户调整基础尺寸" } : item))} /><span>m</span></div></label>
+                          <label><span>基础厚度</span><div className="input-with-unit"><input type="number" min="200" step="50" value={specification.thickness_mm} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, thickness_mm: Number(event.target.value), selection_source: "user_locked", override_reason: "用户调整基础尺寸" } : item))} /><span>mm</span></div></label>
+                          <label><span>基础埋深</span><div className="input-with-unit"><input type="number" min="0" step="0.1" value={specification.embedment_m} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, embedment_m: Number(event.target.value), selection_source: "user_locked", override_reason: "用户调整基础埋深" } : item))} /><span>m</span></div></label>
+                          <label><span>混凝土等级</span><select value={specification.concrete_grade} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, concrete_grade: event.target.value } : item))}><option>C25</option><option>C30</option><option>C35</option><option>C40</option></select></label>
+                          <label><span>钢筋等级</span><select value={specification.rebar_grade} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, rebar_grade: event.target.value } : item))}><option>HRB400</option><option>HRB500</option></select></label>
+                          <label><span>X向底筋直径</span><div className="input-with-unit"><input type="number" min="6" max="40" step="1" value={specification.reinforcement?.bottom_x_diameter_mm ?? specification.bar_diameter_mm} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, bar_diameter_mm: Number(event.target.value), reinforcement: { bottom_x_diameter_mm: Number(event.target.value), bottom_x_spacing_mm: item.reinforcement?.bottom_x_spacing_mm ?? item.bar_spacing_mm, bottom_y_diameter_mm: item.reinforcement?.bottom_y_diameter_mm ?? item.bar_diameter_mm, bottom_y_spacing_mm: item.reinforcement?.bottom_y_spacing_mm ?? item.bar_spacing_mm } } : item))} /><span>mm</span></div></label>
+                          <label><span>X向底筋间距</span><div className="input-with-unit"><input type="number" min="50" max="400" step="10" value={specification.reinforcement?.bottom_x_spacing_mm ?? specification.bar_spacing_mm} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, bar_spacing_mm: Number(event.target.value), reinforcement: { bottom_x_diameter_mm: item.reinforcement?.bottom_x_diameter_mm ?? item.bar_diameter_mm, bottom_x_spacing_mm: Number(event.target.value), bottom_y_diameter_mm: item.reinforcement?.bottom_y_diameter_mm ?? item.bar_diameter_mm, bottom_y_spacing_mm: item.reinforcement?.bottom_y_spacing_mm ?? item.bar_spacing_mm } } : item))} /><span>mm</span></div></label>
+                          <label><span>Y向底筋直径</span><div className="input-with-unit"><input type="number" min="6" max="40" step="1" value={specification.reinforcement?.bottom_y_diameter_mm ?? specification.bar_diameter_mm} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, reinforcement: { bottom_x_diameter_mm: item.reinforcement?.bottom_x_diameter_mm ?? item.bar_diameter_mm, bottom_x_spacing_mm: item.reinforcement?.bottom_x_spacing_mm ?? item.bar_spacing_mm, bottom_y_diameter_mm: Number(event.target.value), bottom_y_spacing_mm: item.reinforcement?.bottom_y_spacing_mm ?? item.bar_spacing_mm } } : item))} /><span>mm</span></div></label>
+                          <label><span>Y向底筋间距</span><div className="input-with-unit"><input type="number" min="50" max="400" step="10" value={specification.reinforcement?.bottom_y_spacing_mm ?? specification.bar_spacing_mm} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, reinforcement: { bottom_x_diameter_mm: item.reinforcement?.bottom_x_diameter_mm ?? item.bar_diameter_mm, bottom_x_spacing_mm: item.reinforcement?.bottom_x_spacing_mm ?? item.bar_spacing_mm, bottom_y_diameter_mm: item.reinforcement?.bottom_y_diameter_mm ?? item.bar_diameter_mm, bottom_y_spacing_mm: Number(event.target.value) } } : item))} /><span>mm</span></div></label>
+                          {specification.foundation_system_id === "spread" && <label className="toggle-field"><span>钢筋混凝土短柱</span><button type="button" className={specification.pedestal?.enabled ? "toggle active" : "toggle"} aria-pressed={Boolean(specification.pedestal?.enabled)} onClick={() => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, pedestal: item.pedestal?.enabled ? { enabled: false } : { enabled: true, length_mm: 500, width_mm: 500, height_mm: 600, longitudinal_bar_count: 8, longitudinal_bar_diameter_mm: 16, stirrup_diameter_mm: 8, stirrup_spacing_mm: 150 } } : item))}><span /></button></label>}
+                          {specification.pedestal?.enabled && <><label><span>短柱截面</span><div className="input-with-unit"><input type="number" min="150" step="50" value={specification.pedestal.length_mm ?? 500} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, pedestal: { ...item.pedestal!, length_mm: Number(event.target.value), width_mm: Number(event.target.value) } } : item))} /><span>mm</span></div></label><label><span>短柱净高</span><div className="input-with-unit"><input type="number" min="100" step="50" value={specification.pedestal.height_mm ?? 600} onChange={(event) => setFoundationSpecifications((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, pedestal: { ...item.pedestal!, height_mm: Number(event.target.value) } } : item))} /><span>mm</span></div></label></>}
+                        </div>
+                      </div>
+                    ))}
+                    {hasGenericFoundation && <div className="boundary-note">联合基础、偏心基础＋拉梁为高级选型；整板/筏板仅面向规则池体或密集多柱。桩承台仅在有项目勘察和桩基资料时开放，当前不会自动切换。</div>}
+                  </div>
+                </details>
+              )}
+
               <details className="settings-section" open>
                 <summary>
                   <span><strong>尺寸、连接与支承</strong><small>几何参数和条件化地基</small></span>
                   <ChevronDown size={17} />
                 </summary>
                 <div className="settings-section-body">
+                  {family.id === "pergola-pavilion" && <div className="scene-climate-guide">
+                    <div><strong>亭廊几何生成器</strong><span>平顶、坡顶、多跨和不同柱高由同一组轴网与标高生成，不再切换场景分类。</span></div>
+                    <div className="geometry-preset-row" aria-label="亭廊几何快速起点">
+                      <button type="button" onClick={() => { setXBaySpans("4"); setYBaySpans("3"); setColumnHeights("3"); setOmittedColumns(""); setRoofGeometry("flat"); }}>规则单跨</button>
+                      <button type="button" onClick={() => { setXBaySpans("4,4,4"); setYBaySpans("3"); setColumnHeights("3"); setOmittedColumns(""); setRoofGeometry("flat"); }}>长廊多跨</button>
+                      <button type="button" onClick={() => { setXBaySpans("4,4"); setYBaySpans("3,3"); setColumnHeights("3"); setOmittedColumns("3-2,3-3"); setRoofGeometry("flat"); }}>L形平面</button>
+                    </div>
+                    <div className="parameter-grid compact-parameters">
+                      <label><span>X向各跨</span><input value={xBaySpans} onChange={(event) => setXBaySpans(event.target.value)} placeholder="例如 4,4,3.5" /><small>单位 m，逗号分隔；数量决定跨数</small></label>
+                      <label><span>Y向各跨</span><input value={yBaySpans} onChange={(event) => setYBaySpans(event.target.value)} placeholder="例如 3,3" /><small>单位 m，逗号分隔</small></label>
+                      <label><span>屋面几何</span><select value={roofGeometry} onChange={(event) => setRoofGeometry(event.target.value as typeof roofGeometry)}><option value="flat">平面屋盖</option><option value="single_slope">单坡屋盖</option><option value="double_slope">双坡屋盖</option><option value="custom_heights">逐柱控制标高</option></select></label>
+                      {(roofGeometry === "single_slope" || roofGeometry === "double_slope") && <label><span>屋面坡度</span><div className="input-with-unit"><input type="number" min="0.5" max="45" step="0.5" value={roofSlopeDeg} onChange={(event) => setRoofSlopeDeg(Number(event.target.value))} /><span>°</span></div></label>}
+                      {(roofGeometry === "single_slope" || roofGeometry === "double_slope") && <label><span>出坡方向角</span><div className="input-with-unit"><input type="number" min="-360" max="360" step="5" value={roofDirectionDeg} onChange={(event) => setRoofDirectionDeg(Number(event.target.value))} /><span>°</span></div><small>0° 为 +X，90° 为 +Y；修改方向不改变平面边界和构件编号。</small></label>}
+                      <label><span>{roofGeometry === "custom_heights" ? "各柱顶标高" : "檐口/基准柱高"}</span><input value={columnHeights} onChange={(event) => setColumnHeights(event.target.value)} placeholder={roofGeometry === "custom_heights" ? "例如 3,3.2,3.5" : "例如 3"} /><small>{roofGeometry === "custom_heights" ? "按 X 后 Y 顺序，不足时沿用最后一个值" : "单位 m；坡度由软件生成其他柱顶标高"}</small></label>
+                      <label><span>移除柱位置</span><input value={omittedColumns} onChange={(event) => setOmittedColumns(event.target.value)} placeholder="例如 2-1,3-2" /><small>只移除柱、柱脚支承和基础；屋面节点与钢梁保持不变。</small></label>
+                    </div>
+                    {geometryProfile && <div className="boundary-note">当前模型：{geometryProfile.nodes.length} 个节点、{geometryProfile.members.length} 根杆件、{geometryProfile.roof_surfaces.length} 个屋面分区。上限为 200 节点 / 400 杆件。</div>}
+                    {geometryProfile && <div className="boundary-note">二维编辑器与三维模型固定显示在工作台右侧；修改这里的轴网参数会重新生成起始模型。</div>}
+                  </div>}
                   <div className="parameter-grid">
-                    {variant?.parameters.map((parameter) => (
+                    {visibleParameters.map((parameter) => (
                       <label key={parameter.key}>
                         <span>{parameter.label}</span>
                         {parameter.value_type === "choice" ? (
@@ -1209,120 +2283,28 @@ export function SceneWorkspace({
                         )}
                       </label>
                     ))}
-                    {hasFoundation && (
+                    {hasGenericFoundation && (
                       <>
-                        <label>
-                          <span>基础策略</span>
-                          <select
-                            value={foundationType}
-                            onChange={(event) => {
-                              setFoundationType(event.target.value);
-                              markChanged(
-                                visibleNodes
-                                  .filter((node) => node.role === "foundation")
-                                  .map((node) => node.id),
-                              );
-                            }}
-                          >
-                            {foundationModules.has("spread_footing") && (
-                              <option>独立基础</option>
-                            )}
-                            {foundationModules.has("strip_footing") && (
-                              <option>条形基础</option>
-                            )}
-                          </select>
-                        </label>
-                        <label>
-                          <span>地基承载力特征值</span>
-                          <div className="input-with-unit">
-                            <input
-                              type="number"
-                              placeholder={mode === "quick" ? "快算可暂按 120" : "请输入勘察值"}
-                              value={bearingCapacity}
-                              onChange={(event) => {
-                                setBearingCapacity(
-                                  event.target.value ? Number(event.target.value) : "",
-                                );
-                                markChanged(
-                                  visibleNodes
-                                    .filter((node) => node.role === "foundation")
-                                    .map((node) => node.id),
-                                );
-                              }}
-                            />
-                            <span>kPa</span>
-                          </div>
-                          {!bearingCapacity && mode === "quick" && (
-                            <small>未填写时采用显式方案假定 120 kPa，并写入报告。</small>
-                          )}
-                        </label>
-                        <label>
-                          <span>地下水条件</span>
-                          <select
-                            value={groundwaterCondition}
-                            onChange={(event) => {
-                              setGroundwaterCondition(
-                                event.target.value as GroundwaterCondition,
-                              );
-                              markChanged(
-                                visibleNodes
-                                  .filter((node) => node.role === "foundation")
-                                  .map((node) => node.id),
-                              );
-                            }}
-                          >
-                            <option value="no_influence">无地下水影响</option>
-                            <option value="known_water_table">已知水位</option>
-                            <option value="unknown">水位未知</option>
-                          </select>
-                        </label>
-                        {groundwaterCondition === "known_water_table" && (
-                          <label>
-                            <span>地下水位埋深</span>
-                            <div className="input-with-unit">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.1"
-                                value={waterTableDepth}
-                                onChange={(event) => {
-                                  setWaterTableDepth(
-                                    event.target.value
-                                      ? Number(event.target.value)
-                                      : "",
-                                  );
-                                  markChanged(
-                                    visibleNodes
-                                      .filter((node) => node.role === "foundation")
-                                      .map((node) => node.id),
-                                  );
-                                }}
-                              />
-                              <span>m</span>
-                            </div>
-                          </label>
-                        )}
-                        <label>
-                          <span>地下水资料来源</span>
-                          <input
-                            value={groundwaterSource}
-                            placeholder="勘察报告、水位记录或无影响依据"
-                            onChange={(event) => {
-                              setGroundwaterSource(event.target.value);
-                              markChanged(
-                                visibleNodes
-                                  .filter((node) => node.role === "foundation")
-                                  .map((node) => node.id),
-                              );
-                            }}
-                          />
-                        </label>
+                        <label><span>结果阶段</span><select value={designStage} onChange={(event) => setDesignStage(event.target.value as DesignStage)}><option value="scheme_estimate">方案测算（区域参考）</option><option value="project_check">工程校核（勘察资料）</option></select></label>
+                        {designStage === "scheme_estimate" && <label><span>区域土质参考档</span><select value={soilHintId} onChange={(event) => { const value = event.target.value; setSoilHintId(value); const presets: Record<string, [string, number]> = { "zj-coastal-soft-clay": ["软塑至流塑黏性土", 60], "zj-inland-alluvial": ["可塑黏性土或中密粉土", 100], "zj-mountain-residual": ["可塑至硬塑残积土", 160] }; const preset = presets[value]; if (preset) { setSoilClass(preset[0]); setBearingCapacity(preset[1]); setBearingSource("浙江区域参考档，用户已确认现场土质类别"); } }}><option value="zj-coastal-soft-clay">浙江沿海平原—软黏土参考档</option><option value="zj-inland-alluvial">浙江内陆平原—一般黏性土参考档</option><option value="zj-mountain-residual">浙江山地丘陵—残积土参考档</option></select></label>}
+                        <label><span>现场确认土质类型</span><input value={soilClass} onChange={(event) => setSoilClass(event.target.value)} /></label>
+                        <label><span>地基承载力特征值<HelpTip term="地基承载力" what="地基在正常使用条件下允许采用的承载能力。" adopted="方案阶段采用已确认土质档的保守参考值；工程校核采用勘察值。" changeWhen="取得项目岩土勘察报告或现场土质与参考档不符时。" /></span><div className="input-with-unit"><input aria-label="地基承载力特征值" type="number" min="1" value={bearingCapacity} onChange={(event) => setBearingCapacity(event.target.value ? Number(event.target.value) : "")} /><span>kPa</span></div></label>
+                        <label><span>承载力资料来源</span><input value={bearingSource} onChange={(event) => setBearingSource(event.target.value)} /></label>
+                        <label><span>地下水条件<HelpTip term="地下水" what="影响基础有效自重、浮力和土压力的设计水位边界。" adopted="按相对场地 ±0.000 的标高分别记录施工、使用和抗浮水位。" changeWhen="取得勘察、季节最高水位或运营控制水位资料时。" /></span><select aria-label="地下水条件" value={groundwaterCondition} onChange={(event) => setGroundwaterCondition(event.target.value as GroundwaterCondition)}><option value="unknown">尚未确认</option><option value="no_influence">有资料证明无影响</option><option value="known_water_table">已知三个设计水位</option></select></label>
+                        {groundwaterCondition === "known_water_table" && <><label><span>施工期水位标高</span><div className="input-with-unit"><input type="number" step="0.1" value={constructionWaterLevel} onChange={(event) => setConstructionWaterLevel(event.target.value === "" ? "" : Number(event.target.value))} /><span>m</span></div></label><label><span>正常使用水位标高</span><div className="input-with-unit"><input type="number" step="0.1" value={serviceWaterLevel} onChange={(event) => setServiceWaterLevel(event.target.value === "" ? "" : Number(event.target.value))} /><span>m</span></div></label><label><span>抗浮设计水位标高</span><div className="input-with-unit"><input type="number" step="0.1" value={antifloatWaterLevel} onChange={(event) => setAntifloatWaterLevel(event.target.value === "" ? "" : Number(event.target.value))} /><span>m</span></div></label></>}
+                        <label><span>地下水资料来源</span><input value={groundwaterSource} placeholder="勘察报告、水位记录或无影响依据" onChange={(event) => setGroundwaterSource(event.target.value)} /></label>
+                        {designStage === "project_check" && <><label><span>勘察报告名称</span><input value={geotechnicalReportName} onChange={(event) => setGeotechnicalReportName(event.target.value)} /></label><label><span>报告日期</span><input type="date" value={geotechnicalReportDate} onChange={(event) => setGeotechnicalReportDate(event.target.value)} /></label><label><span>变形模量</span><div className="input-with-unit"><input type="number" min="0.1" step="0.1" value={deformationModulus} onChange={(event) => setDeformationModulus(event.target.value === "" ? "" : Number(event.target.value))} /><span>MPa</span></div></label></>}
                       </>
                     )}
                   </div>
-                  {!hasFoundation && (
+                  {!hasGenericFoundation && conditionProfile.geotechnical_mode === "generic" && (
                     <div className="boundary-note success-note">
                       当前变体通过墙体预埋件与锚筋支承，不需要基础或地勘输入。
+                    </div>
+                  )}
+                  {conditionProfile.geotechnical_mode === "variant_owned" && (
+                    <div className="boundary-note success-note">
+                      当前场景的土、水、抗浮和地基参数已在本场景专属输入中设置，不重复显示通用基础面板。
                     </div>
                   )}
                 </div>
@@ -1334,61 +2316,81 @@ export function SceneWorkspace({
                   <ChevronDown size={17} />
                 </summary>
                 <div className="settings-section-body">
-                  {loadCases.some(
-                    (item) =>
-                      item.value_type === "calculated" &&
-                      (item.kind === "wind" || item.kind === "snow"),
-                  ) && (
-                    <div className="scene-climate-guide">
-                      <div>
-                        <strong>风雪荷载向导</strong>
-                        <span>基本值必须来自已复核目录，最终值仍需确认系数。</span>
+                    {(hasConditions || conditionProfile.wind === "optional") && (
+                      <div className="scene-climate-guide">
+                        <div>
+                          <strong>统一项目条件向导</strong>
+                          <span>仅显示当前场景需要的地区、气象和地震条件；自动值会随修订一并留存。</span>
+                        </div>
+                        {needsWind && (
+                          <div className="parameter-grid compact-parameters">
+                            <label><span>竖向围护</span><select value={verticalEnclosure} onChange={(event) => setVerticalEnclosure(event.target.value as typeof verticalEnclosure)}><option value="none">无围护</option><option value="open_members">格栅/杆件</option><option value="perforated_panel">穿孔板</option><option value="solid_panel">实体面板</option></select></label>
+                            {(verticalEnclosure === "open_members" || verticalEnclosure === "perforated_panel") && <label><span>竖向开孔率</span><div className="input-with-unit"><input type="number" min="0" max="1" step="0.05" value={verticalOpenRatio} onChange={(event) => setVerticalOpenRatio(event.target.value === "" ? "" : Number(event.target.value))} /><span>0–1</span></div></label>}
+                            <label><span>顶部覆盖</span><select value={topCover} onChange={(event) => setTopCover(event.target.value as typeof topCover)}><option value="none">无顶部覆盖</option><option value="louver_grid">百叶/格栅</option><option value="permeable_cover">透水覆盖</option><option value="solid_roof">实体屋盖</option></select></label>
+                            {topCover !== "none" && <label><span>屋面构造</span><select value={roofAssemblyId} onChange={(event) => setRoofAssemblyId(event.target.value)}>{roofAssemblies.filter((item) => item.id !== "none").map((item) => <option key={item.id} value={item.id}>{item.title} · {item.total_dead_load_kn_m2} kN/m²</option>)}</select><small>{roofAssemblies.find((item) => item.id === roofAssemblyId)?.source_reference}</small></label>}
+                            {(topCover === "louver_grid" || topCover === "permeable_cover") && <label><span>顶部开孔率</span><div className="input-with-unit"><input type="number" min="0" max="1" step="0.05" value={topOpenRatio} onChange={(event) => setTopOpenRatio(event.target.value === "" ? "" : Number(event.target.value))} /><span>0–1</span></div></label>}
+                          </div>
+                        )}
+                        {conditionProfile.wind === "optional" && (
+                          <label className="toggle-field">
+                            <span>施工阶段临时风工况</span>
+                            <button
+                              type="button"
+                              className={optionalWindEnabled ? "toggle active" : "toggle"}
+                              aria-pressed={optionalWindEnabled}
+                              onClick={() => setOptionalWindEnabled((value) => !value)}
+                            ><span /></button>
+                          </label>
+                        )}
+                        <div className="climate-guide-grid">
+                          {(needsWind || needsSnow) && <>
+                            <label>
+                              <span>地区档</span>
+                              <select value={climateLocationId} onChange={(event) => setClimateLocationId(event.target.value as ClimateRegionId)}>
+                                {(climateCatalog?.items ?? []).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                              </select>
+                              {selectedClimate && selectedClimate.station_scope.length > 0 && <small>站点范围：{selectedClimate.station_scope.join("、")}</small>}
+                            </label>
+                            <label>
+                              <span>重现期<HelpTip term="重现期" what="统计意义上某一荷载水平平均再次出现的时间。" adopted="默认采用 50 年，并从所选地区档读取对应基本值。" changeWhen="项目任务书或当地资料明确要求 10 年或 100 年时。" /></span>
+                              <select value={recurrence} onChange={(event) => setRecurrence(event.target.value as "10" | "50" | "100")}>
+                                <option value="10">10 年</option><option value="50">50 年（默认）</option><option value="100">100 年</option>
+                              </select>
+                            </label>
+                          </>}
+                          {climateLocationId === "manual" && needsWind && <label><span>基本风压 (kPa)<HelpTip term="基本风压" what="项目所在地规范站点给出的基准风作用。" adopted="与环境和场景自动形态系数相乘。" changeWhen="使用项目所在地正式资料或专项风环境成果时。" /></span><input type="number" min="0.01" step="0.01" value={manualWind} onChange={(event) => setManualWind(event.target.value === "" ? "" : Number(event.target.value))} /></label>}
+                          {climateLocationId === "manual" && needsSnow && <label><span>基本雪压 (kPa)</span><input type="number" min="0" step="0.01" value={manualSnow} onChange={(event) => setManualSnow(event.target.value === "" ? "" : Number(event.target.value))} /></label>}
+                          {climateLocationId === "manual" && (needsWind || needsSnow) && <label><span>资料来源</span><input value={manualClimateSource} onChange={(event) => setManualClimateSource(event.target.value)} placeholder="资料名称、页码或条款" /></label>}
+                          {needsWind && <label>
+                            <span>环境类型<HelpTip term="地面粗糙度" what="周边地表对近地风速的影响类别。" adopted="转成自动高度/地形系数，不要求直接填写系数。" changeWhen="项目位于海岸、密集城区或地貌与默认值明显不同。" /></span>
+                            <select value={terrainCategory} onChange={(event) => setTerrainCategory(event.target.value as "A" | "B" | "C" | "D")}><option value="A">开阔海岸</option><option value="B">乡村 / 郊野</option><option value="C">一般城市</option><option value="D">密集城区</option></select>
+                          </label>}
+                          {needsSnow && conditionProfile.snow_semantics === "exposed_horizontal" && <label>
+                            <span>露天积雪是否适用</span>
+                            <select value={snowExposure} onChange={(event) => setSnowExposure(event.target.value as SnowExposure)}><option value="exposed">适用露天积雪规则</option><option value="not_applicable">本项目不计积雪</option></select>
+                          </label>}
+                          {needsSnow && snowExposure === "not_applicable" && <label><span>不计积雪依据</span><input value={snowExemptionReason} onChange={(event) => setSnowExemptionReason(event.target.value)} placeholder="项目所在地资料、任务书或专项说明" /></label>}
+                          {needsSeismic && <label>
+                            <span>地震烈度 / 设计基本加速度<HelpTip term="设防烈度" what="项目所在地抗震设防要求，与设计基本加速度成对使用。" adopted="按所选档生成正负 X/Y 等效水平地震作用。" changeWhen="以项目抗震设防资料或当地主管部门要求为准。" /></span>
+                            <select aria-label="地震烈度与设计基本加速度" value={seismicLevel} onChange={(event) => setSeismicLevel(event.target.value as SeismicLevel | "")}><option value="">请选择（必填）</option>{(seismicCatalog?.items ?? []).map((item) => <option key={item.level} value={item.level}>{item.intensity}度 / {item.design_acceleration_g.toFixed(2)}g</option>)}</select>
+                          </label>}
+                        </div>
+                        {(needsWind || needsSnow) && <div className="boundary-note success-note">
+                          基本值 {selectedClimate && climateLocationId !== "manual" ? `${needsWind ? `风 ${selectedClimate.wind_kpa[recurrence]} kPa` : ""}${needsWind && needsSnow ? " / " : ""}${needsSnow ? `雪 ${selectedClimate.snow_kpa[recurrence]} kPa` : ""}` : "待填写"}
+                          {needsWind && ` → 风系数 ${semanticFactors.heightFactor}×${semanticFactors.windShape}`}
+                          {needsSnow && snowExposure === "exposed" && ` → 积雪系数 ${semanticFactors.snowShape}`}
+                          → 最终采用值写入下方荷载与报告
+                        </div>}
+                        {(needsWind || needsSnow) && <button type="button" className="secondary-button" onClick={() => setAdvancedClimateOpen((value) => !value)} aria-expanded={advancedClimateOpen}>高级参数</button>}
+                        {advancedClimateOpen && (needsWind || needsSnow) && <div className="climate-guide-grid">
+                          {needsWind && <label><span>高度系数覆盖值</span><input type="number" min="0.01" step="0.05" value={heightFactorOverride} onChange={(event) => setHeightFactorOverride(event.target.value === "" ? "" : Number(event.target.value))} /></label>}
+                          {needsWind && <label><span>体型系数覆盖值<HelpTip term="体型系数" what="构筑物外形对局部风作用的放大或减小影响。" adopted="按当前场景的屋盖、面板或构架类型自动取值。" changeWhen="已有专项风洞、产品资料或明确规范取值时。" /></span><input type="number" min="0.01" step="0.05" value={shapeFactorOverride} onChange={(event) => setShapeFactorOverride(event.target.value === "" ? "" : Number(event.target.value))} /></label>}
+                          {needsSnow && <label><span>积雪系数覆盖值<HelpTip term="积雪系数" what="屋面或露天水平面上积雪分布的换算系数。" adopted="按场景屋面形式或露天水平面规则自动取值。" changeWhen="屋面构造、积雪易堆积部位或专项资料明确不同取值时。" /></span><input type="number" min="0.01" step="0.05" value={snowFactorOverride} onChange={(event) => setSnowFactorOverride(event.target.value === "" ? "" : Number(event.target.value))} /></label>}
+                          <label><span>覆盖原因</span><input value={factorOverrideReason} onChange={(event) => setFactorOverrideReason(event.target.value)} /></label>
+                        </div>}
+                        {(needsWind || needsSnow) && <div className="boundary-note success-note">{climateInputsReady ? "荷载已随地区、屋面、坡度和高度自动更新" : "待填写完整地区、屋面或气象资料后自动计算；未完成值不会作为零荷载参与计算"}</div>}
                       </div>
-                      <div className="climate-guide-grid">
-                        <label>
-                          <span>城市 / 气象站</span>
-                          <select
-                            value={climateLocationId}
-                            onChange={(event) => setClimateLocationId(event.target.value)}
-                          >
-                            {(climateCatalog?.items ?? []).map((item) => (
-                              <option key={item.id} value={item.id}>
-                                {item.province} · {item.city} · {item.station}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label>
-                          <span>重现期</span>
-                          <select
-                            value={recurrence}
-                            onChange={(event) =>
-                              setRecurrence(event.target.value as "10" | "50" | "100")
-                            }
-                          >
-                            <option value="10">10 年</option>
-                            <option value="50">50 年</option>
-                            <option value="100">100 年</option>
-                          </select>
-                        </label>
-                        <label>
-                          <span>风压高度变化系数</span>
-                          <input type="number" step="0.05" min="0" value={heightFactor} onChange={(event) => setHeightFactor(Number(event.target.value))} />
-                        </label>
-                        <label>
-                          <span>风荷载体型系数</span>
-                          <input type="number" step="0.05" value={shapeFactor} onChange={(event) => setShapeFactor(Number(event.target.value))} />
-                        </label>
-                        <label>
-                          <span>屋面积雪分布系数</span>
-                          <input type="number" step="0.05" min="0" value={snowRoofFactor} onChange={(event) => setSnowRoofFactor(Number(event.target.value))} />
-                        </label>
-                        <button className="secondary-button" onClick={applyClimateGuide}>
-                          计算并写入采用值
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                    )}
                   <div className="scene-load-table">
                     {loadCases.map((item, index) => (
                       <article className="scene-load-card" key={item.id}>
@@ -1398,47 +2400,15 @@ export function SceneWorkspace({
                             <span>{loadRange(item)} · {item.application_target}</span>
                           </div>
                         </div>
-                        {item.kind === "snow" && (
-                          <button
-                            type="button"
-                            className="load-na-button"
-                            aria-pressed={item.notes?.startsWith("不适用：") ?? false}
-                            onClick={() =>
-                              updateLoadCase(index, {
-                                value_type: "project_defined",
-                                adopted_value: 0,
-                                project_source: "",
-                                source_reference: "",
-                                notes: "不适用：请填写项目所在地或专项资料依据",
-                              })
-                            }
-                          >
-                            本项目雪荷载不适用
-                          </button>
-                        )}
                         <div className="load-card-fields">
                           <label>
                             <span>最终采用值</span>
                             <div className="input-with-unit">
-                              <input
-                                type="number"
-                                step="any"
-                                value={item.adopted_value}
-                                onChange={(event) => {
-                                  const adopted = Number(event.target.value);
-                                  updateLoadCase(index, {
-                                    adopted_value: adopted,
-                                    override_reason:
-                                      adopted !== item.recommended_default
-                                        ? item.override_reason
-                                        : undefined,
-                                  });
-                                }}
-                              />
+                              <input type="number" step="any" value={item.value_type === "calculated" && (item.kind === "wind" || item.kind === "snow") && !climateInputsReady ? "" : item.adopted_value} placeholder={item.value_type === "calculated" && !climateInputsReady ? "待完成条件" : undefined} readOnly={item.value_type === "calculated"} onChange={(event) => { const adopted = Number(event.target.value); updateLoadCase(index, { adopted_value: adopted, override_reason: adopted !== item.recommended_default ? item.override_reason : undefined }); }} />
                               <span>{item.unit}</span>
                             </div>
                           </label>
-                          <label>
+                          {item.value_type === "project_defined" ? <label>
                             <span>方向</span>
                             <select
                               value={item.direction ?? "gravity"}
@@ -1467,7 +2437,7 @@ export function SceneWorkspace({
                               <option value="y_positive">Y 正向</option>
                               <option value="y_negative">Y 负向</option>
                             </select>
-                          </label>
+                          </label> : <div className="boundary-note">方向工况由后台自动生成并取控制包络，普通界面无需选择。</div>}
                         </div>
                         <p>{item.source_reference || "来源待填写"} · {item.applicable_when}</p>
                         {item.value_type !== "project_defined" &&
@@ -1657,7 +2627,7 @@ export function SceneWorkspace({
                   <strong>{resultTitle()}</strong>
                   <span>
                     {revision
-                      ? `${revision.scene_result.completed_nodes}/${revision.scene_result.total_required_nodes} 个必选节点 · ${revision.scene_result.result_class === "professional_check" ? "专业检查" : "方案快算"}`
+                      ? `${revision.scene_result.completed_nodes}/${revision.scene_result.total_required_nodes} 个必选节点 · ${revision.scene_result.result_class === "professional_check" ? "历史专业记录" : "方案筛查"}`
                       : "完成设置后即可生成可追溯修订"}
                   </span>
                 </div>
@@ -1699,6 +2669,18 @@ export function SceneWorkspace({
                       <p key={warning}><AlertTriangle size={15} />{warning}</p>
                     ))}
                   </div>
+                  {revision.scene_result.space_frame_analysis && (
+                    <div className="space-frame-result-card">
+                      <div><strong>三维杆系分析</strong><span>{revision.scene_result.space_frame_analysis.solver} · 未独立验证</span></div>
+                      <dl>
+                        <div><dt>模型规模</dt><dd>{revision.scene_result.space_frame_analysis.node_count} 节点 / {revision.scene_result.space_frame_analysis.member_count} 杆件</dd></div>
+                        <div><dt>屋面面积</dt><dd>{revision.scene_result.space_frame_analysis.roof_area_m2.toFixed(2)} m²</dd></div>
+                        <div><dt>最大空间位移</dt><dd>{revision.scene_result.space_frame_analysis.maximum_translation_mm.toFixed(3)} mm</dd></div>
+                        <div><dt>支座反力组</dt><dd>{Object.keys(revision.scene_result.space_frame_analysis.support_reactions).length} 组</dd></div>
+                      </dl>
+                      <p>{revision.scene_result.space_frame_analysis.load_scope}</p>
+                    </div>
+                  )}
                   {instanceRevisions[instance?.id ?? -1]?.length > 1 && (
                     <label className="revision-selector">
                       <span>查看历史修订</span>
@@ -1733,6 +2715,10 @@ export function SceneWorkspace({
                     </article>
                     <article>
                       <h3>控制组合与反力</h3>
+                      {revision.scene_result.seismic_action_package && <>
+                        <div className="result-data-row"><span>地震设计状况 · G_eq</span><strong>{revision.scene_result.seismic_action_package.gravity_representative_value_kn.toFixed(3)} kN</strong></div>
+                        <div className="result-data-row"><span>±X / ±Y 等效地震作用</span><strong>±{revision.scene_result.seismic_action_package.f_ek_kn.toFixed(3)} kN</strong></div>
+                      </>}
                       {Object.entries(revision.result_bundle).flatMap(([nodeId, result]) => [
                         ...result.combinations.slice(0, 2).map((combination) => ({
                           key: `${nodeId}-${combination.name}`,
@@ -1826,7 +2812,66 @@ export function SceneWorkspace({
           </div>
         </section>
 
+        {tab === "settings" && isParametricPergola && geometryProfile && (
+          <aside className="plan-editor-panel" aria-label="二维结构编辑器">
+            <div className="model-panel-heading">
+              <div><span className="eyebrow">PLAN EDITOR</span><h2>二维精确编辑</h2></div>
+              <span>{geometryProfile.nodes.length} 节点 · {geometryProfile.members.length} 杆件</span>
+            </div>
+            <PlanModelEditor
+              geometry={geometryProfile}
+              selected={modelSelection}
+              onSelectedChange={setModelSelection}
+              onChange={(next) => { setGeometryOverride(next); markChanged(visibleNodes.map((node) => node.id)); }}
+              onMessage={setModelMessage}
+            />
+            <p className="model-editor-message" role="status">{modelMessage}</p>
+          </aside>
+        )}
+
         <aside className="load-path-panel desktop-load-path">
+          {tab === "settings" && isParametricPergola && geometryProfile && (
+            <div className="model-inspector-stack">
+              <div className="load-path-heading">
+                <div><span className="eyebrow">LIVE MODEL</span><h2>三维模型与属性</h2></div>
+              </div>
+              <SceneModelPreview
+                geometry={geometryProfile}
+                foundation={foundationSpecifications[0] ?? null}
+                selectedMemberId={selectedModelMember?.id ?? null}
+                onSelectMember={(id) => setModelSelection(id ? { kind: "member", id } : null)}
+              />
+              {selectedModelMember ? (
+                <div className="selected-member-card">
+                  <strong>{selectedModelMember.id} · {selectedModelMember.role}</strong>
+                  <dl>
+                    <div><dt>连接节点</dt><dd>{selectedModelMember.start_node_id} → {selectedModelMember.end_node_id}</dd></div>
+                    <div><dt>实际长度</dt><dd>{selectedMemberLength?.toFixed(3) ?? "—"} m</dd></div>
+                    <div><dt>构件组</dt><dd>{selectedModelMember.group_id}</dd></div>
+                  </dl>
+                  <label>
+                    <span>截面分配</span>
+                    <select
+                      value={memberSectionOverrides[selectedModelMember.id] || memberGroupSections[selectedModelMember.group_id] || ""}
+                      onChange={(event) => {
+                        if (event.target.value === "__custom__") { setCustomSectionOpen(true); return; }
+                        setMemberSectionOverrides((current) => ({ ...current, [selectedModelMember.id]: event.target.value }));
+                        markChanged(visibleNodes.map((node) => node.id));
+                      }}
+                    >
+                      <option value="">继承构件组</option>
+                      {availableSections.map((item) => <option key={item.id} value={item.id}>{item.designation}</option>)}
+                      <option value="__custom__">＋ 输入自定义截面</option>
+                    </select>
+                  </label>
+                  <div className="member-scope-actions">
+                    <button type="button" onClick={() => setMemberSectionOverrides((current) => { const next = { ...current }; delete next[selectedModelMember.id]; return next; })}>继承构件组</button>
+                    <button type="button" disabled={!memberSectionOverrides[selectedModelMember.id]} onClick={() => { const sectionId = memberSectionOverrides[selectedModelMember.id]; if (!sectionId) return; setMemberGroupSections((current) => ({ ...current, [selectedModelMember.group_id]: sectionId })); setMemberSectionOverrides((current) => { const next = { ...current }; delete next[selectedModelMember.id]; return next; }); }}>应用到构件组</button>
+                  </div>
+                </div>
+              ) : <div className="boundary-note">在二维或三维图中选择梁柱，规格和选择状态会同步。</div>}
+            </div>
+          )}
           <div className="load-path-heading">
             <div><span className="eyebrow">LOAD PATH</span><h2>当前传力链</h2></div>
             <span>{visibleNodes.length}</span>

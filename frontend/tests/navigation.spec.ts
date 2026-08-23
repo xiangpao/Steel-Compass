@@ -165,6 +165,29 @@ const families = [
     boundaries: ["墙体基材需专项复核"],
   },
   {
+    id: "boardwalk-platform",
+    title: "栈道 / 平台",
+    description: "露天平台使用荷载与支承。",
+    icon: "platform",
+    maturity: "beta",
+    availability: "public",
+    default_variant_id: "straight",
+    variants: [{
+      id: "straight",
+      title: "直线栈道",
+      description: "露天水平面。",
+      availability: "public",
+      support_system: "column_supported",
+      material_systems: ["木面板+钢构"],
+      condition_profile: { wind: "not_applicable", snow: "required", seismic: "required", wind_semantics: "not_applicable", snow_semantics: "exposed_horizontal", height_parameter_keys: [], geotechnical_mode: "generic" },
+      parameters: [{ key: "main_span_m", label: "主梁跨度", value_type: "number", unit: "m", default: 3, options: [], required: true }],
+      graph_template: pergolaGraph,
+      load_package: { ...pergolaLoads, id: "boardwalk-loads", title: "栈道荷载包", items: [{ ...pergolaLoads.items[0], id: "boardwalk-snow", label: "栈道积雪作用", kind: "snow", value_type: "calculated", adopted_value: 0.3 }] },
+    }],
+    graph_template: pergolaGraph,
+    boundaries: [],
+  },
+  {
     id: "water-feature-pool",
     title: "水景池体",
     description: "水池与抗浮。",
@@ -203,6 +226,7 @@ async function mockWorkspace(page: Page) {
     return route.fulfill({ json: baseInstance });
   });
   await page.route("**/api/v2/projects/9/scene-instances/11", (route) => route.fulfill({ json: baseInstance }));
+  await page.route("**/api/v2/projects/9/site-profile", (route) => route.fulfill({ json: {} }));
   await page.route("**/api/v2/projects/9/scene-instances/11/duplicate", (route) => {
     instances = [copiedInstance, baseInstance];
     return route.fulfill({ json: copiedInstance });
@@ -223,6 +247,15 @@ async function mockWorkspace(page: Page) {
   await page.route("**/api/v2/catalogs/materials", (route) => route.fulfill({ json: { version: "test", standard_profile: "CN-2024", source_references: [], items: [] } }));
   await page.route("**/api/v2/catalogs/load-presets", (route) => route.fulfill({ json: { version: "test", confirmation_required: true, items: [] } }));
   await page.route("**/api/v2/catalogs/climate-locations", (route) => route.fulfill({ json: { version: "test-climate", coverage: "test", professional_use_requires_confirmation: true, items: [{ id: "beijing", province: "北京", city: "北京市", station: "北京站", elevation_m: 54, wind_kpa: { "10": 0.3, "50": 0.45, "100": 0.5 }, snow_kpa: { "10": 0.25, "50": 0.4, "100": 0.45 }, snow_zone: "Ⅱ" }] } }));
+  await page.route("**/api/v2/catalogs/climate-regions", (route) => route.fulfill({ json: { version: "test-zhejiang", verification_status: "unverified", items: [{ id: "zhejiang_inland", label: "浙江内陆", station_scope: ["杭州", "金华"], wind_kpa: { "10": 0.3, "50": 0.45, "100": 0.5 }, snow_kpa: { "10": 0.35, "50": 0.55, "100": 0.65 }, source_reference: "GB 50009-2012 表 E.5", catalog_version: "test-zhejiang", verification_status: "unverified" }, { id: "manual", label: "其他地区手动输入", station_scope: [], wind_kpa: {}, snow_kpa: {}, source_reference: "用户资料", catalog_version: "test-zhejiang", verification_status: "unverified" }] } }));
+  await page.route("**/api/v2/catalogs/seismic-design-profiles", (route) => route.fulfill({ json: { version: "test-seismic", items: [{ level: "6_005g", intensity: 6, design_acceleration_g: 0.05, alpha_max: 0.04, catalog_version: "test-seismic", formula_reference: "F_Ek=alpha1*G_eq", source_reference: "GB 55002-2021" }, { level: "7_010g", intensity: 7, design_acceleration_g: 0.1, alpha_max: 0.08, catalog_version: "test-seismic", formula_reference: "F_Ek=alpha1*G_eq", source_reference: "GB 55002-2021" }] } }));
+  await page.route("**/api/v2/catalogs/steel-sections", (route) => route.fulfill({ json: { version: "test-sections", items: [{ id: "rhs-200x100x6", family: "RHS", designation: "矩形管 200×100×6", dimensions: { h_mm: 200, b_mm: 100, t_mm: 6 }, area_mm2: 3456, self_weight_kn_m: 0.271, material_grades: ["Q235B", "Q355B"], source_reference: "测试目录" }, { id: "shs-150x6", family: "SHS", designation: "方管 150×150×6", dimensions: { b_mm: 150, t_mm: 6 }, area_mm2: 3456, self_weight_kn_m: 0.271, material_grades: ["Q235B", "Q355B"], source_reference: "测试目录" }] } }));
+  await page.route("**/api/v2/catalogs/custom-section-properties", async (route) => {
+    const input = route.request().postDataJSON();
+    return route.fulfill({ json: { ...input, area_mm2: 3456, iy_mm4: 16000000, iz_mm4: 6000000, torsion_mm4: 9000000, self_weight_kn_m: 0.26605, theoretical_mass_kg_m: 27.1296, radius_y_mm: 68.04, radius_z_mm: 41.67, property_trace: ["A = 200×100-(200-12)×(100-12)=3456 mm²", "w = 3456×10⁻⁶×7850×9.80665÷1000 = 0.26605 kN/m"], assumptions: ["未输入圆角半径，按锐角理论截面计算"], source_reference: "测试几何计算" } });
+  });
+  await page.route("**/api/v2/projects/9/custom-sections", (route) => route.fulfill({ json: { items: [] } }));
+  await page.route("**/api/v2/catalogs/roof-assemblies", (route) => route.fulfill({ json: { version: "test-roofs", items: [{ id: "none", title: "无顶部覆盖", cover_type: "none", layers: [], total_dead_load_kn_m2: 0, reference_range_kn_m2: [0, 0], source_reference: "无覆盖", verification_status: "unverified" }, { id: "steel-panel", title: "压型钢板屋盖", cover_type: "steel", layers: [{ name: "钢板及连接件", surface_weight_kn_m2: 0.18 }], total_dead_load_kn_m2: 0.18, reference_range_kn_m2: [0.12, 0.35], source_reference: "测试屋面目录", verification_status: "unverified" }] } }));
 }
 
 async function enterSingleCalculation(page: Page) {
@@ -247,20 +280,19 @@ test("移动抽屉选择期间保持打开，应用后关闭", async ({ page }) 
   await expect(page.getByRole("heading", { name: "钢梁" })).toBeVisible();
 });
 
-test("场景只保留设置和结果两个主状态并在同页编辑主要输入", async ({ page }) => {
+test("正式亭廊入口使用Geometry 2.3六入口工作台", async ({ page }) => {
   await mockWorkspace(page);
   await page.goto("/");
-  await expect(page.getByRole("button", { name: /设置/ })).toHaveClass(/active/);
-  await expect(page.getByText("方案与结构体系")).toBeVisible();
-  await expect(page.getByText("尺寸、连接与支承")).toBeVisible();
-  await expect(page.getByText("荷载与环境")).toBeVisible();
-  await expect(page.getByText("廊架平顶场景荷载包")).toBeVisible();
-  await expect(page.getByText("0.3–0.8 kN/m2")).toBeVisible();
-  await expect(page.getByText("风雪荷载向导")).toBeVisible();
-  await page.getByRole("button", { name: "添加项目资料荷载" }).click();
-  await expect(page.getByText("资料名称")).toBeVisible();
-  await expect(page.getByText("页码 / 条款")).toBeVisible();
-  await expect(page.getByText("下一步")).not.toBeVisible();
+  await expect(page.getByText("亭廊专业工作台")).toBeVisible();
+  await expect(page.getByText("Geometry 2.3")).toBeVisible();
+  for (const name of ["场景库", "项目条件", "模型", "荷载", "基础", "结果"]) {
+    await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
+  }
+  await expect(page.getByText("二维精确编辑")).toBeVisible();
+  await expect(page.getByText("三维实时视图")).toBeVisible();
+  await expect(page.getByRole("img", { name: "当前亭廊结构和基础三维简图" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "保存项目模型" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "完整分析" })).toBeVisible();
 });
 
 test("墙附悬挑雨棚不显示基础和120kPa通用默认值", async ({ page }) => {
@@ -274,35 +306,69 @@ test("墙附悬挑雨棚不显示基础和120kPa通用默认值", async ({ page 
   await expect(page.getByText("当前变体通过墙体预埋件与锚筋支承")).toBeVisible();
 });
 
-test("结果可复制为服务端方案并在修改输入后立即标记过期", async ({ page }) => {
+test("亭廊选中构件类型后可直接编辑截面几何", async ({ page }) => {
   await mockWorkspace(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "计算并写入采用值" }).click();
-  await expect(page.getByRole("button", { name: "确认全部荷载" })).toHaveCount(0);
-  await expect(page.getByText("我已确认场景假定")).toHaveCount(0);
-  await page.getByRole("button", { name: "计算当前方案" }).click();
-  await expect(page.getByText("方案快算已完成")).toBeVisible();
-  await page.getByRole("button", { name: /复制为方案 B/ }).click();
-  await expect(page.getByText("测试场景（副本）", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "修改参数" }).click();
-  await page.getByLabel("跨度").fill("5");
-  await expect(page.getByText("输入已修改，旧结果不再代表当前方案")).toBeVisible();
+  await page.getByRole("button", { name: /^C 柱 9 根/ }).click();
+  await expect(page.getByText("截面尺寸")).toBeVisible();
+  await page.getByRole("spinbutton", { name: "厚 mm" }).fill("10");
+  await expect(page.getByRole("spinbutton", { name: "厚 mm" })).toHaveValue("10");
+  await expect(page.getByText("保存时生成新截面修订，不覆盖历史规格。")).toBeVisible();
 });
 
-test("开发中场景不可进入且390宽页面无横向溢出", async ({ page }) => {
+test("亭廊工作台固定显示二维三维并可调整分隔线", async ({ page }) => {
+  await mockWorkspace(page);
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto("/");
+  await expect(page.getByText("二维精确编辑")).toBeVisible();
+  await expect(page.getByText("三维实时视图")).toBeVisible();
+  await expect(page.getByRole("button", { name: "显示全部" })).toBeVisible();
+  const splitter = page.getByRole("separator", { name: "调整二维与三维视图宽度" });
+  await splitter.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(splitter).toHaveAttribute("aria-valuenow", "56");
+  await splitter.dblclick();
+  await expect(splitter).toHaveAttribute("aria-valuenow", "55");
+});
+
+test("栈道仅显示露天积雪与地震条件，不显示屋盖选项", async ({ page }) => {
+  await mockWorkspace(page);
+  await page.goto("/");
+  await page.locator("aside.left-rail").getByRole("button", { name: /栈道/ }).click();
+  await expect(page.getByText("露天积雪是否适用")).toBeVisible();
+  await expect(page.getByLabel("地震烈度与设计基本加速度")).toBeVisible();
+  await expect(page.getByText("环境类型", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("构筑物形态", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("屋面形式", { exact: true })).toHaveCount(0);
+});
+
+test("正式亭廊项目条件驱动自动荷载且不使用零值占位", async ({ page }) => {
+  await mockWorkspace(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "项目条件", exact: true }).click();
+  await page.getByLabel("地区档").selectOption("zhejiang_inland");
+  await page.getByLabel("抗震设防烈度 / 加速度").selectOption("7_010g");
+  await expect(page.getByText("3 / 3")).toBeVisible();
+  await page.getByRole("button", { name: "荷载", exact: true }).click();
+  await expect(page.getByText("0.50 kPa 基本值")).toBeVisible();
+  await expect(page.getByText("风 0.55 kPa · 7_010g")).toBeVisible();
+  await expect(page.getByText("0.00 kPa 基本值")).toHaveCount(0);
+});
+
+test("正式亭廊390宽使用属性二维三维标签且无横向溢出", async ({ page }) => {
   await mockWorkspace(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByRole("button", { name: "打开导航" }).click();
-  const pool = page.locator("aside.left-rail").getByRole("button", { name: /水景池体/ });
-  await expect(pool).toBeDisabled();
-  await page.keyboard.press("Escape");
+  await expect(page.getByRole("navigation", { name: "移动端工作台视图" })).toBeVisible();
+  await page.getByRole("button", { name: "二维", exact: true }).click();
+  await expect(page.getByText("二维精确编辑")).toBeVisible();
+  await page.getByRole("button", { name: "三维", exact: true }).click();
+  await expect(page.getByRole("img", { name: "当前亭廊结构和基础三维简图" })).toBeVisible();
   const metrics = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     clientWidth: document.documentElement.clientWidth,
   }));
   expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth);
-  await expect(page.getByRole("button", { name: "计算当前方案" })).toBeVisible();
 });
 
 test("单项计算仍可使用移动抽屉进入", async ({ page }) => {
@@ -313,7 +379,7 @@ test("单项计算仍可使用移动抽屉进入", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "钢梁" })).toBeVisible();
 });
 
-test("十一个Schema 3.2单项模块均生成判别输入并沿用通用结果页", async ({ page }) => {
+test("十一个Schema 3.3单项模块均生成判别输入并沿用通用结果页", async ({ page }) => {
   await mockWorkspace(page);
   const submitted: Array<Record<string, unknown>> = [];
   await page.route("**/api/v2/calculate", async (route) => {
@@ -322,8 +388,8 @@ test("十一个Schema 3.2单项模块均生成判别输入并沿用通用结果�
     const calculationModule = String(payload.module);
     await route.fulfill({
       json: {
-        schema_version: "3.2",
-        engine_version: "3.2.0-test",
+        schema_version: "3.3",
+        engine_version: "3.3.0-test",
         trace_id: `trace-${calculationModule}`,
         project_name: "前端新模块测试",
         module: calculationModule,
@@ -345,13 +411,17 @@ test("十一个Schema 3.2单项模块均生成判别输入并沿用通用结果�
         warnings: [],
         assumptions: [],
         applicability: ["参数化模块测试"],
-        catalog_versions: { schema: "3.2" },
+        catalog_versions: { schema: "3.3" },
       },
     });
   });
   await page.goto("/");
   const rail = page.locator("aside.left-rail");
   await rail.getByRole("button", { name: /单项计算/ }).click();
+  await rail.getByRole("button", { name: "更多单项" }).click();
+  await expect(rail.getByText("更多单项", { exact: true })).toHaveCount(0);
+  await expect(rail.getByRole("button", { name: "收起更多单项" })).toBeVisible();
+  await rail.getByRole("button", { name: "上部构件" }).last().click();
 
   const modules = [
     ["连续梁", "continuous_beam"],
@@ -382,7 +452,7 @@ test("十一个Schema 3.2单项模块均生成判别输入并沿用通用结果�
     expect((submitted.at(-1)?.typed_inputs as { module: string }).module).toBe(moduleId);
   }
 
-  await rail.getByRole("button", { name: "上部构件" }).click();
+  await rail.getByRole("button", { name: "上部构件" }).last().click();
   for (const [label, moduleId] of [
     ["钢木景观人行桥", "bridge_steel_timber"],
     ["全混凝土景观人行桥", "bridge_rc"],
@@ -396,7 +466,7 @@ test("十一个Schema 3.2单项模块均生成判别输入并沿用通用结果�
     expect((submitted.at(-1)?.typed_inputs as { module: string }).module).toBe(moduleId);
   }
 
-  await rail.getByRole("button", { name: "基础与地基" }).click();
+  await rail.getByRole("button", { name: "基础与地基" }).last().click();
   await rail.getByRole("button", { name: /群桩与承台/ }).click();
   await expect(page.getByRole("heading", { name: "群桩与承台", exact: true })).toBeVisible();
   await expect(page.getByLabel("基础支承策略")).toHaveValue("four_pile_cap");
@@ -409,23 +479,27 @@ test("十一个Schema 3.2单项模块均生成判别输入并沿用通用结果�
   expect(pilePayload.piles).toHaveLength(4);
   expect(pilePayload.piles[0].x.unit).toBe("mm");
 
-  await rail.getByRole("button", { name: "挡土与池体" }).click();
-  for (const [label, moduleId] of [
-    ["矩形水景池体", "pool_structure"],
-    ["重力式挡土墙", "gravity_retaining_wall"],
-  ] as const) {
+  await rail.getByRole("button", { name: "挡土与池体" }).first().click();
+  for (const [label, moduleId] of [["矩形水景池体", "pool_structure"]] as const) {
     await rail.getByRole("button", { name: new RegExp(label) }).click();
     await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
-    await expect(page.getByLabel("地下水条件")).toHaveValue("no_influence");
+    await expect(page.locator("label.input-field").filter({ hasText: "地下水条件" }).locator("select")).toHaveValue("no_influence");
     await expect(page.getByLabel("基础支承策略")).toBeVisible();
     await page.getByRole("button", { name: "运行验算" }).click();
     expect((submitted.at(-1)?.typed_inputs as { module: string }).module).toBe(moduleId);
   }
+  await rail.getByRole("button", { name: "挡土与池体" }).last().click();
+  await rail.getByRole("button", { name: /重力式挡土墙/ }).click();
+  await expect(page.getByRole("heading", { name: "重力式挡土墙", exact: true })).toBeVisible();
+  await expect(page.locator("label.input-field").filter({ hasText: "地下水条件" }).locator("select")).toHaveValue("no_influence");
+  await expect(page.getByLabel("基础支承策略")).toBeVisible();
+  await page.getByRole("button", { name: "运行验算" }).click();
+  expect((submitted.at(-1)?.typed_inputs as { module: string }).module).toBe("gravity_retaining_wall");
 
   expect(submitted).toHaveLength(11);
   for (const payload of submitted) {
-    expect(payload.schema_version).toBe("3.2");
-    expect(payload.standard_profile).toBe("CN-2026.1");
+    expect(payload.schema_version).toBe("3.3");
+    expect(payload.standard_profile).toBe("CN-2026.6");
     expect(payload.inputs).toBeUndefined();
     expect(payload.loads).toEqual([]);
   }
@@ -441,49 +515,29 @@ test("池体地下水三态中未知水位会阻止提交且已知水位要求�
   await page.goto("/");
   const rail = page.locator("aside.left-rail");
   await rail.getByRole("button", { name: /单项计算/ }).click();
-  await rail.getByRole("button", { name: "挡土与池体" }).click();
+  await rail.getByRole("button", { name: "挡土与池体" }).first().click();
   await rail.getByRole("button", { name: /矩形水景池体/ }).click();
 
-  await page.getByLabel("地下水条件").selectOption("unknown");
+  const groundwaterCondition = page.locator("label.input-field").filter({ hasText: "地下水条件" }).locator("select");
+  await groundwaterCondition.selectOption("unknown");
   await page.getByRole("button", { name: "运行验算" }).click();
   await expect(page.getByText(/地下水位未知时不能运行验算/)).toBeVisible();
   expect(calculateRequests).toBe(0);
 
-  await page.getByLabel("地下水条件").selectOption("known_water_table");
+  await groundwaterCondition.selectOption("known_water_table");
   await page.getByRole("button", { name: "运行验算" }).click();
   await expect(page.getByText(/已知地下水位必须填写资料来源/)).toBeVisible();
   expect(calculateRequests).toBe(0);
 });
 
-test("未独立验证模块即使收到passed也不在专业模式显示通过", async ({ page }) => {
+test("单项计算不再提供专业模式切换", async ({ page }) => {
   await mockWorkspace(page);
-  await page.route("**/api/v2/calculate", (route) =>
-    route.fulfill({
-      json: {
-        schema_version: "3.2",
-        engine_version: "3.2.0-test",
-        trace_id: "trace-professional-unverified",
-        project_name: "专业状态测试",
-        module: "gravity_retaining_wall",
-        mode: "professional",
-        status: "passed",
-        workflow_status: "ready",
-        engineering_status: null,
-        result_class: "professional_check",
-        verification_status: "unverified",
-        standards: [], input_summary: {}, combinations: [], reactions: {}, diagrams: [], steps: [],
-        checks: [{ name: "临时验算", demand: { value: 1, unit: "1" }, capacity: { value: 2, unit: "1" }, utilization: 0.5, passed: true, reference: "test" }],
-        governing_check: "临时验算", warnings: [], assumptions: [], applicability: [],
-      },
-    }),
-  );
   await page.goto("/");
   const rail = page.locator("aside.left-rail");
   await rail.getByRole("button", { name: /单项计算/ }).click();
-  await rail.getByRole("button", { name: "挡土与池体" }).click();
+  await rail.getByRole("button", { name: "更多单项" }).click();
+  await rail.getByRole("button", { name: "挡土与池体" }).last().click();
   await rail.getByRole("button", { name: /重力式挡土墙/ }).click();
-  await page.getByRole("button", { name: "专业计算" }).click();
-  await page.getByRole("button", { name: "运行验算" }).click();
-  await expect(page.locator("#result-panel")).toContainText("资料不完整");
-  await expect(page.locator("#result-panel .result-status")).not.toContainText("通过");
+  await expect(page.getByRole("button", { name: "专业计算" })).toHaveCount(0);
+  await expect(page.getByText("方案筛查 · 不可直接送审")).toHaveCount(0);
 });

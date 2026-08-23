@@ -1,6 +1,6 @@
 /**
- * Generated snapshot of backend OpenAPI Schema 3.2 calculation contracts.
- * Source: CalculationRequest.model_json_schema(), engine 3.2.0-beta.1.
+ * Generated snapshot of backend OpenAPI Schema 3.3 calculation contracts.
+ * Source: CalculationRequest.model_json_schema(), engine 3.3.0-beta.1.
  * Do not add product-only fields here; regenerate when the backend contract changes.
  */
 

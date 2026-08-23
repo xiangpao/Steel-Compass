@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
+  ChevronUp,
   Compass,
   Download,
   FileClock,
@@ -22,16 +23,20 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, errorMessage } from "@/lib/api";
 import { SceneWorkspace } from "@/components/scene-workspace";
+import { HelpTip } from "@/components/help-tip";
 import {
   MODULE_MAP,
   NEXTGEN_LIBRARY_ITEMS,
+  FIELD_HELP,
   normalizeInputs,
   type FieldDefinition,
 } from "@/lib/modules";
 import type {
   CalculationResult,
   CalculationLibrary,
+  CalculationLibraryItem,
   ClimateCatalog,
+  ClimateRegionCatalog,
   LoadCatalog,
   LoadItem,
   LoadPreset,
@@ -41,6 +46,7 @@ import type {
   Project,
   ProjectVersion,
   SceneFamily,
+  SeismicDesignCatalog,
   User,
 } from "@/lib/types";
 
@@ -50,7 +56,33 @@ const LOAD_LABELS: Record<LoadItem["kind"], string> = {
   live: "活载",
   wind: "风荷载",
   snow: "雪荷载",
+  seismic: "地震作用",
 };
+
+const CORE_SCENE_IDS = new Set([
+  "pergola-pavilion",
+  "canopy",
+  "signage-billboard",
+  "landscape-wall-fence",
+  "entrance-frame",
+  "boardwalk-platform",
+]);
+
+const CORE_CALCULATION_MODULES = new Set<Module>([
+  "steel_beam",
+  "steel_column",
+  "concrete_beam",
+  "concrete_slab",
+  "timber_beam",
+  "timber_column",
+  "steel_baseplate_anchor",
+  "timber_connection",
+  "wall_anchor",
+  "spread_footing",
+  "strip_footing",
+  "retaining_wall",
+  "pool_structure",
+]);
 
 function copyLoads(loads: LoadItem[], mode: Mode = "quick"): LoadItem[] {
   return loads.map((item) => {
@@ -69,7 +101,7 @@ function copyLoads(loads: LoadItem[], mode: Mode = "quick"): LoadItem[] {
 export default function WorkspacePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [mode, setMode] = useState<Mode>("quick");
+  const [mode] = useState<Mode>("quick");
   const [module, setModule] = useState<Module>("steel_beam");
   const [inputs, setInputs] = useState<Record<string, unknown>>({
     ...MODULE_MAP.steel_beam.defaults,
@@ -88,7 +120,7 @@ export default function WorkspacePage() {
   const [pendingSceneFamilyId, setPendingSceneFamilyId] = useState("");
   const [calculationLibrary, setCalculationLibrary] =
     useState<CalculationLibrary | null>(null);
-  const [expandedTask, setExpandedTask] = useState("superstructure");
+  const [expandedTask, setExpandedTask] = useState("common:superstructure");
   const [materialFilter, setMaterialFilter] = useState<
     "" | "steel" | "concrete" | "timber"
   >("");
@@ -101,6 +133,8 @@ export default function WorkspacePage() {
   const [error, setError] = useState("");
   const [adminOpen, setAdminOpen] = useState(false);
   const [railOpen, setRailOpen] = useState(false);
+  const [moreScenesOpen, setMoreScenesOpen] = useState(false);
+  const [moreCalculationsOpen, setMoreCalculationsOpen] = useState(false);
   const [pendingModule, setPendingModule] = useState<Module>("steel_beam");
   const drafts = useRef(
     new Map<
@@ -117,6 +151,10 @@ export default function WorkspacePage() {
   const [loadCatalog, setLoadCatalog] = useState<LoadCatalog | null>(null);
   const [climateCatalog, setClimateCatalog] =
     useState<ClimateCatalog | null>(null);
+  const [siteClimateCatalog, setSiteClimateCatalog] =
+    useState<ClimateRegionCatalog | null>(null);
+  const [seismicCatalog, setSeismicCatalog] =
+    useState<SeismicDesignCatalog | null>(null);
   const [loadPickerOpen, setLoadPickerOpen] = useState(false);
   const [climateOpen, setClimateOpen] = useState(false);
   const [climateLocationId, setClimateLocationId] = useState("");
@@ -144,6 +182,8 @@ export default function WorkspacePage() {
       api<MaterialCatalog>("/api/v2/catalogs/materials"),
       api<LoadCatalog>("/api/v2/catalogs/load-presets"),
       api<ClimateCatalog>("/api/v2/catalogs/climate-locations"),
+      api<ClimateRegionCatalog>("/api/v2/catalogs/climate-regions"),
+      api<SeismicDesignCatalog>("/api/v2/catalogs/seismic-design-profiles"),
     ])
       .then(
         ([
@@ -154,6 +194,8 @@ export default function WorkspacePage() {
           materials,
           loadPresets,
           climateLocations,
+          climateRegions,
+          seismicProfiles,
         ]) => {
         if (currentUser.must_change_password) {
           router.replace("/change-password");
@@ -166,6 +208,8 @@ export default function WorkspacePage() {
         setMaterialCatalog(materials);
         setLoadCatalog(loadPresets);
         setClimateCatalog(climateLocations);
+        setSiteClimateCatalog(climateRegions);
+        setSeismicCatalog(seismicProfiles);
         setClimateLocationId(climateLocations.items[0]?.id ?? "");
         const first =
           familyList.find((item) => item.availability !== "development") ??
@@ -180,6 +224,11 @@ export default function WorkspacePage() {
   }, [router]);
 
   const definition = MODULE_MAP[module];
+  const visibleFields = definition.fields.filter(
+    (field) => !field.visible || field.visible(inputs),
+  );
+  const basicFields = visibleFields.filter((field) => field.level !== "advanced");
+  const advancedFields = visibleFields.filter((field) => field.level === "advanced");
   const calculationGroups = useMemo(() => {
     const order = [
       "loads_environment",
@@ -189,23 +238,35 @@ export default function WorkspacePage() {
       "retaining_pool",
     ];
     const mergedItems = new Map(
-      (calculationLibrary?.items ?? []).map((item) => [item.id, item]),
+      (calculationLibrary?.items ?? []).map((item) => [item.module ?? item.id, item]),
     );
-    NEXTGEN_LIBRARY_ITEMS.forEach((item) => mergedItems.set(item.id, item));
+    NEXTGEN_LIBRARY_ITEMS.forEach((item) => {
+      const key = item.module ?? item.id;
+      if (!mergedItems.has(key)) mergedItems.set(key, item);
+    });
     const items = [...mergedItems.values()];
-    return order.map((task) => ({
-      task,
-      title:
-        items.find((item) => item.task === task)?.task_title ?? task,
-      items:
-        items.filter(
-          (item) =>
-            item.task === task &&
-            (!materialFilter ||
-              !item.material ||
-              item.material === materialFilter),
-        ) ?? [],
-    }));
+    const visibleItems = items.filter(
+      (item) =>
+        item.task !== "loads_environment" &&
+        Boolean(item.module && item.module in MODULE_MAP) &&
+        (!materialFilter || !item.material || item.material === materialFilter),
+    );
+    const groupsFor = (tier: "common" | "more") =>
+      order
+        .filter((task) => task !== "loads_environment")
+        .map((task) => ({
+          task,
+          title:
+            visibleItems.find((item) => item.task === task)?.task_title ?? task,
+          items: visibleItems.filter((item) => {
+            const isCommon = Boolean(
+              item.module && CORE_CALCULATION_MODULES.has(item.module),
+            );
+            return item.task === task && (tier === "common" ? isCommon : !isCommon);
+          }),
+        }))
+        .filter((group) => group.items.length > 0);
+    return { common: groupsFor("common"), more: groupsFor("more") };
   }, [calculationLibrary, materialFilter]);
 
   useEffect(() => {
@@ -287,22 +348,6 @@ export default function WorkspacePage() {
     setError("");
   }
 
-  function switchCalculationMode(nextMode: Mode) {
-    if (nextMode === mode) return;
-    saveCurrentDraft();
-    const saved = drafts.current.get(draftKey(nextMode, module));
-    setMode(nextMode);
-    setInputs(saved?.inputs ?? { ...definition.defaults });
-    setLoads(
-      saved?.loads ?? copyLoads(definition.defaultLoads, nextMode),
-    );
-    setProjectName(saved?.projectName ?? projectName);
-    setResult(null);
-    setSavedVersion(null);
-    setSavedRevision(null);
-    setError("");
-  }
-
   function openNavigation() {
     setPendingWorkspaceKind(workspaceKind);
     setPendingModule(module);
@@ -337,15 +382,16 @@ export default function WorkspacePage() {
   }
 
   function fieldWithCatalog(field: FieldDefinition): FieldDefinition {
+    const enriched = field.help || !FIELD_HELP[field.key] ? field : { ...field, help: FIELD_HELP[field.key] };
     if (
       !materialCatalog ||
       !["rebar_grade", "stirrup_grade"].includes(field.key)
     ) {
-      return field;
+      return enriched;
     }
     const role = field.key === "stirrup_grade" ? "stirrup" : "longitudinal";
     return {
-      ...field,
+      ...enriched,
       options: materialCatalog.items
         .filter(
           (item) =>
@@ -420,11 +466,11 @@ export default function WorkspacePage() {
   function payload() {
     const typedInputs = definition.buildTypedInputs?.(inputs);
     return {
-      schema_version: "3.2",
+      schema_version: "3.3",
       mode,
       module,
       project_name: projectName,
-      standard_profile: "CN-2026.1",
+      standard_profile: "CN-2026.6",
       ...(typedInputs
         ? { typed_inputs: typedInputs, loads: [] }
         : { inputs: normalizeInputs(module, inputs), loads }),
@@ -564,7 +610,6 @@ export default function WorkspacePage() {
       calculation: payload(),
       result: source,
     });
-    setMode(mode);
     setWorkspaceKind("calculation");
     setPendingWorkspaceKind("calculation");
     setModule("spread_footing");
@@ -635,7 +680,7 @@ export default function WorkspacePage() {
         </div>
         <div className="topbar-meta">
           <span className="standard-pill">
-            <ShieldCheck size={15} /> CN-2026.1 规范基线
+            <ShieldCheck size={15} /> CN-2026.6 规范基线
           </span>
           <span className="user-name">{user.display_name}</span>
           {user.is_admin && (
@@ -691,7 +736,7 @@ export default function WorkspacePage() {
         {pendingWorkspaceKind === "scene" ? (
           <div className="rail-section scenario-list">
             <span className="rail-label">完整景观场景</span>
-            {sceneFamilies.map((family) => (
+            {sceneFamilies.filter((family) => CORE_SCENE_IDS.has(family.id)).map((family) => (
               <button
                 key={family.id}
                 disabled={family.availability === "development"}
@@ -711,6 +756,32 @@ export default function WorkspacePage() {
                 </small>
               </button>
             ))}
+            {!moreScenesOpen ? (
+              <button
+                className="library-group-toggle"
+                aria-expanded={false}
+                onClick={() => setMoreScenesOpen(true)}
+              >
+                <span>更多场景</span><ChevronDown size={15} />
+              </button>
+            ) : (
+              <>
+                {sceneFamilies.filter((family) => !CORE_SCENE_IDS.has(family.id)).map((family) => (
+                  <button key={family.id} disabled={family.availability === "development"} className={pendingSceneFamilyId === family.id ? "active" : ""} onClick={() => selectSceneFamily(family)}>
+                    <span>{family.title}<em className={`maturity-dot ${family.maturity}`} /></span>
+                    <small>{family.availability === "development" ? "开发中 · 暂不开放计算" : family.description}</small>
+                  </button>
+                ))}
+                <button
+                  className="library-collapse-icon"
+                  aria-label="收起更多场景"
+                  title="收起更多场景"
+                  onClick={() => setMoreScenesOpen(false)}
+                >
+                  <ChevronUp size={17} />
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <>
@@ -738,63 +809,45 @@ export default function WorkspacePage() {
               </div>
             </div>
             <div className="rail-section calculation-library">
-              <span className="rail-label">按结构任务</span>
-              {calculationGroups.map((group) => (
-                <div className="library-group" key={group.task}>
+              <span className="rail-label">常用单项</span>
+              <CalculationGroupList
+                tier="common"
+                groups={calculationGroups.common}
+                expandedTask={expandedTask}
+                onToggle={setExpandedTask}
+                pendingModule={pendingModule}
+                onSelect={selectModule}
+              />
+              {calculationGroups.more.length > 0 && (
+                !moreCalculationsOpen ? (
                   <button
                     className="library-group-toggle"
-                    aria-expanded={expandedTask === group.task}
-                    onClick={() =>
-                      setExpandedTask((current) =>
-                        current === group.task ? "" : group.task,
-                      )
-                    }
+                    aria-expanded={false}
+                    onClick={() => setMoreCalculationsOpen(true)}
                   >
-                    <span>{group.title}</span>
-                    <ChevronDown size={15} />
+                    <span>更多单项</span><ChevronDown size={15} />
                   </button>
-                  {expandedTask === group.task && (
-                    <div className="library-items">
-                      {group.items.map((item) => {
-                        const available =
-                          item.module && item.module in MODULE_MAP;
-                        const moduleDefinition = available
-                          ? MODULE_MAP[item.module!]
-                          : null;
-                        return (
-                          <button
-                            key={item.id}
-                            disabled={!available}
-                            className={
-                              moduleDefinition?.id === pendingModule
-                                ? "active"
-                                : ""
-                            }
-                            onClick={() =>
-                              moduleDefinition &&
-                              selectModule(moduleDefinition.id)
-                            }
-                          >
-                            <span
-                              className={`module-code ${
-                                moduleDefinition?.material ?? "planned"
-                              }`}
-                            >
-                              {moduleDefinition?.short ?? "·"}
-                            </span>
-                            <span>
-                              <strong>{item.title}</strong>
-                              <small>
-                                {available ? item.description : "规划中"}
-                              </small>
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ))}
+                ) : (
+                  <>
+                    <CalculationGroupList
+                      tier="more"
+                      groups={calculationGroups.more}
+                      expandedTask={expandedTask}
+                      onToggle={setExpandedTask}
+                      pendingModule={pendingModule}
+                      onSelect={selectModule}
+                    />
+                    <button
+                      className="library-collapse-icon"
+                      aria-label="收起更多单项"
+                      title="收起更多单项"
+                      onClick={() => setMoreCalculationsOpen(false)}
+                    >
+                      <ChevronUp size={17} />
+                    </button>
+                  </>
+                )
+              )}
             </div>
           </>
         )}
@@ -832,38 +885,19 @@ export default function WorkspacePage() {
             }
             projects={projects}
             onProjectsChange={setProjects}
-            climateCatalog={climateCatalog}
+            climateCatalog={siteClimateCatalog}
+            seismicCatalog={seismicCatalog}
           />
         </main>
       ) : (
       <main className="workspace-main">
         <section className="workspace-intro">
           <div>
-            <span className="eyebrow">
-              {mode === "quick"
-                ? "SCENARIO-BASED PRELIMINARY CHECK"
-                : "TRACEABLE PROFESSIONAL CALCULATION"}
-            </span>
+            <span className="eyebrow">SCENARIO SCREENING CALCULATION</span>
             <h1>{definition.title}</h1>
             <p>
-              {mode === "quick"
-                ? "使用当前录入的场景参数快速判断控制验算，结果用于方案比较。"
-                : "关键参数必须明确输入；输出计算步骤、条文来源和可追溯报告。"}
+              单项工具用于补充方案筛查；完整场景的风雪与地震条件请在统一项目条件向导中填写。
             </p>
-            <div className="inline-mode-switch calculation-mode-switch">
-              <button
-                className={mode === "quick" ? "active" : ""}
-                onClick={() => switchCalculationMode("quick")}
-              >
-                方案快算
-              </button>
-              <button
-                className={mode === "professional" ? "active" : ""}
-                onClick={() => switchCalculationMode("professional")}
-              >
-                专业计算
-              </button>
-            </div>
           </div>
           <StructureSketch module={module} inputs={inputs} />
         </section>
@@ -921,7 +955,7 @@ export default function WorkspacePage() {
           </div>
         )}
 
-        <div className="input-layout">
+        <div className={definition.buildTypedInputs ? "input-layout typed-input-layout" : "input-layout"}>
           <section className="panel input-panel">
             <PanelHeader
               number="01"
@@ -929,9 +963,7 @@ export default function WorkspacePage() {
               subtitle="Geometry & material"
             />
             <div className="field-grid">
-              {definition.fields
-                .filter((field) => !field.visible || field.visible(inputs))
-                .map((field) => (
+              {basicFields.map((field) => (
                   <InputField
                     key={field.key}
                     field={fieldWithCatalog(field)}
@@ -940,24 +972,31 @@ export default function WorkspacePage() {
                   />
                 ))}
             </div>
+            {advancedFields.length > 0 && (
+              <details className="advanced-fields">
+                <summary>高级参数</summary>
+                <p>默认采用当前目录或模块默认值；仅在已有明确依据时修改。</p>
+                <div className="field-grid">
+                  {advancedFields.map((field) => (
+                    <InputField
+                      key={field.key}
+                      field={fieldWithCatalog(field)}
+                      value={inputs[field.key]}
+                      onChange={(value) => updateInput(field.key, value)}
+                    />
+                  ))}
+                </div>
+              </details>
+            )}
           </section>
 
+          {!definition.buildTypedInputs && (
           <section className="panel load-panel">
             <PanelHeader
               number="02"
               title="荷载与来源"
               subtitle="Load cases & provenance"
             />
-            {definition.buildTypedInputs ? (
-              <div className="no-diagram">
-                <Gauge size={30} />
-                <span>
-                  本模块的组合、作用和输入承载力已集中在上方参数区；提交时按
-                  Schema 3.2 生成带单位的 typed_inputs。
-                </span>
-              </div>
-            ) : (
-            <>
             <div className="load-tools">
               <button
                 className="secondary-button"
@@ -1182,10 +1221,8 @@ export default function WorkspacePage() {
             >
               <Plus size={16} /> 添加荷载工况
             </button>
-            </>
-            )}
-
           </section>
+          )}
         </div>
 
         {error && (
@@ -1258,6 +1295,64 @@ function PanelHeader({
   );
 }
 
+function CalculationGroupList({
+  tier,
+  groups,
+  expandedTask,
+  onToggle,
+  pendingModule,
+  onSelect,
+}: {
+  tier: "common" | "more";
+  groups: Array<{ task: string; title: string; items: CalculationLibraryItem[] }>;
+  expandedTask: string;
+  onToggle: (next: string | ((current: string) => string)) => void;
+  pendingModule: Module;
+  onSelect: (module: Module) => void;
+}) {
+  return groups.map((group) => {
+    const taskKey = `${tier}:${group.task}`;
+    return (
+      <div className="library-group" key={taskKey}>
+        <button
+          className="library-group-toggle"
+          aria-expanded={expandedTask === taskKey}
+          onClick={() =>
+            onToggle((current) => current === taskKey ? "" : taskKey)
+          }
+        >
+          <span>{group.title}</span>
+          <ChevronDown size={15} />
+        </button>
+        {expandedTask === taskKey && (
+          <div className="library-items">
+            {group.items.map((item) => {
+              const available = Boolean(item.module && item.module in MODULE_MAP);
+              const moduleDefinition = available ? MODULE_MAP[item.module!] : null;
+              return (
+                <button
+                  key={item.id}
+                  disabled={!available}
+                  className={moduleDefinition?.id === pendingModule ? "active" : ""}
+                  onClick={() => moduleDefinition && onSelect(moduleDefinition.id)}
+                >
+                  <span className={`module-code ${moduleDefinition?.material ?? "planned"}`}>
+                    {moduleDefinition?.short ?? "·"}
+                  </span>
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>{available ? item.description : "计划开发"}</small>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  });
+}
+
 function InputField({
   field,
   value,
@@ -1270,7 +1365,7 @@ function InputField({
   if (field.type === "boolean") {
     return (
       <label className="toggle-field">
-        <span>{field.label}</span>
+        <span>{field.label}{field.help && <HelpTip term={field.label} {...field.help} />}</span>
         <button
           type="button"
           className={value ? "toggle active" : "toggle"}
@@ -1284,7 +1379,7 @@ function InputField({
   }
   return (
     <label className="input-field">
-      <span>{field.label}</span>
+      <span>{field.label}{field.help && <HelpTip term={field.label} {...field.help} />}</span>
       <div className="input-with-unit">
         {field.type === "select" ? (
           <select
