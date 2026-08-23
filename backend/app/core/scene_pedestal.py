@@ -121,6 +121,18 @@ def _pedestal_check(
 
     envelopes = scene_reaction_envelopes(reaction)
     uls_envelopes = [item for item in envelopes if item["limit_state"] == "ULS"]
+    seismic_envelopes = [
+        item for item in uls_envelopes
+        if "SEISMIC" in str(item.get("combination_id", "")).upper()
+    ]
+    if seismic_envelopes and pedestal.confinement_spacing_mm is None:
+        return _missing(
+            foundation_id,
+            mark,
+            support_id,
+            "missing_seismic_pedestal_detail",
+            ["confinement_spacing_mm"],
+        )
     demands: list[dict[str, float | str]] = []
     for envelope in uls_envelopes:
         components = envelope["components"]
@@ -166,6 +178,43 @@ def _pedestal_check(
         _check("短柱箍筋间距", stirrup_spacing, maximum_stirrup_spacing, "mm", "GB/T 50010-2010 柱箍筋构造（方案级筛查）"),
         _check("短柱插筋锚固长度", minimum_anchorage, float(pedestal.dowel_anchorage_mm), "mm", "GB/T 50010-2010 受拉钢筋锚固（35d方案筛查）", "工程校核须按混凝土、钢筋、受力状态和抗震等级计算实际锚固长度。"),
     ]
+    seismic_detail: dict[str, Any] | None = None
+    if seismic_envelopes:
+        seismic_demands = [item for item in demands if "SEISMIC" in str(item["combination_id"]).upper()]
+        maximum_axial = max(float(item["compression"]) for item in seismic_demands)
+        axial_ratio = maximum_axial / max(concrete["fc"] * gross_area / 1000, 1e-9)
+        confinement_spacing = float(pedestal.confinement_spacing_mm)
+        confinement_limit = min(100.0, 6 * long_diameter, min(length, width) / 4)
+        minimum_stirrup_diameter = max(8.0, long_diameter / 4)
+        seismic_anchorage = 40 * long_diameter
+        stirrup_ratio_x = stirrup_area_two_legs / max(width * confinement_spacing, 1e-9)
+        stirrup_ratio_y = stirrup_area_two_legs / max(length * confinement_spacing, 1e-9)
+        seismic_checks = [
+            _check("短柱抗震轴压比", axial_ratio, 0.75, "1", "GB 55002、GB/T 50011及GB/T 50010 抗震柱构造；方案保守限值", "实际限值须结合抗震等级和体系复核。"),
+            _check("短柱抗震加密区箍筋间距", confinement_spacing, confinement_limit, "mm", "GB/T 50010 抗震柱箍筋加密构造；方案级取小值"),
+            _check("短柱抗震箍筋直径", minimum_stirrup_diameter, stirrup_diameter, "mm", "GB/T 50010 抗震柱箍筋构造；方案级筛查"),
+            _check("短柱抗震插筋锚固", seismic_anchorage, float(pedestal.dowel_anchorage_mm), "mm", "GB/T 50010 抗震锚固；40d保守方案筛查", "工程校核须按钢筋、混凝土、抗震等级和锚固条件计算。"),
+            _check("短柱X向抗震体积配箍筛查", 0.0015, stirrup_ratio_x, "1", "GB/T 50010 抗震柱配箍；方案级最低体积率筛查"),
+            _check("短柱Y向抗震体积配箍筛查", 0.0015, stirrup_ratio_y, "1", "GB/T 50010 抗震柱配箍；方案级最低体积率筛查"),
+        ]
+        checks.extend(seismic_checks)
+        shear_spans = []
+        for item in seismic_demands:
+            vx = max(float(item["shear_x"]), 1e-9)
+            vy = max(float(item["shear_y"]), 1e-9)
+            shear_spans.append({
+                "combination_id": item["combination_id"],
+                "lambda_x": float(item["moment_y"]) / (vx * max(effective_depth_y / 1000, 1e-9)),
+                "lambda_y": float(item["moment_x"]) / (vy * max(effective_depth_x / 1000, 1e-9)),
+            })
+        seismic_detail = {
+            "applicable": True,
+            "combination_ids": [item["combination_id"] for item in seismic_demands],
+            "axial_compression_ratio": axial_ratio,
+            "shear_span_ratios": shear_spans,
+            "confinement_zone": "短柱净高全长",
+            "verification_status": "unverified",
+        }
     failed_checks = [item.name for item in checks if not item.passed]
     return {
         "foundation_id": foundation_id,
@@ -208,8 +257,10 @@ def _pedestal_check(
             "longitudinal_bars": f"{bar_count}Φ{long_diameter:g}",
             "stirrups": f"Φ{stirrup_diameter:g}@{stirrup_spacing:g}",
             "self_weight_kn": self_weight_sls,
+            "seismic_combinations_present": bool(seismic_envelopes),
         },
-        "pending_checks": ["短柱裂缝控制", "柱脚局部承压区配筋", "抗震节点区与锚固构造", "独立基准验证"],
+        "seismic_detail": seismic_detail or {"applicable": False, "reason": "当前分析包无地震设计组合"},
+        "pending_checks": ["短柱裂缝控制", "柱脚局部承压区配筋完整耦合", "独立基准验证"],
         "analysis_assumption": "采用已保存的设计组合包络；短柱自重按持久作用另计，反力不再二次统一放大。",
     }
 

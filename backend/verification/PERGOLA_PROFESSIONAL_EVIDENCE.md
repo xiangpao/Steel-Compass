@@ -21,9 +21,10 @@ Geometry `2.3`、Snapshot Schema `4.0` 和标准配置 `CN-2026.7` 已接通亭�
 | Buckling | Elastic eigenvalue implementation and regression tests | Hand/analytical benchmarks and applicability review | open |
 | Steel members | Strength, stability, slenderness, width-thickness and deflection checks implemented | Clause mapping, hand calculations and reviewer sign-off | open |
 | Steel connections | Implemented rectangular-tube and H/I connection families | Yield-line/stiffness models, unsupported-family matrix and signed benchmarks | open |
-| Column base and anchors | Base plate, anchor tension/shear and weld checks implemented | Deep pull-out, splitting, reinforcement coupling and edge-case benchmarks | open |
-| RC pedestal | Biaxial demand and reinforcement data path implemented | Crack control, local reinforcement, seismic joint zone and anchorage review | open |
-| Spread foundation | Bearing, eccentricity, sliding, overturning, uplift, shear, punching and reinforcement path implemented | Settlement and stepped/sloped upper-control-section verification | open |
+| Column base and anchors | Base plate, steel anchor, concrete cone/edge, anchor-head pull-out and splitting checks implemented | Full anchor-to-pedestal reinforcement coupling, edge-case independent benchmarks and reviewer sign-off | open |
+| RC pedestal | Biaxial strength plus seismic-combination axial ratio, confinement, volumetric stirrup and anchorage screening implemented | Crack control, local reinforcement coupling, exact seismic-grade clause mapping and reviewer sign-off | open |
+| Spread foundation | Bearing, stability, reinforcement, explicit layered settlement and each stepped/sloped transition check implemented | Adjacent-foundation settlement, complex-soil FEM, independent benchmarks and reviewer sign-off | open |
+| Domestic commercial comparison | Provenance-required YJK/PKPM JSON import and tolerance gate implemented | Actual licensed-software exports, fixed model files and named reviewer | open |
 | Immutable report | Snapshot-backed PDF and trace package implemented | Random-object reconciliation against API, drawings and calculations | open |
 
 ## Evidence required to close a gate

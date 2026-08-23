@@ -873,7 +873,12 @@ def analyze_saved_scene(
         ],
         unsupported_capabilities=[
             "焊接矩形管节点屈服线/刚度精细模型",
-            "基础沉降计算需要勘察变形参数",
+            *(
+                ["基础沉降计算需要分层压缩参数、经验系数和允许值"]
+                if any(item.get("settlement_check") is None for item in foundation_items)
+                else []
+            ),
+            "外部YJK/PKPM数值对照证据尚未导入",
         ],
     )
     statuses = [structural.status, connection_checks.status, foundation_checks.status]

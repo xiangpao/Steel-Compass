@@ -552,6 +552,12 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
         ["屋面构造", str(roof.get("roof_assembly_id", "—"))],
         ["检修/使用类别", str(roof.get("maintenance_category", "—"))],
     ]
+    geotechnical = snapshot.get("geotechnical_profile") or {}
+    condition_rows.extend([
+        ["地基阶段 / 持力层", f"{geotechnical.get('stage', '—')} / {geotechnical.get('confirmed_soil_class', '—')}"],
+        ["地基承载力", f"{geotechnical.get('bearing_capacity_kpa', '—')} kPa"],
+        ["沉降分层 / 允许值", f"{len(geotechnical.get('settlement_layers', []))} 层 / {geotechnical.get('settlement_limit_mm', '—')} mm"],
+    ])
     table = Table(condition_rows, colWidths=[48 * mm, 122 * mm])
     table.setStyle(_table_style())
     story.append(table)
@@ -672,6 +678,22 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
                 if item.get("pedestal_check")
             ]
             append_check_details("短柱逐项验算", pedestal_objects)
+            settlement_objects = []
+            shape_objects = []
+            for item in analysis.get(package_key, {}).get("items", []):
+                settlement = item.get("settlement_check")
+                if settlement:
+                    settlement_objects.append({
+                        "foundation_id": item.get("foundation_id"),
+                        "checks": [settlement],
+                    })
+                for level in item.get("detailed_shape_checks", []):
+                    shape_objects.append({
+                        "foundation_id": f"{item.get('mark', item.get('foundation_id', '—'))} · {level.get('level', '转换截面')}",
+                        "checks": level.get("checks", []),
+                    })
+            append_check_details("地基沉降逐项验算", settlement_objects)
+            append_check_details("阶形/锥形基础转换截面验算", shape_objects)
 
     trace = analysis.get("trace", {})
     story.append(Paragraph("规范、假定与未完成能力", heading))

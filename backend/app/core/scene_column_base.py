@@ -98,6 +98,7 @@ def calculate_scene_column_bases(
             "anchor_edge_mm": base.anchor_edge_mm,
             "weld_throat_mm": base.weld_throat_mm,
             "concrete_bearing_capacity_mpa": base.concrete_bearing_capacity_mpa,
+            "anchor_head_diameter_mm": base.anchor_head_diameter_mm,
         }
         missing = [name for name, value in required.items() if value is None]
         if missing:
@@ -109,6 +110,14 @@ def calculate_scene_column_bases(
         if concrete_fcu is None:
             results.append(_not_calculated(base.id, base.connection_instance_id, support.id, "missing_supported_foundation_concrete_grade", ["foundation_concrete_grade"] ))
             continue
+        pedestal_height = 0.0
+        if foundation_type and foundation_type.pedestal and foundation_type.pedestal.enabled:
+            pedestal_height = float(foundation_type.pedestal.clear_height_mm or 0.0)
+        foundation_height = float(foundation_type.thickness_mm) if foundation_type else 0.0
+        if foundation_type and foundation_type.form_id == "spread-stepped":
+            foundation_height += sum(item.height_mm for item in foundation_type.steps)
+        elif foundation_type and foundation_type.form_id == "spread-tapered":
+            foundation_height += float(foundation_type.tapered_height_mm or 0.0)
 
         depth, width = section_geometry
         request = CalculationRequest(
@@ -128,6 +137,10 @@ def calculate_scene_column_bases(
                 "anchor_grade": base.anchor_grade,
                 "anchor_spacing_mm": base.anchor_spacing_mm,
                 "anchor_edge_mm": base.anchor_edge_mm,
+                "anchor_head_diameter_mm": base.anchor_head_diameter_mm,
+                "anchor_supplementary_reinforcement_area_mm2": base.anchor_supplementary_reinforcement_area_mm2 or 0.0,
+                "anchor_cracked_concrete": base.anchor_cracked_concrete,
+                "anchor_member_thickness_mm": foundation_height + pedestal_height,
                 "weld_throat_mm": base.weld_throat_mm,
                 "embedment_depth_mm": base.anchor_embedment_mm,
                 "concrete_fcu_mpa": concrete_fcu,
@@ -159,6 +172,6 @@ def calculate_scene_column_bases(
             "steps": [item.model_dump(mode="json") for item in calculation.steps],
             "warnings": [item.model_dump(mode="json") for item in calculation.warnings],
             "reaction_envelopes": [item.model_dump(mode="json") for item in calculation.reaction_envelopes],
-            "pending_checks": ["锚栓深层拔出与劈裂", "锚栓和短柱配筋耦合", "节点族独立基准验证"],
+            "pending_checks": ["锚栓和短柱配筋完整耦合", "节点族独立基准验证"],
         })
     return results

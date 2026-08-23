@@ -79,12 +79,18 @@ test("基础按F-A和F-B归类并可将单个实例拆分", async ({ page }) => 
   await expect(page.getByText("对应 C-1-2")).toBeVisible();
   await expect(page.getByRole("checkbox", { name: /钢筋混凝土短柱/ })).toBeChecked();
   await expect(page.getByRole("spinbutton", { name: "净高 mm" })).toHaveValue("650");
+  await page.getByText("短柱详细配筋与构造").click();
+  await expect(page.getByRole("spinbutton", { name: "加密区间距 mm" })).toHaveValue("90");
+  await expect(page.getByRole("spinbutton", { name: "锚板/锚头直径 mm" })).toHaveValue("60");
+  await expect(page.getByRole("checkbox", { name: /按开裂混凝土验算锚固区/ })).toBeChecked();
   await expect(page.getByText("短柱是附属构造，不是另一种基础形式。")).toBeVisible();
   await page.getByRole("button", { name: /从 F-A 分离为新类型/ }).click();
   await expect(page.getByText("F-C-01", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "基础", exact: true }).click();
   await page.getByRole("button", { name: "工程校核" }).click();
   await expect(page.getByText("报告资料在项目级录入一次")).toBeVisible();
+  await expect(page.getByRole("spinbutton", { name: "压缩层厚度 m" })).toHaveValue("6");
+  await expect(page.getByRole("spinbutton", { name: "允许沉降 mm" })).toHaveValue("30");
   await expect(page.getByText("承载力资料来源")).toHaveCount(0);
 });
 

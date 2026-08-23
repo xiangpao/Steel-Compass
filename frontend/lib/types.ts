@@ -9,13 +9,7 @@ export interface LoadItem {
   value: number;
   unit: "kN/m" | "kN/m2" | "kN";
   source: string;
-  direction?:
-    | "gravity"
-    | "uplift"
-    | "x_positive"
-    | "x_negative"
-    | "y_positive"
-    | "y_negative";
+  direction?: "gravity" | "uplift" | "x_positive" | "x_negative" | "y_positive" | "y_negative";
   preset_id?: string;
   source_reference?: string;
   override_reason?: string;
@@ -34,11 +28,7 @@ export interface Scenario {
 export type SceneMaturity = "verified" | "beta" | "planned";
 export type SceneAvailability = "public" | "development";
 export type VerificationStatus = "unverified" | "independently_verified";
-export type WorkflowStatus =
-  | "ready"
-  | "stale"
-  | "missing_inputs"
-  | "capability_unavailable";
+export type WorkflowStatus = "ready" | "stale" | "missing_inputs" | "capability_unavailable";
 
 export interface SceneParameter {
   key: string;
@@ -51,11 +41,7 @@ export interface SceneParameter {
   hidden_when_condition_driven?: boolean;
 }
 
-export type SceneConditionApplicability =
-  | "required"
-  | "optional"
-  | "not_applicable"
-  | "not_supported";
+export type SceneConditionApplicability = "required" | "optional" | "not_applicable" | "not_supported";
 
 export interface SceneConditionProfile {
   wind: SceneConditionApplicability;
@@ -106,13 +92,7 @@ export interface SceneGraphTemplate {
 export interface SceneLoadCase {
   id: string;
   label: string;
-  kind:
-    | LoadItem["kind"]
-    | "soil"
-    | "water"
-    | "buoyancy"
-    | "temperature"
-    | "custom";
+  kind: LoadItem["kind"] | "soil" | "water" | "buoyancy" | "temperature" | "custom";
   value_type: "fixed" | "reference_range" | "calculated" | "project_defined";
   recommended_min?: number;
   recommended_default?: number;
@@ -197,12 +177,7 @@ export interface SceneInstance {
 export interface SceneNodeResult {
   node_id: string;
   label: string;
-  status:
-    | "completed"
-    | "passed"
-    | "failed"
-    | "incomplete"
-    | "not_applicable";
+  status: "completed" | "passed" | "failed" | "incomplete" | "not_applicable";
   maturity: SceneMaturity;
   calculation_result?: CalculationResult;
   message?: string;
@@ -245,7 +220,17 @@ export interface SceneRevisionResult {
     roof_area_m2: number;
     maximum_translation_mm: number;
     load_balance_kn: [number, number, number];
-    support_reactions: Record<string, { fx_kn: number; fy_kn: number; fz_kn: number; mx_kn_m: number; my_kn_m: number; mz_kn_m: number }>;
+    support_reactions: Record<
+      string,
+      {
+        fx_kn: number;
+        fy_kn: number;
+        fz_kn: number;
+        mx_kn_m: number;
+        my_kn_m: number;
+        mz_kn_m: number;
+      }
+    >;
     load_scope: string;
   } | null;
   seismic_action_package?: SeismicActionPackage | null;
@@ -392,19 +377,9 @@ export interface ClimateCatalog {
   items: ClimateLocation[];
 }
 
-export type ClimateRegionId =
-  | "zhejiang_coastal"
-  | "zhejiang_inland"
-  | "zhejiang_mountain"
-  | "manual";
+export type ClimateRegionId = "zhejiang_coastal" | "zhejiang_inland" | "zhejiang_mountain" | "manual";
 
-export type SeismicLevel =
-  | "6_005g"
-  | "7_010g"
-  | "7_015g"
-  | "8_020g"
-  | "8_030g"
-  | "9_040g";
+export type SeismicLevel = "6_005g" | "7_010g" | "7_015g" | "8_020g" | "8_030g" | "9_040g";
 
 export interface ClimateRegionPreset {
   id: ClimateRegionId;
@@ -475,6 +450,16 @@ export interface ProjectGeotechnicalProfile {
   bearing_capacity_source: string;
   deformation_modulus_mpa?: number | null;
   compression_modulus_mpa?: number | null;
+  settlement_layers?: Array<{
+    id: string;
+    name: string;
+    thickness_m: number;
+    compression_modulus_mpa: number;
+    unit_weight_kn_m3: number;
+    source: string;
+  }>;
+  settlement_correction_factor?: number | null;
+  settlement_limit_mm?: number | null;
   groundwater: GroundwaterDesignProfile;
   report_name?: string | null;
   report_date?: string | null;
@@ -593,7 +578,13 @@ export interface SceneStructuralProfile {
     effective_length_factor_y: number;
     effective_length_factor_z: number;
   }>;
-  member_overrides?: Array<{ member_id: string; material_grade: string; section_id: string; orientation: "strong_axis" | "weak_axis"; source: string }>;
+  member_overrides?: Array<{
+    member_id: string;
+    material_grade: string;
+    section_id: string;
+    orientation: "strong_axis" | "weak_axis";
+    source: string;
+  }>;
   foundations: FoundationDesignSpecification[];
   geometry?: SceneGeometryProfile | null;
   roof_assembly?: RoofAssembly | null;
@@ -604,7 +595,12 @@ export interface RoofAssembly {
   id: string;
   title: string;
   cover_type: "none" | "louver" | "glass" | "aluminum" | "steel" | "polycarbonate" | "timber" | "custom";
-  layers: Array<{ name: string; thickness_mm?: number | null; unit_weight_kn_m3?: number | null; surface_weight_kn_m2: number }>;
+  layers: Array<{
+    name: string;
+    thickness_mm?: number | null;
+    unit_weight_kn_m3?: number | null;
+    surface_weight_kn_m2: number;
+  }>;
   total_dead_load_kn_m2: number;
   reference_range_kn_m2: [number, number];
   source_reference: string;
@@ -715,6 +711,9 @@ export interface ColumnBaseAssembly {
   anchor_embedment_mm: number;
   anchor_spacing_mm?: number | null;
   anchor_edge_mm?: number | null;
+  anchor_head_diameter_mm?: number | null;
+  anchor_supplementary_reinforcement_area_mm2?: number | null;
+  anchor_cracked_concrete?: boolean;
   weld_throat_mm?: number | null;
   concrete_bearing_capacity_mpa?: number | null;
   grout_thickness_mm: number;
@@ -745,20 +744,53 @@ export interface SceneGeometryProfile {
   profile_version: "1.0" | "2.0" | "2.1" | "2.2" | "2.3";
   layout_mode: "preset" | "custom_grid" | "free_plan";
   axes: Array<{ id: string; direction: "x" | "y"; positions_m: number[] }>;
-  nodes: Array<{ id: string; x_m: number; y_m: number; z_m: number; support: "none" | "pinned" | "fixed"; column_top: boolean }>;
+  nodes: Array<{
+    id: string;
+    x_m: number;
+    y_m: number;
+    z_m: number;
+    support: "none" | "pinned" | "fixed";
+    column_top: boolean;
+  }>;
   members: Array<{
-    id: string; start_node_id: string; end_node_id: string;
+    id: string;
+    start_node_id: string;
+    end_node_id: string;
     role: "column" | "beam" | "purlin" | "truss_chord" | "truss_web" | "brace";
-    group_id: string; behavior: "frame" | "truss"; end_release: "rigid" | "pinned";
-    start_release?: MemberEndRelease | null; end_release_dofs?: MemberEndRelease | null;
+    group_id: string;
+    behavior: "frame" | "truss";
+    end_release: "rigid" | "pinned";
+    start_release?: MemberEndRelease | null;
+    end_release_dofs?: MemberEndRelease | null;
     rigid_offset?: { start_m: number; end_m: number } | null;
     design_parameters?: MemberDesignParameters | null;
   }>;
-  roof_surfaces: Array<{ id: string; node_ids: string[]; form: "flat" | "single_slope" | "double_slope" | "faceted"; load_path_group_ids: string[]; load_direction_deg?: number | null; opening_ids?: string[] }>;
-  supports?: Array<{ id: string; node_id: string; restraint: "pinned" | "fixed" | "spring"; foundation_id?: string | null; restrained_dofs?: Array<"ux" | "uy" | "uz" | "rx" | "ry" | "rz">; spring_stiffness?: Record<string, number> }>;
+  roof_surfaces: Array<{
+    id: string;
+    node_ids: string[];
+    form: "flat" | "single_slope" | "double_slope" | "faceted";
+    load_path_group_ids: string[];
+    load_direction_deg?: number | null;
+    opening_ids?: string[];
+  }>;
+  supports?: Array<{
+    id: string;
+    node_id: string;
+    restraint: "pinned" | "fixed" | "spring";
+    foundation_id?: string | null;
+    restrained_dofs?: Array<"ux" | "uy" | "uz" | "rx" | "ry" | "rz">;
+    spring_stiffness?: Record<string, number>;
+  }>;
   plan_boundary?: {
     outer_points: Array<{ id: string; x_m: number; y_m: number }>;
-    outer_segments: Array<{ id: string; start_point_id: string; end_point_id: string; kind: "line" | "arc"; arc_mid_x_m?: number | null; arc_mid_y_m?: number | null }>;
+    outer_segments: Array<{
+      id: string;
+      start_point_id: string;
+      end_point_id: string;
+      kind: "line" | "arc";
+      arc_mid_x_m?: number | null;
+      arc_mid_y_m?: number | null;
+    }>;
     source: string;
   } | null;
   roof_elevation?: {
@@ -781,12 +813,24 @@ export interface SceneGeometryProfile {
   connection_instances?: ConnectionInstanceAssignment[];
   column_bases?: ColumnBaseAssembly[];
   roof_openings?: Array<{ id: string; surface_id: string; node_ids: string[] }>;
-  roof_load_zones?: Array<{ id: string; surface_id: string; boundary_node_ids: string[]; roof_assembly_id: string; load_path_group_ids: string[]; load_direction_deg?: number | null }>;
+  roof_load_zones?: Array<{
+    id: string;
+    surface_id: string;
+    boundary_node_ids: string[];
+    roof_assembly_id: string;
+    load_path_group_ids: string[];
+    load_direction_deg?: number | null;
+  }>;
   source: string;
 }
 
 export interface MemberEndRelease {
-  ux: boolean; uy: boolean; uz: boolean; rx: boolean; ry: boolean; rz: boolean;
+  ux: boolean;
+  uy: boolean;
+  uz: boolean;
+  rx: boolean;
+  ry: boolean;
+  rz: boolean;
 }
 
 export interface MemberDesignParameters {

@@ -111,7 +111,7 @@ def test_prismatic_scene_foundation_runs_existing_component_checks() -> None:
     assert item["verification_status"] == "unverified"
     assert len(item["checks"]) >= 10
     assert item["support_node_id"] == "B1"
-    assert "沉降计算" in item["pending_checks"]
+    assert any("沉降计算" in value for value in item["pending_checks"])
 
 
 def test_missing_cover_and_nonprismatic_geometry_are_not_silently_defaulted() -> None:
@@ -155,7 +155,30 @@ def test_complete_step_and_taper_geometry_affect_volume_and_weight() -> None:
     assert stepped["shape_geometry"]["concrete_volume_m3"] > prismatic["shape_geometry"]["concrete_volume_m3"]
     assert tapered["shape_geometry"]["concrete_volume_m3"] > prismatic["shape_geometry"]["concrete_volume_m3"]
     assert stepped["reactions"]["N_service"]["value"] > prismatic["reactions"]["N_service"]["value"]
-    assert "阶形/锥形上部截面冲切与局部构造" in tapered["pending_checks"]
+    assert tapered["detailed_shape_checks"]
+    assert all(level["checks"] for level in tapered["detailed_shape_checks"])
+
+
+def test_explicit_layers_produce_traceable_settlement_and_softer_soil_increases_it() -> None:
+    def profile(modulus: float) -> ProjectGeotechnicalProfile:
+        return ProjectGeotechnicalProfile.model_validate({
+            "profile_version": "1.1",
+            "stage": "project_check",
+            "confirmed_soil_class": "可塑黏土",
+            "bearing_capacity_kpa": 120,
+            "bearing_capacity_source": "勘察报告",
+            "settlement_layers": [{"id": "L1", "name": "压缩层", "thickness_m": 6, "compression_modulus_mpa": modulus, "unit_weight_kn_m3": 18, "source": "勘察报告第3层"}],
+            "settlement_correction_factor": 1.0,
+            "settlement_limit_mm": 30,
+            "groundwater": {"condition": "known_levels", "construction_level_m": -2.5, "service_level_m": -2, "antifloat_level_m": -1.5, "source": "勘察报告"},
+            "report_name": "测试勘察报告",
+            "report_date": "2026-08-24",
+        })
+    stiff = calculate_scene_foundations(_geometry(), REACTIONS, profile(16), project_name="亭廊")[0]
+    soft = calculate_scene_foundations(_geometry(), REACTIONS, profile(8), project_name="亭廊")[0]
+    assert stiff["settlement_check"]["layers"]
+    assert soft["settlement_check"]["demand"]["value"] > stiff["settlement_check"]["demand"]["value"]
+    assert not any("沉降计算" in value for value in soft["pending_checks"])
 
 
 def test_pedestal_changes_foundation_reaction_chain() -> None:

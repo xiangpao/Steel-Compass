@@ -292,7 +292,7 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
                 {"id": "S2", "node_id": "B2", "restraint": "fixed", "foundation_id": "FI2"},
             ],
             "foundation_types": [
-                {"id": "fa", "mark": "F-A", "title": "等厚基础", "form_id": "spread-prismatic", "length_m": 1.8, "width_m": 1.5, "thickness_mm": 450, "embedment_m": 1.1, "concrete_grade": "C30", "rebar_grade": "HRB400", "bottom_x": "Phi14@150", "bottom_y": "Phi12@150", "cover_mm": 50, "pedestal": {"enabled": True, "auto_enabled": True, "length_mm": 500, "width_mm": 500, "clear_height_mm": 650, "top_elevation_m": 0, "bottom_elevation_m": -0.65, "concrete_grade": "C30", "cover_mm": 40, "longitudinal_bar_count_x": 2, "longitudinal_bar_count_y": 2, "longitudinal_bar_diameter_mm": 16, "stirrup_diameter_mm": 8, "stirrup_spacing_mm": 150, "confinement_spacing_mm": 100, "dowel_anchorage_mm": 600, "splice_type": "lap", "top_local_reinforcement": True}}
+                    {"id": "fa", "mark": "F-A", "title": "等厚基础", "form_id": "spread-prismatic", "length_m": 1.8, "width_m": 1.5, "thickness_mm": 450, "embedment_m": 1.1, "concrete_grade": "C30", "rebar_grade": "HRB400", "bottom_x": "Phi14@150", "bottom_y": "Phi12@150", "cover_mm": 50, "pedestal": {"enabled": True, "auto_enabled": True, "length_mm": 500, "width_mm": 500, "clear_height_mm": 650, "top_elevation_m": 0, "bottom_elevation_m": -0.65, "concrete_grade": "C30", "cover_mm": 40, "longitudinal_bar_count_x": 2, "longitudinal_bar_count_y": 2, "longitudinal_bar_diameter_mm": 16, "stirrup_diameter_mm": 8, "stirrup_spacing_mm": 150, "confinement_spacing_mm": 90, "dowel_anchorage_mm": 700, "splice_type": "lap", "top_local_reinforcement": True}}
             ],
             "foundation_instances": [
                 {"id": "FI1", "support_id": "S1", "foundation_type_id": "fa", "mark": "F-A-01", "column_member_id": "C1"},
@@ -310,8 +310,8 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
                     {"id": "J5", "mark": "J-B-03", "connection_type_id": "frame", "node_id": "T2", "member_ids": ["C2", "M2"], "status": "defined"},
             ],
                 "column_bases": [
-                {"id": "CB1", "column_member_id": "C1", "support_id": "S1", "connection_instance_id": "J1", "base_plate_length_mm": 360, "base_plate_width_mm": 360, "base_plate_thickness_mm": 24, "anchor_grade": "5.8", "anchor_diameter_mm": 24, "anchor_count": 4, "anchor_embedment_mm": 600, "anchor_spacing_mm": 260, "anchor_edge_mm": 50, "weld_throat_mm": 8, "concrete_bearing_capacity_mpa": 10},
-                    {"id": "CB2", "column_member_id": "C2", "support_id": "S2", "connection_instance_id": "J2", "base_plate_length_mm": 360, "base_plate_width_mm": 360, "base_plate_thickness_mm": 24, "anchor_grade": "5.8", "anchor_diameter_mm": 24, "anchor_count": 4, "anchor_embedment_mm": 600, "anchor_spacing_mm": 260, "anchor_edge_mm": 50, "weld_throat_mm": 8, "concrete_bearing_capacity_mpa": 10},
+                    {"id": "CB1", "column_member_id": "C1", "support_id": "S1", "connection_instance_id": "J1", "base_plate_length_mm": 360, "base_plate_width_mm": 360, "base_plate_thickness_mm": 24, "anchor_grade": "5.8", "anchor_diameter_mm": 24, "anchor_count": 4, "anchor_embedment_mm": 600, "anchor_spacing_mm": 260, "anchor_edge_mm": 50, "anchor_head_diameter_mm": 60, "weld_throat_mm": 8, "concrete_bearing_capacity_mpa": 10},
+                        {"id": "CB2", "column_member_id": "C2", "support_id": "S2", "connection_instance_id": "J2", "base_plate_length_mm": 360, "base_plate_width_mm": 360, "base_plate_thickness_mm": 24, "anchor_grade": "5.8", "anchor_diameter_mm": 24, "anchor_count": 4, "anchor_embedment_mm": 600, "anchor_spacing_mm": 260, "anchor_edge_mm": 50, "anchor_head_diameter_mm": 60, "weld_throat_mm": 8, "concrete_bearing_capacity_mpa": 10},
                 ],
                 "roof_surfaces": [
                     {"id": "R1", "node_ids": ["T1", "T2", "T3"], "form": "flat", "load_path_group_ids": ["beams"], "load_direction_deg": 0}
@@ -367,7 +367,8 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
         assert analysis_package["foundation_checks"]["items"][0]["verification_status"] == "unverified"
         assert analysis_package["foundation_checks"]["items"][0]["pedestal_check"]["checks"]
         assert analysis_package["foundation_checks"]["items"][0]["pedestal_check"]["verification_status"] == "unverified"
-        assert "基础沉降计算需要勘察变形参数" in analysis_package["trace"]["unsupported_capabilities"]
+        assert "基础沉降计算需要分层压缩参数、经验系数和允许值" in analysis_package["trace"]["unsupported_capabilities"]
+        assert "外部YJK/PKPM数值对照证据尚未导入" in analysis_package["trace"]["unsupported_capabilities"]
         snapshots = client.get(
             f"/api/v2/projects/{project_id}/scene-instances/{analysis_instance_id}/analysis-snapshots"
         )

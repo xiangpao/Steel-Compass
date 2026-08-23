@@ -1,0 +1,22 @@
+{
+  "product": "YJK-or-PKPM",
+  "product_version": "REPLACE_WITH_ACTUAL_VERSION",
+  "model_id": "REPLACE_WITH_REFERENCE_MODEL_ID",
+  "export_date": "2026-08-24",
+  "reviewer": "REPLACE_WITH_REVIEWER",
+  "source_files": ["REPLACE_WITH_EXPORTED_CALCULATION_FILE"],
+  "metrics": [
+    {
+      "name": "foundation_F-A-01_settlement_mm",
+      "steel_compass": 0.0,
+      "external": 0.0,
+      "tolerance": 0.1
+    },
+    {
+      "name": "foundation_F-A-01_punching_utilization",
+      "steel_compass": 0.0,
+      "external": 0.0,
+      "tolerance": 0.1
+    }
+  ]
+}

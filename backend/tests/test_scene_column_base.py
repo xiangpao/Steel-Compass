@@ -55,6 +55,8 @@ def _payload() -> dict:
             "base_plate_length_mm": 420, "base_plate_width_mm": 420, "base_plate_thickness_mm": 28,
             "anchor_grade": "5.8", "anchor_diameter_mm": 24, "anchor_count": 4, "anchor_embedment_mm": 600,
             "anchor_spacing_mm": 280, "anchor_edge_mm": 60, "weld_throat_mm": 8,
+            "anchor_head_diameter_mm": 60, "anchor_supplementary_reinforcement_area_mm2": 0,
+            "anchor_cracked_concrete": True,
             "concrete_bearing_capacity_mpa": 10,
         }],
     }
@@ -73,6 +75,8 @@ def test_saved_column_base_runs_real_component_checks() -> None:
     assert len(item["checks"]) >= 8
     assert item["section_id"] == "shs-200x8"
     assert item["reaction_envelopes"]
+    assert any(check["name"] == "锚栓头部拔出破坏验算" for check in item["checks"])
+    assert any(check["name"] == "锚栓劈裂破坏验算" for check in item["checks"])
 
 
 def test_missing_geometry_and_legacy_anchor_grade_never_use_quick_defaults() -> None:

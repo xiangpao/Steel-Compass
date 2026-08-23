@@ -378,6 +378,9 @@ class ColumnBaseAssembly(BaseModel):
     anchor_embedment_mm: float = Field(ge=100, le=3000)
     anchor_spacing_mm: float | None = Field(default=None, ge=60, le=1800)
     anchor_edge_mm: float | None = Field(default=None, ge=20, le=500)
+    anchor_head_diameter_mm: float | None = Field(default=None, ge=20, le=300)
+    anchor_supplementary_reinforcement_area_mm2: float | None = Field(default=None, ge=0, le=20000)
+    anchor_cracked_concrete: bool = True
     weld_throat_mm: float | None = Field(default=None, ge=3, le=40)
     concrete_bearing_capacity_mpa: float | None = Field(default=None, ge=1, le=60)
     grout_thickness_mm: float = Field(default=30, ge=0, le=200)
@@ -830,8 +833,17 @@ class GroundwaterDesignProfile(BaseModel):
         return self
 
 
+class SettlementLayer(BaseModel):
+    id: str = Field(min_length=1, max_length=80)
+    name: str = Field(min_length=1, max_length=120)
+    thickness_m: float = Field(gt=0, le=100)
+    compression_modulus_mpa: float = Field(gt=0, le=1000)
+    unit_weight_kn_m3: float = Field(gt=0, le=35)
+    source: str = Field(min_length=1, max_length=400)
+
+
 class ProjectGeotechnicalProfile(BaseModel):
-    profile_version: Literal["1.0"] = "1.0"
+    profile_version: Literal["1.0", "1.1"] = "1.0"
     stage: Literal["scheme_estimate", "project_check"]
     regional_hint_id: str | None = None
     confirmed_soil_class: str = Field(min_length=1, max_length=120)
@@ -839,6 +851,9 @@ class ProjectGeotechnicalProfile(BaseModel):
     bearing_capacity_source: str = Field(min_length=1, max_length=400)
     deformation_modulus_mpa: float | None = Field(default=None, gt=0, le=1000)
     compression_modulus_mpa: float | None = Field(default=None, gt=0, le=1000)
+    settlement_layers: list[SettlementLayer] = Field(default_factory=list, max_length=30)
+    settlement_correction_factor: float | None = Field(default=None, gt=0, le=3)
+    settlement_limit_mm: float | None = Field(default=None, gt=0, le=500)
     groundwater: GroundwaterDesignProfile
     report_name: str | None = Field(default=None, max_length=240)
     report_date: date | None = None
@@ -853,8 +868,16 @@ class ProjectGeotechnicalProfile(BaseModel):
         if self.stage == "project_check":
             if not (self.report_name or "").strip() or self.report_date is None:
                 raise ValueError("工程校核必须填写勘察报告名称和日期")
-            if self.deformation_modulus_mpa is None and self.compression_modulus_mpa is None:
+            if (
+                self.deformation_modulus_mpa is None
+                and self.compression_modulus_mpa is None
+                and not self.settlement_layers
+            ):
                 raise ValueError("工程校核必须提供至少一种沉降计算参数")
+            if self.settlement_layers and (
+                self.settlement_correction_factor is None or self.settlement_limit_mm is None
+            ):
+                raise ValueError("分层沉降计算必须填写沉降经验系数和允许沉降值")
             if self.groundwater.condition == "unknown":
                 raise ValueError("工程校核不得使用未知地下水条件")
         return self

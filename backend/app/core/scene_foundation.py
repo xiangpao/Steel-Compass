@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from .concrete import CONCRETE
 from .design_profiles import (
     FoundationTypeDefinition,
     ProjectGeotechnicalProfile,
@@ -131,6 +132,145 @@ def _shape_geometry(foundation: FoundationTypeDefinition) -> dict[str, float] | 
     }
 
 
+def _case_component(case: dict[str, Any], name: str) -> float:
+    return float(case["components"].get(name, {}).get("value", 0.0))
+
+
+def _settlement_check(
+    foundation: FoundationTypeDefinition,
+    geotechnical: ProjectGeotechnicalProfile,
+    reaction: dict[str, float],
+) -> dict[str, Any] | None:
+    """Layered 2:1 stress-spread estimate using explicit investigation data.
+
+    This is intentionally traceable and conservative for the scheme workflow;
+    it is not presented as an independently verified code implementation.
+    """
+    if not geotechnical.settlement_layers:
+        return None
+    factor = geotechnical.settlement_correction_factor
+    limit = geotechnical.settlement_limit_mm
+    if factor is None or limit is None:
+        return None
+    sls = [item for item in scene_reaction_envelopes(reaction) if item["limit_state"] == "SLS"]
+    if not sls:
+        return None
+    area = foundation.length_m * foundation.width_m
+    controlling = max(sls, key=lambda item: max(_case_component(item, "N"), 0.0))
+    base_pressure = max(_case_component(controlling, "N"), 0.0) / area
+    first_gamma = geotechnical.settlement_layers[0].unit_weight_kn_m3
+    net_pressure = max(base_pressure - first_gamma * foundation.embedment_m, 0.0)
+    depth = 0.0
+    increments: list[dict[str, Any]] = []
+    total = 0.0
+    for layer in geotechnical.settlement_layers:
+        midpoint = depth + layer.thickness_m / 2
+        influence = (
+            foundation.length_m * foundation.width_m
+            / ((foundation.length_m + midpoint) * (foundation.width_m + midpoint))
+        )
+        stress = net_pressure * influence
+        increment = stress * layer.thickness_m / (layer.compression_modulus_mpa * 1000) * 1000
+        total += increment
+        increments.append({
+            "layer_id": layer.id,
+            "layer_name": layer.name,
+            "mid_depth_m": midpoint,
+            "influence_factor": influence,
+            "additional_stress_kpa": stress,
+            "compression_modulus_mpa": layer.compression_modulus_mpa,
+            "increment_mm": increment,
+            "source": layer.source,
+        })
+        depth += layer.thickness_m
+    corrected = total * factor
+    return {
+        "name": "地基沉降分层总和法（2:1应力扩散）",
+        "status": "passed" if corrected <= limit else "failed",
+        "demand": {"value": corrected, "unit": "mm"},
+        "capacity": {"value": limit, "unit": "mm"},
+        "utilization": corrected / limit,
+        "passed": corrected <= limit,
+        "reference": "GB 50007-2011 分层总和法工作流；2:1应力扩散为当前透明方案模型",
+        "note": "采用勘察录入土层逐层积分；邻基影响、应力历史及复杂地层有限元尚未计入。",
+        "combination_id": controlling["combination_id"],
+        "base_pressure_kpa": base_pressure,
+        "net_pressure_kpa": net_pressure,
+        "correction_factor": factor,
+        "layers": increments,
+        "verification_status": "unverified",
+    }
+
+
+def _nonprismatic_checks(
+    foundation: FoundationTypeDefinition,
+    loaded_length_mm: float,
+    loaded_width_mm: float,
+    reaction: dict[str, float],
+) -> list[dict[str, Any]]:
+    """Check every step/taper transition instead of replacing it by one slab."""
+    if foundation.form_id == "spread-prismatic":
+        return []
+    concrete = CONCRETE.get(foundation.concrete_grade)
+    if concrete is None or foundation.cover_mm is None:
+        return []
+    uls = [item for item in scene_reaction_envelopes(reaction) if item["limit_state"] == "ULS"]
+    if not uls:
+        return []
+    area = foundation.length_m * foundation.width_m
+    ft = concrete["ft"]
+    levels: list[tuple[str, float, float, float]] = []
+    if foundation.form_id == "spread-stepped":
+        cumulative_height = foundation.thickness_mm
+        for index, step in enumerate(foundation.steps, start=1):
+            cumulative_height += step.height_mm
+            levels.append((f"第{index}阶根部", step.length_m, step.width_m, cumulative_height))
+    elif (
+        foundation.tapered_top_length_m is not None
+        and foundation.tapered_top_width_m is not None
+        and foundation.tapered_height_mm is not None
+    ):
+        levels.extend([
+            ("锥台顶根部", foundation.tapered_top_length_m, foundation.tapered_top_width_m, foundation.thickness_mm + foundation.tapered_height_mm),
+            ("锥面与底板交界", max(foundation.tapered_top_length_m, loaded_length_mm / 1000), max(foundation.tapered_top_width_m, loaded_width_mm / 1000), foundation.thickness_mm),
+        ])
+    results: list[dict[str, Any]] = []
+    for label, upper_l, upper_b, total_depth_mm in levels:
+        d_mm = total_depth_mm - foundation.cover_mm - 8.0
+        if d_mm <= 0:
+            continue
+        governing: dict[str, Any] | None = None
+        for case in uls:
+            n = max(_case_component(case, "N"), 0.0)
+            mx = abs(_case_component(case, "Mx"))
+            my = abs(_case_component(case, "My"))
+            q = n / area + 6 * mx / (foundation.length_m * foundation.width_m**2) + 6 * my / (foundation.width_m * foundation.length_m**2)
+            punching = max(n - q * upper_l * upper_b, 0.0)
+            perimeter_mm = 2 * ((upper_l + d_mm / 1000) + (upper_b + d_mm / 1000)) * 1000
+            punch_capacity = 0.7 * ft * perimeter_mm * d_mm / 1000
+            shear_x = q * max((foundation.length_m - upper_l) / 2, 0.0) * foundation.width_m
+            shear_y = q * max((foundation.width_m - upper_b) / 2, 0.0) * foundation.length_m
+            cap_x = 0.7 * ft * foundation.width_m * 1000 * d_mm / 1000
+            cap_y = 0.7 * ft * foundation.length_m * 1000 * d_mm / 1000
+            utilization = max(punching / max(punch_capacity, 1e-9), shear_x / max(cap_x, 1e-9), shear_y / max(cap_y, 1e-9))
+            if governing is None or utilization > governing["utilization"]:
+                governing = {"combination_id": case["combination_id"], "pressure_kpa": q, "punching_kn": punching, "punch_capacity_kn": punch_capacity, "shear_x_kn": shear_x, "shear_x_capacity_kn": cap_x, "shear_y_kn": shear_y, "shear_y_capacity_kn": cap_y, "utilization": utilization}
+        assert governing is not None
+        results.append({
+            "level": label,
+            "upper_plan_m": {"length": upper_l, "width": upper_b},
+            "effective_depth_mm": d_mm,
+            "controlling_combination": governing["combination_id"],
+            "checks": [
+                {"name": f"{label}冲切", "demand": {"value": governing["punching_kn"], "unit": "kN"}, "capacity": {"value": governing["punch_capacity_kn"], "unit": "kN"}, "utilization": governing["punching_kn"] / max(governing["punch_capacity_kn"], 1e-9), "passed": governing["punching_kn"] <= governing["punch_capacity_kn"], "reference": "GB/T 50010-2010 冲切承载力；非棱柱基础转换截面方案映射"},
+                {"name": f"{label}X向受剪", "demand": {"value": governing["shear_x_kn"], "unit": "kN"}, "capacity": {"value": governing["shear_x_capacity_kn"], "unit": "kN"}, "utilization": governing["shear_x_kn"] / max(governing["shear_x_capacity_kn"], 1e-9), "passed": governing["shear_x_kn"] <= governing["shear_x_capacity_kn"], "reference": "GB/T 50010-2010 斜截面受剪；非棱柱基础转换截面方案映射"},
+                {"name": f"{label}Y向受剪", "demand": {"value": governing["shear_y_kn"], "unit": "kN"}, "capacity": {"value": governing["shear_y_capacity_kn"], "unit": "kN"}, "utilization": governing["shear_y_kn"] / max(governing["shear_y_capacity_kn"], 1e-9), "passed": governing["shear_y_kn"] <= governing["shear_y_capacity_kn"], "reference": "GB/T 50010-2010 斜截面受剪；非棱柱基础转换截面方案映射"},
+            ],
+            "verification_status": "unverified",
+        })
+    return results
+
+
 def calculate_scene_foundations(
     geometry: SceneGeometryProfile,
     support_reactions: dict[str, dict[str, float]],
@@ -138,13 +278,7 @@ def calculate_scene_foundations(
     *,
     project_name: str,
 ) -> list[dict[str, Any]]:
-    """Run the existing spread-footing core from saved model reactions.
-
-    Step and taper geometry contributes its real concrete volume and height.
-    The current component core still checks the bottom slab section and records
-    the upper-shape punching/anchorage scope as pending. All results remain
-    unverified scheme checks.
-    """
+    """Run bottom-slab, non-prismatic section and explicit settlement checks."""
 
     foundation_types = {item.id: item for item in geometry.foundation_types}
     supports = {item.id: item for item in geometry.supports}
@@ -252,6 +386,19 @@ def calculate_scene_foundations(
             loads=[],
         ))
         failed_checks = [item.name for item in result.checks if not item.passed]
+        settlement = _settlement_check(foundation_type, geotechnical, reaction)
+        detailed_shape_checks = _nonprismatic_checks(
+            foundation_type, loaded_length, loaded_width, reaction
+        )
+        for level in detailed_shape_checks:
+            failed_checks.extend(
+                check["name"] for check in level["checks"] if not check["passed"]
+            )
+        if settlement is not None and not settlement["passed"]:
+            failed_checks.append(settlement["name"])
+        pending_checks = ["基础构造锚固"]
+        if settlement is None:
+            pending_checks.append("沉降计算（需录入分层压缩参数与允许值）")
         items.append({
             "foundation_id": foundation.id,
             "mark": foundation.mark,
@@ -270,15 +417,9 @@ def calculate_scene_foundations(
                 **shape,
                 "soil_cover_volume_m3": soil_cover_volume,
             },
-            "pending_checks": [
-                "沉降计算",
-                "基础构造锚固",
-                *(
-                    ["阶形/锥形上部截面冲切与局部构造"]
-                    if foundation_type.form_id != "spread-prismatic"
-                    else []
-                ),
-            ],
+            "settlement_check": settlement,
+            "detailed_shape_checks": detailed_shape_checks,
+            "pending_checks": pending_checks,
             "analysis_assumption": "采用已保存的设计组合包络；基础适配器不再二次统一放大反力。",
         })
     return items

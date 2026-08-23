@@ -76,3 +76,21 @@ def test_disabled_or_unsupported_pedestal_never_silently_calculates() -> None:
     unsupported = calculate_scene_pedestals(_geometry(concrete_grade="C50"), REACTION)[0]
     assert unsupported["status"] == "not_calculated"
     assert unsupported["issue_code"] == "unsupported_pedestal_concrete_grade"
+
+
+def test_seismic_combination_triggers_pedestal_detailing_checks() -> None:
+    seismic_reaction = {
+        "B1": {
+            **REACTION["B1"],
+            "_cases": [{
+                "combination_id": "ULS-SEISMIC-X+",
+                "limit_state": "ULS",
+                "reaction": REACTION["B1"],
+            }],
+        }
+    }
+    item = calculate_scene_pedestals(_geometry(), seismic_reaction)[0]
+    assert item["seismic_detail"]["applicable"] is True
+    assert any(check["name"] == "短柱抗震轴压比" for check in item["checks"])
+    assert any(check["name"] == "短柱抗震加密区箍筋间距" for check in item["checks"])
+    assert not any("抗震" in value for value in item["pending_checks"])

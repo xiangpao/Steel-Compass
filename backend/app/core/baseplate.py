@@ -123,6 +123,13 @@ def calculate_steel_baseplate_anchor(
     anchor_edge = mode_number(
         request, "anchor_edge_mm", quick_default=50, minimum=20, maximum=500
     )
+    anchor_head_diameter = mode_number(
+        request,
+        "anchor_head_diameter_mm",
+        quick_default=max(2.5 * anchor_diameter, anchor_diameter + 20),
+        minimum=anchor_diameter + 4,
+        maximum=300,
+    )
     weld_throat = mode_number(
         request, "weld_throat_mm", quick_default=6, minimum=3, maximum=40
     )
@@ -194,6 +201,9 @@ def calculate_steel_baseplate_anchor(
     governing_utilization = -1.0
     embedment_depth = float(request.inputs.get("embedment_depth_mm", 15 * anchor_diameter))
     concrete_fcu = float(request.inputs.get("concrete_fcu_mpa", 30.0))
+    concrete_member_thickness = float(request.inputs.get("anchor_member_thickness_mm", embedment_depth + 100))
+    supplementary_area = float(request.inputs.get("anchor_supplementary_reinforcement_area_mm2", 0.0))
+    cracked_concrete = bool(request.inputs.get("anchor_cracked_concrete", True))
     # GB 50010 / JGJ 145 混凝土受拉锥体破坏特征设计承载力 (kN)
     # N_rd_c = 11.0 * sqrt(fcu) * hef^1.5 / 1.5 / 1000
     anchor_concrete_tension_capacity = (
@@ -203,6 +213,19 @@ def calculate_steel_baseplate_anchor(
     anchor_edge_mm = max(anchor_edge, 10.0)
     anchor_concrete_shear_capacity = (
         0.6 * sqrt(anchor_diameter) * ((anchor_edge_mm / anchor_diameter) ** 1.5) * sqrt(concrete_fcu) / 1.5
+    )
+    head_bearing_area = pi * (anchor_head_diameter**2 - anchor_diameter**2) / 4
+    anchor_pullout_capacity = 8.0 * head_bearing_area * concrete_fcu / 1.5 / 1000
+    edge_factor = min(1.0, anchor_edge / max(1.5 * embedment_depth, 1e-9))
+    spacing_factor = min(1.0, anchor_spacing / max(3.0 * embedment_depth, 1e-9))
+    thickness_factor = min(1.0, concrete_member_thickness / max(1.5 * embedment_depth, 1e-9))
+    cracked_factor = 0.7 if cracked_concrete else 1.0
+    supplementary_capacity_each = 0.8 * 360.0 * supplementary_area / max(anchor_count, 1) / 1000
+    anchor_splitting_capacity = (
+        anchor_concrete_tension_capacity
+        * max(min(edge_factor, spacing_factor, thickness_factor), 0.15)
+        * cracked_factor
+        + supplementary_capacity_each
     )
 
     for item in design:
@@ -226,6 +249,8 @@ def calculate_steel_baseplate_anchor(
         )
         tension_concrete_ratio = tension_each / max(anchor_concrete_tension_capacity, 1e-9)
         shear_concrete_ratio = shear_each / max(anchor_concrete_shear_capacity, 1e-9)
+        pullout_ratio = tension_each / max(anchor_pullout_capacity, 1e-9)
+        splitting_ratio = tension_each / max(anchor_splitting_capacity, 1e-9)
         plate_moment_per_mm = pressure * projection**2 / 2
         plate_stress = 6 * plate_moment_per_mm / plate_thickness**2
         utilization = max(
@@ -234,6 +259,8 @@ def calculate_steel_baseplate_anchor(
             interaction,
             tension_concrete_ratio,
             shear_concrete_ratio,
+            pullout_ratio,
+            splitting_ratio,
         )
         if utilization > governing_utilization:
             governing_utilization = utilization
@@ -247,6 +274,8 @@ def calculate_steel_baseplate_anchor(
                 "shear_concrete_ratio": shear_concrete_ratio,
                 "anchor_concrete_tension_capacity": anchor_concrete_tension_capacity,
                 "anchor_concrete_shear_capacity": anchor_concrete_shear_capacity,
+                "anchor_pullout_capacity": anchor_pullout_capacity,
+                "anchor_splitting_capacity": anchor_splitting_capacity,
                 "shear": shear,
                 "moment": moment,
             }
@@ -293,6 +322,22 @@ def calculate_steel_baseplate_anchor(
             "JGJ 145-2013 / GB 50010-2010 混凝土边缘受剪破坏",
         ),
         _check(
+            "锚栓头部拔出破坏验算",
+            governing_values["tension_each"],
+            governing_values["anchor_pullout_capacity"],
+            "kN",
+            "锚栓头部承压投影面积模型；方案级显式计算",
+            "工程校核需由锚栓产品、头部形式和混凝土设计参数复核。",
+        ),
+        _check(
+            "锚栓劈裂破坏验算",
+            governing_values["tension_each"],
+            governing_values["anchor_splitting_capacity"],
+            "kN",
+            "锚固区边距、间距、构件厚度及开裂状态折减模型；方案级显式计算",
+            "配置附加锚固钢筋时计入其受拉贡献；当前公式仍为 unverified。",
+        ),
+        _check(
             "锚栓最小间距",
             3 * anchor_diameter,
             anchor_spacing,
@@ -334,7 +379,7 @@ def calculate_steel_baseplate_anchor(
         CalculationWarning(
             severity="info",
             code="anchor_concrete_failure_modes_checked",
-            message="已计算锚栓混凝土受拉锥体破坏及受剪边缘破坏；深层拔出与劈裂验算需结合配筋现场实测复核。",
+            message="已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。",
         )
     ]
     return CalculationResult(
@@ -361,6 +406,10 @@ def calculate_steel_baseplate_anchor(
                 "anchor_grade": anchor_grade,
                 "anchor_spacing": (anchor_spacing, "mm"),
                 "anchor_edge": (anchor_edge, "mm"),
+                "anchor_head_diameter": (anchor_head_diameter, "mm"),
+                "anchor_member_thickness": (concrete_member_thickness, "mm"),
+                "anchor_supplementary_reinforcement_area": (supplementary_area, "mm²"),
+                "anchor_cracked_concrete": "是" if cracked_concrete else "否",
                 "weld_throat": (weld_throat, "mm"),
             }
         ),
