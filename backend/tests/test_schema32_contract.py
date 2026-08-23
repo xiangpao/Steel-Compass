@@ -21,7 +21,7 @@ from app.report import build_calculation_pdf
 
 def test_schema32_request_needs_no_confirmation_fields() -> None:
     request = CalculationRequest(
-        schema_version="3.2",
+        schema_version="3.3",
         mode=CalculationMode.QUICK,
         module=CalculationModule.STEEL_BEAM,
         typed_inputs=TypedModuleInputs(
@@ -48,7 +48,7 @@ def test_schema32_request_needs_no_confirmation_fields() -> None:
 
 def test_schema32_defaults_to_versioned_standard_profile_and_reads_legacy() -> None:
     current = CalculationRequest(
-        schema_version="3.2",
+        schema_version="3.3",
         mode=CalculationMode.QUICK,
         module=CalculationModule.STEEL_BEAM,
     )
@@ -59,11 +59,11 @@ def test_schema32_defaults_to_versioned_standard_profile_and_reads_legacy() -> N
         module=CalculationModule.STEEL_BEAM,
     )
 
-    assert current.standard_profile == "CN-2026.1"
+    assert current.standard_profile == "CN-2026.6"
     assert legacy.standard_profile == "CN-2024"
 
     profile = standard_profile()
-    assert profile["profile"] == "CN-2026.1"
+    assert profile["profile"] == "CN-2026.6"
     assert profile["mapping_status"] == "module_scoped"
     assert any(item["code"] == "GB 55003-2021" for item in profile["standards"])
 
@@ -92,7 +92,7 @@ def test_scene_load_serialization_drops_legacy_confirmation() -> None:
 
 def _foundation_request(**inputs: object) -> CalculationRequest:
     return CalculationRequest(
-        schema_version="3.2",
+        schema_version="3.3",
         mode=CalculationMode.PROFESSIONAL,
         module=CalculationModule.SPREAD_FOOTING,
         inputs=dict(inputs),
@@ -164,7 +164,7 @@ def _pdf_text(result: CalculationResult) -> str:
 
 
 def test_new_pdf_omits_generic_disclaimer_but_legacy_pdf_remains_readable() -> None:
-    current = _result("3.2")
+    current = _result("3.3")
     assert "disclaimer" not in current.model_dump(mode="json")
     assert "LEGACY_DISCLAIMER_MARKER" not in _pdf_text(current)
     assert "LEGACY_DISCLAIMER_MARKER" in _pdf_text(_result("3.1"))

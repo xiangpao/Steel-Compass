@@ -1,11 +1,15 @@
-"""GB 50011-2010 (2016年版) 建筑抗震设计规范：底部剪力法计算模块
+"""方案筛查版等效地震作用。
 
 提供设防烈度、场地类别、特征周期及自振周期影响下的地震影响系数 α1 计算，
 以及结构总水平地震作用标准值 FEk 计算。
 """
 
-from typing import Dict, Any, Tuple
+from typing import Any, Dict, Literal
 from dataclasses import dataclass
+
+from pydantic import BaseModel, Field
+
+from .site_profile import ProjectSiteProfile, SEISMIC_DESIGN_PROFILES
 
 # 8度设防烈度下的 αmax (多遇地震 / 罕遇地震)
 INTENSITY_ALPHA_MAX = {
@@ -44,9 +48,11 @@ def calculate_seismic_influence_alpha(
 ) -> float:
     """依据 GB 50011-2010 第 5.1.4 条计算水平地震影响系数 α1"""
     if intensity not in INTENSITY_ALPHA_MAX:
-        intensity = 7.0  # 默认按7度处理
+        raise ValueError(f"unsupported seismic intensity: {intensity}")
+    if site_class not in SITE_CHARACTERISTIC_PERIOD_GRP1:
+        raise ValueError(f"unsupported site class: {site_class}")
     alpha_max = INTENSITY_ALPHA_MAX[intensity]["rare" if is_rare else "frequent"]
-    tg = SITE_CHARACTERISTIC_PERIOD_GRP1.get(site_class, 0.35)
+    tg = SITE_CHARACTERISTIC_PERIOD_GRP1[site_class]
 
     # 阻尼调整系数 γ 与 衰减指数 γ1
     eta2 = 1.0 + (0.05 - damping_ratio) / (0.08 + 1.6 * damping_ratio)
@@ -91,3 +97,61 @@ def calculate_base_shear_f_ek(input_data: SeismicInput) -> Dict[str, Any]:
         "intensity": input_data.intensity,
         "site_class": input_data.site_class,
     }
+
+
+class SeismicDirectionalAction(BaseModel):
+    id: str
+    direction: Literal["x_positive", "x_negative", "y_positive", "y_negative"]
+    force_kn: float = Field(ge=0)
+    signed_force_kn: float
+    combination_factor: float = 1.0
+    design_situation: Literal["seismic"] = "seismic"
+
+
+class SeismicActionPackage(BaseModel):
+    profile: dict
+    gravity_representative_value_kn: float = Field(ge=0)
+    gravity_factors: dict[str, float]
+    alpha1: float = Field(ge=0)
+    f_ek_kn: float = Field(ge=0)
+    actions: list[SeismicDirectionalAction]
+    base_reactions_kn: dict[str, float]
+    formula: str = "F_Ek = alpha1 * G_eq"
+    formula_reference: str
+    source_reference: str
+    catalog_version: str
+    verification_status: Literal["unverified"] = "unverified"
+
+
+def build_screening_seismic_package(
+    site_profile: ProjectSiteProfile,
+    gravity_representative_value_kn: float,
+) -> SeismicActionPackage:
+    """Build four balanced horizontal screening actions without a silent fallback."""
+
+    if not site_profile.is_condition_complete("seismic") or not site_profile.seismic_level:
+        raise ValueError("项目条件未完成：seismic")
+    profile = SEISMIC_DESIGN_PROFILES[site_profile.seismic_level]
+    gravity = max(float(gravity_representative_value_kn), 0.0)
+    force = round(profile.alpha_max * gravity, 6)
+    actions = [
+        SeismicDirectionalAction(
+            id=f"SEISMIC-{direction.upper()}",
+            direction=direction,
+            force_kn=force,
+            signed_force_kn=(-force if direction.endswith("negative") else force),
+        )
+        for direction in ("x_positive", "x_negative", "y_positive", "y_negative")
+    ]
+    return SeismicActionPackage(
+        profile=profile.model_dump(mode="json"),
+        gravity_representative_value_kn=round(gravity, 6),
+        gravity_factors={"permanent": 1.0, "live": 0.5, "snow": 0.5},
+        alpha1=profile.alpha_max,
+        f_ek_kn=force,
+        actions=actions,
+        base_reactions_kn={item.direction: item.signed_force_kn for item in actions},
+        formula_reference=profile.formula_reference,
+        source_reference=profile.source_reference,
+        catalog_version=profile.catalog_version,
+    )

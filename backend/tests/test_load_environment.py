@@ -99,6 +99,30 @@ def test_positive_and_negative_wind_remain_separate_signed_combinations() -> Non
     assert negative.resultants["x"] == pytest.approx(-9)
 
 
+def test_seismic_uses_dedicated_design_situation_and_never_factor_1_5() -> None:
+    bundle = generate_action_combinations(
+        [
+            _case("G", "permanent", 100, "gravity"),
+            _case("Q", "live", 20, "gravity"),
+            _case("E+", "seismic", 8, "x_positive", group="seismic-x"),
+            _case("E-", "seismic", 8, "x_negative", group="seismic-x"),
+        ]
+    )
+    seismic = [item for item in bundle.combinations if item.design_situation == "seismic"]
+    assert {item.leading_action for item in seismic} == {"E+", "E-"}
+    for combination in seismic:
+        factors = {item.case_id: item.factor for item in combination.actions}
+        assert factors[combination.leading_action] == 1.0
+        assert factors["G"] == 1.0
+        assert factors["Q"] == pytest.approx(0.3)
+    assert all(
+        action.category != "seismic"
+        for combination in bundle.combinations
+        if combination.design_situation == "persistent"
+        for action in combination.actions
+    )
+
+
 @pytest.mark.parametrize(
     ("cases", "code"),
     [

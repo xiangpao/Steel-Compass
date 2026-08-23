@@ -18,6 +18,7 @@ STANDARD_PROFILES: dict[str, dict] = {
         "mapping_status": "module_scoped",
         "standards": [
             {"code": "GB 55001-2021", "title": "工程结构通用规范"},
+            {"code": "GB 55002-2021", "title": "建筑与市政工程抗震通用规范"},
             {"code": "GB 55003-2021", "title": "建筑与市政地基基础通用规范"},
             {"code": "GB 55005-2021", "title": "木结构通用规范"},
             {"code": "GB 55006-2021", "title": "钢结构通用规范"},
@@ -26,16 +27,33 @@ STANDARD_PROFILES: dict[str, dict] = {
             {"code": "GB 50017-2017", "title": "钢结构设计标准"},
             {"code": "GB 50005-2017", "title": "木结构设计标准"},
             {"code": "GB 50007-2011", "title": "建筑地基基础设计规范"},
+            {"code": "GB/T 50011-2010", "title": "建筑抗震设计标准（2024年版）"},
             {"code": "GB/T 50010-2010", "title": "混凝土结构设计标准（2024年局部修订）"},
             {"code": "JGJ 94-2008", "title": "建筑桩基技术规范"},
         ],
         "official_review_sources": [
             "https://www.mohurd.gov.cn/api-gateway/jpaas-web-server/front/document/download?fileName=2021%E5%B9%B4.pdf",
             "https://www.mohurd.gov.cn/file/2024/20240822/a015dc08-eaf2-474a-81c1-c4454e3b220c.pdf",
+            "https://jshbj.xjbt.gov.cn/c/2021-11-08/8175501.shtml",
         ],
         "note": "模块是否可生成专业结论仍由独立验证证据决定。",
     }
 }
+
+# Geometry 2.3 / Snapshot 4.0 uses an isolated profile so older calculation
+# snapshots continue to resolve against CN-2026.6 without being rewritten.
+STANDARD_PROFILES["CN-2026.7"] = deepcopy(STANDARD_PROFILES[STANDARD_PROFILE])
+STANDARD_PROFILES["CN-2026.7"].update(
+    {
+        "profile": "CN-2026.7",
+        "effective_from": "2026-08-13",
+        "mapping_status": "pergola_closed_loop_unverified",
+        "note": (
+            "亭廊 Geometry 2.3 与 Snapshot 4.0 专用配置；公式映射、解析算例、"
+            "独立求解和外部复核完成前仍为 unverified。"
+        ),
+    }
+)
 
 
 def standard_profile(profile: str = STANDARD_PROFILE) -> dict:

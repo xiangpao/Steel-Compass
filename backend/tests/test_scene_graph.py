@@ -3,6 +3,14 @@ from __future__ import annotations
 import pytest
 
 from app.core.errors import CalculationInputError
+from app.core.design_profiles import (
+    FoundationDesignSpecification,
+    GroundwaterDesignProfile,
+    MemberSpecification,
+    ProjectGeotechnicalProfile,
+    SceneStructuralProfile,
+    SurfaceExposureProfile,
+)
 from app.core.scene_catalog import (
     SCENE_FAMILIES,
     get_scene_family,
@@ -66,13 +74,14 @@ def test_steel_pergola_structural_variants_are_public() -> None:
     assert family is not None
     public_variants = [item for item in family.variants if item.availability == "public"]
     assert [item.id for item in public_variants] == [
+        "guided-grid",
         "flat-single",
         "mono-pitch",
         "dual-pitch",
         "multi-bay",
     ]
 
-    variant = public_variants[0]
+    variant = next(item for item in public_variants if item.id == "flat-single")
     assert variant.material_systems == ["钢"]
     capability_by_material = {
         item.material_system: item for item in variant.capabilities
@@ -442,6 +451,52 @@ def test_steel_single_span_pergola_executes_full_traceable_chain() -> None:
         uls.total.value * 4,
         rel=1e-6,
     )
+
+    geotechnical = ProjectGeotechnicalProfile(
+        stage="scheme_estimate",
+        regional_hint_id="zj-inland-alluvial",
+        confirmed_soil_class="可塑黏性土",
+        bearing_capacity_kpa=100,
+        bearing_capacity_source="区域参考档，用户确认",
+        groundwater=GroundwaterDesignProfile(
+            condition="no_influence", source="现场资料确认无影响"
+        ),
+    )
+    members = [
+        MemberSpecification(node_id="roof_members", member_role="beam", material_grade="Q355B", section_catalog_id="rhs-200x100x6", section_type="RHS", section_name="矩形管 200×100×6", effective_length_m=3, unbraced_length_m=3, selection_source="recommended"),
+        MemberSpecification(node_id="main_frame", member_role="beam", material_grade="Q355B", section_catalog_id="rhs-300x150x8", section_type="RHS", section_name="矩形管 300×150×8", effective_length_m=4, unbraced_length_m=4, selection_source="recommended"),
+        MemberSpecification(node_id="main_frame", member_role="column", material_grade="Q355B", section_catalog_id="shs-200x8", section_type="SHS", section_name="方管 200×200×8", effective_length_m=3, unbraced_length_m=3, selection_source="recommended"),
+    ]
+    foundations = [
+        FoundationDesignSpecification(node_id=node_id, foundation_system_id="spread", selection_source="recommended", length_m=1.5, width_m=1.5, thickness_mm=450, embedment_m=1, concrete_grade="C30", rebar_grade="HRB400", bar_diameter_mm=14, bar_spacing_mm=150)
+        for node_id in ("foundation_left", "foundation_right")
+    ]
+    explicit = execute_scene(
+        family,
+        "flat-single",
+        "quick",
+        calculations,
+        load_cases=load_cases,
+        geotechnical_profile=geotechnical,
+        structural_profile=SceneStructuralProfile(
+            stage="scheme_estimate",
+            exposure=SurfaceExposureProfile(
+                vertical_enclosure="none",
+                top_cover="solid_roof",
+                roof_form="flat",
+                source="测试场景",
+            ),
+            members=members,
+            foundations=foundations,
+        ),
+        strict_site_conditions=False,
+    )
+    assert explicit.result_class == "scheme_estimate"
+    assert explicit.structural_profile is not None
+    left_foundation = explicit.node_results["foundation_left"].calculation_result
+    assert left_foundation is not None
+    assert left_foundation.input_summary["footing_length"].value == 1.5
+    assert left_foundation.input_summary["soil_capacity"].value == 100
 
 
 def test_boardwalk_and_pool_default_paths_are_public() -> None:

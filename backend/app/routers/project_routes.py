@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -7,6 +8,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..api_schemas import (
+    CustomSectionCreateRequest,
+    ProjectCustomSections,
     ProjectCreate,
     ProjectView,
     VersionCreate,
@@ -14,13 +17,17 @@ from ..api_schemas import (
     RevisionCreate,
     RevisionView,
 )
+from ..core.design_profiles import CustomSectionCreate, CustomSectionDefinition, calculate_custom_section
 from ..auth import require_ready_user
 from ..core.engine import calculate
+from ..core import SCHEMA_VERSION
 from ..core.schemas import CalculationResult, require_current_request_schema
 from ..core.schemas import CalculationModule, LoadItem, LoadKind
 from ..database import get_db
 from ..models import Project, ProjectRevision, ProjectVersion, User
 from ..core.scene_schemas import SceneRevisionResult
+from ..core.site_profile import ProjectSiteProfile
+from ..core.design_profiles import ProjectGeotechnicalProfile
 from ..report import (
     build_calculation_pdf,
     build_project_pdf,
@@ -45,6 +52,16 @@ def _project_view(project: Project) -> ProjectView:
         id=project.id,
         name=project.name,
         description=project.description,
+        site_profile=(
+            ProjectSiteProfile.model_validate(project.site_profile)
+            if project.site_profile
+            else None
+        ),
+        geotechnical_profile=(
+            ProjectGeotechnicalProfile.model_validate(project.geotechnical_profile)
+            if project.geotechnical_profile
+            else None
+        ),
         created_at=project.created_at,
         updated_at=project.updated_at,
         version_count=len(project.versions) + len(project.revisions),
@@ -181,6 +198,8 @@ def create_project(
         owner_id=user.id,
         name=payload.name,
         description=payload.description,
+        site_profile=(payload.site_profile.model_dump(mode="json") if payload.site_profile else None),
+        geotechnical_profile=(payload.geotechnical_profile.model_dump(mode="json") if payload.geotechnical_profile else None),
     )
     db.add(project)
     db.commit()
@@ -197,6 +216,162 @@ def get_project(
     return _project_view(_owned_project(db, project_id, user.id))
 
 
+@router.get("/{project_id}/site-profile", response_model=ProjectSiteProfile | None)
+def get_project_site_profile(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_ready_user),
+) -> ProjectSiteProfile | None:
+    project = _owned_project(db, project_id, user.id)
+    return ProjectSiteProfile.model_validate(project.site_profile) if project.site_profile else None
+
+
+@router.put("/{project_id}/site-profile", response_model=ProjectSiteProfile)
+def update_project_site_profile(
+    project_id: int,
+    payload: ProjectSiteProfile,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_ready_user),
+) -> ProjectSiteProfile:
+    project = _owned_project(db, project_id, user.id)
+    # A scene-specific editor may intentionally omit fields that are hidden for
+    # its current variant.  Merge those edits into the complete project profile
+    # instead of erasing climate/seismic data previously collected by another
+    # scene.
+    existing = (
+        ProjectSiteProfile.model_validate(project.site_profile).model_dump(
+            mode="json"
+        )
+        if project.site_profile
+        else {}
+    )
+    incoming = payload.model_dump(mode="json", exclude_unset=True)
+    if "catalog_versions" in incoming:
+        incoming["catalog_versions"] = {
+            **existing.get("catalog_versions", {}),
+            **incoming["catalog_versions"],
+        }
+    if "completed_conditions" in incoming:
+        incoming["completed_conditions"] = list(
+            dict.fromkeys(
+                [
+                    *existing.get("completed_conditions", []),
+                    *incoming["completed_conditions"],
+                ]
+            )
+        )
+    updated = ProjectSiteProfile.model_validate({**existing, **incoming})
+    project.site_profile = updated.model_dump(mode="json")
+    project.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    return updated
+
+
+@router.get(
+    "/{project_id}/geotechnical-profile",
+    response_model=ProjectGeotechnicalProfile | None,
+)
+def get_project_geotechnical_profile(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_ready_user),
+) -> ProjectGeotechnicalProfile | None:
+    project = _owned_project(db, project_id, user.id)
+    return (
+        ProjectGeotechnicalProfile.model_validate(project.geotechnical_profile)
+        if project.geotechnical_profile
+        else None
+    )
+
+
+@router.put(
+    "/{project_id}/geotechnical-profile",
+    response_model=ProjectGeotechnicalProfile,
+)
+def update_project_geotechnical_profile(
+    project_id: int,
+    payload: ProjectGeotechnicalProfile,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_ready_user),
+) -> ProjectGeotechnicalProfile:
+    project = _owned_project(db, project_id, user.id)
+    project.geotechnical_profile = payload.model_dump(mode="json")
+    project.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    return payload
+
+
+@router.get("/{project_id}/custom-sections", response_model=ProjectCustomSections)
+def get_project_custom_sections(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_ready_user),
+) -> ProjectCustomSections:
+    project = _owned_project(db, project_id, user.id)
+    return ProjectCustomSections(items=project.custom_sections or [])
+
+
+@router.put("/{project_id}/custom-sections", response_model=ProjectCustomSections)
+def update_project_custom_sections(
+    project_id: int,
+    payload: ProjectCustomSections,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_ready_user),
+) -> ProjectCustomSections:
+    project = _owned_project(db, project_id, user.id)
+    project.custom_sections = [item.model_dump(mode="json") for item in payload.items]
+    project.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    return payload
+
+
+@router.post("/{project_id}/custom-sections", response_model=ProjectCustomSections)
+def create_project_custom_section(
+    project_id: int,
+    payload: CustomSectionCreateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_ready_user),
+) -> ProjectCustomSections:
+    project = _owned_project(db, project_id, user.id)
+    current = list(project.custom_sections or [])
+    if any(item.get("id") == payload.id for item in current):
+        raise HTTPException(status_code=409, detail="自定义截面编号已存在")
+    section = calculate_custom_section(payload, section_id=payload.id)
+    current.append(section.model_dump(mode="json"))
+    project.custom_sections = current
+    project.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    return ProjectCustomSections(items=current)
+
+
+@router.post(
+    "/{project_id}/custom-sections/{section_id}/revisions",
+    response_model=CustomSectionDefinition,
+)
+def revise_project_custom_section(
+    project_id: int,
+    section_id: str,
+    payload: CustomSectionCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_ready_user),
+) -> CustomSectionDefinition:
+    project = _owned_project(db, project_id, user.id)
+    current = list(project.custom_sections or [])
+    previous = [item for item in current if item.get("id") == section_id or item.get("supersedes_id") == section_id]
+    if not previous:
+        raise HTTPException(status_code=404, detail="待修订的自定义截面不存在")
+    revision = max(int(item.get("revision", 1)) for item in previous) + 1
+    revised_id = f"{section_id}.r{revision}"
+    section = calculate_custom_section(payload, section_id=revised_id).model_copy(update={"revision": revision})
+    record = section.model_dump(mode="json")
+    record["supersedes_id"] = section_id
+    current.append(record)
+    project.custom_sections = current
+    project.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    return section
+
+
 @router.post("/{project_id}/duplicate", response_model=ProjectView)
 def duplicate_project(
     project_id: int,
@@ -208,6 +383,9 @@ def duplicate_project(
         owner_id=user.id,
         name=f"{source.name}（副本）",
         description=source.description,
+        site_profile=deepcopy(source.site_profile),
+        geotechnical_profile=deepcopy(source.geotechnical_profile),
+        custom_sections=deepcopy(source.custom_sections),
     )
     db.add(duplicate)
     db.flush()
@@ -368,10 +546,11 @@ def create_revision(
     revision = ProjectRevision(
         project_id=project.id,
         revision_number=next_revision,
-        snapshot_schema_version="1.0",
+        snapshot_schema_version=SCHEMA_VERSION,
         snapshot={
             "calculations": snapshot_nodes,
             "connections": [item.model_dump(mode="json") for item in payload.connections],
+            "site_profile": deepcopy(project.site_profile),
         },
         result_bundle={
             key: value.model_dump(mode="json") for key, value in results.items()

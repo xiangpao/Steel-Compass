@@ -14,7 +14,7 @@ Direction = Literal[
     "gravity", "uplift", "x_positive", "x_negative", "y_positive", "y_negative"
 ]
 ActionCategory = Literal[
-    "permanent", "live", "wind", "snow", "soil", "water", "buoyancy"
+    "permanent", "live", "wind", "snow", "soil", "water", "buoyancy", "seismic"
 ]
 
 SUPPORTED_ACTION_UNITS = {"kN", "kN/m", "kN/m2", "kPa"}
@@ -57,6 +57,7 @@ class FactoredAction(BaseModel):
 
 class ActionCombination(BaseModel):
     id: str
+    design_situation: Literal["persistent", "seismic"] = "persistent"
     limit_state: Literal["ULS", "SLS"]
     sls_type: Literal["standard", "frequent", "quasi_permanent"] | None = None
     leading_action: str | None = None
@@ -177,6 +178,7 @@ def _combination(
     limit_state: Literal["ULS", "SLS"],
     leading: LoadCase | None = None,
     sls_type: Literal["standard", "frequent", "quasi_permanent"] | None = None,
+    design_situation: Literal["persistent", "seismic"] = "persistent",
 ) -> ActionCombination:
     actions = [_factored(case, factor) for case, factor in cases_and_factors if factor]
     resultants: dict[Literal["vertical", "x", "y"], float] = {
@@ -191,6 +193,7 @@ def _combination(
     first = cases_and_factors[0][0]
     return ActionCombination(
         id=combination_id,
+        design_situation=design_situation,
         limit_state=limit_state,
         sls_type=sls_type,
         leading_action=leading.id if leading else None,
@@ -237,7 +240,10 @@ def generate_action_combinations(
     _validate_load_cases(cases)
     policy = policy or CombinationPolicy()
     permanent = [case for case in cases if case.category == "permanent"]
-    variable = [case for case in cases if case.category != "permanent"]
+    seismic = [case for case in cases if case.category == "seismic"]
+    variable = [
+        case for case in cases if case.category not in {"permanent", "seismic"}
+    ]
     combinations: list[ActionCombination] = []
 
     leading_cases: list[LoadCase | None] = variable or [None]
@@ -296,6 +302,23 @@ def generate_action_combinations(
                     ),
                 ]
             )
+
+    # Seismic is a separate design situation: E is used with factor 1.0 and
+    # ordinary variable actions use their quasi-permanent coefficient. It is
+    # intentionally excluded from the 1.5 persistent-action branch above.
+    for earthquake in seismic:
+        factors = [(case, 1.0) for case in permanent]
+        factors.extend((case, _psi(case)[2]) for case in variable)
+        factors.append((earthquake, 1.0))
+        combinations.append(
+            _combination(
+                f"SEISMIC-{earthquake.id}",
+                factors,
+                limit_state="ULS",
+                leading=earthquake,
+                design_situation="seismic",
+            )
+        )
     for selected_variables in _variable_selections(variable, None):
         quasi = [(case, 1.0) for case in permanent]
         quasi.extend((case, _psi(case)[2]) for case in selected_variables)

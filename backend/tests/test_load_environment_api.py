@@ -31,13 +31,13 @@ def client() -> Iterator[TestClient]:
         yield api
 
 
-def request(module: str, typed_inputs: dict, *, mode: str = "quick", schema: str = "3.2") -> dict:
+def request(module: str, typed_inputs: dict, *, mode: str = "quick", schema: str = "3.3") -> dict:
     return {
         "schema_version": schema,
         "mode": mode,
         "module": module,
         "project_name": f"load-environment-{module}",
-        "standard_profile": "CN-2026.1",
+        "standard_profile": "CN-2026.2",
         "typed_inputs": typed_inputs,
         "loads": [],
     }
@@ -145,7 +145,7 @@ def test_load_environment_modules_run_through_schema32_api(
     assert response.status_code == 200, response.text
     result = response.json()
     assert result["module"] == module
-    assert result["schema_version"] == "3.2"
+    assert result["schema_version"] == "3.3"
     assert result["verification_status"] == "unverified"
     assert result["status"] == "passed"
     assert result["quick_outcome"] == "screening_passed"

@@ -5,6 +5,13 @@ from math import hypot
 
 from .engine import calculate
 from .errors import CalculationInputError
+from .seismic import SeismicActionPackage, build_screening_seismic_package
+from .design_profiles import (
+    CustomSectionDefinition,
+    ProjectGeotechnicalProfile,
+    SceneStructuralProfile,
+    STEEL_SECTIONS,
+)
 from .scene_catalog import get_scene_variant, instantiate_scene_graph
 from .scene_schemas import (
     SceneConnection,
@@ -37,6 +44,8 @@ from .schemas import (
     TypedInputValue,
     WallAnchorInputs,
 )
+from .site_profile import ProjectSiteProfile
+from .scene_space_frame import analyze_scene_space_frame
 
 
 _SITE_WALL_TYPED_INPUTS = (
@@ -44,6 +53,81 @@ _SITE_WALL_TYPED_INPUTS = (
     SteelInfillWallInputs,
     PlainMasonryWallInputs,
 )
+
+_SEISMIC_SCREENING_FAMILIES = {
+    "pergola-pavilion",
+    "canopy",
+    "signage-billboard",
+    "landscape-wall-fence",
+    "entrance-frame",
+    "boardwalk-platform",
+}
+
+
+def required_scene_conditions(variant) -> list[str]:
+    """Return catalog-declared required project conditions."""
+
+    profile = variant.condition_profile
+    if profile is None:
+        return []
+    return [
+        name
+        for name in ("wind", "snow", "seismic")
+        if getattr(profile, name) == "required"
+    ]
+
+
+def validate_scene_site_profile(
+    variant, site_profile: ProjectSiteProfile | None
+) -> list[str]:
+    """Reject missing required conditions instead of silently substituting values."""
+
+    required = required_scene_conditions(variant)
+    if not required:
+        return []
+    if site_profile is None:
+        raise CalculationInputError(
+            "missing_scene_conditions",
+            "当前场景尚未完成项目条件向导。",
+            details={"required_conditions": required},
+        )
+    try:
+        site_profile.require_conditions(required)
+    except ValueError as exc:
+        raise CalculationInputError(
+            "incomplete_scene_conditions",
+            "当前场景所需的项目条件尚未完成。",
+            details={"required_conditions": required, "reason": str(exc)},
+        ) from exc
+    return required
+
+
+def _scene_gravity_representative_value(
+    graph: SceneGraphTemplate,
+    calculated: dict[str, CalculationResult],
+    load_cases: list[SceneLoadItem],
+) -> float:
+    """Use terminal support reactions first; fall back to direct kN actions."""
+
+    source_nodes = {item.source_node_id for item in graph.connections}
+    terminal_ids = [node.id for node in graph.nodes if node.id not in source_nodes]
+    reaction_total = 0.0
+    for node_id in terminal_ids:
+        result = calculated.get(node_id)
+        if result is None:
+            continue
+        for key in ("base_vertical", "vertical", "left_vertical", "right_vertical"):
+            value = result.reactions.get(key)
+            if value is not None and value.unit == "kN" and value.value > 0:
+                reaction_total += value.value
+    if reaction_total > 0:
+        return reaction_total
+    factors = {"self_weight": 1.0, "dead": 1.0, "live": 0.5, "snow": 0.5}
+    return sum(
+        float(item.adopted_value or 0.0) * factors.get(item.kind, 0.0)
+        for item in load_cases
+        if item.unit == "kN"
+    )
 
 
 def _graph_for(
@@ -748,6 +832,11 @@ def execute_scene(
     # Legacy internal keyword retained so 3.1 test fixtures and saved command
     # replays can still be read; Schema 3.2 API requests no longer expose it.
     confirmed_input_nodes: list[str] | None = None,
+    site_profile: ProjectSiteProfile | None = None,
+    geotechnical_profile: ProjectGeotechnicalProfile | None = None,
+    structural_profile: SceneStructuralProfile | None = None,
+    custom_sections: list[CustomSectionDefinition] | None = None,
+    strict_site_conditions: bool = False,
 ) -> SceneRevisionResult:
     mode = CalculationMode(mode)
     variant = get_scene_variant(family, variant_id)
@@ -763,6 +852,12 @@ def execute_scene(
             "该场景仍在开发中，当前不能创建计算修订。",
             details={"scene_family_id": family.id, "variant_id": variant_id},
         )
+
+    applied_conditions = (
+        validate_scene_site_profile(variant, site_profile)
+        if strict_site_conditions
+        else []
+    )
 
     graph = instantiate_scene_graph(family, variant_id)
     order = validate_scene_graph(family, variant_id)
@@ -780,6 +875,154 @@ def execute_scene(
             "计算输入引用了不存在的场景节点。",
             details={"node_ids": unknown_calculations},
         )
+
+    active_nodes = [
+        node for node in graph.nodes if node.applicability != "not_applicable"
+    ]
+    foundation_nodes = [
+        node
+        for node in active_nodes
+        if node.role == "foundation"
+        and node.calculation_module in {"spread_footing", "strip_footing"}
+    ]
+    steel_nodes = [
+        node
+        for node in active_nodes
+        if node.calculation_module in {"steel_beam", "steel_column", "portal_frame"}
+    ]
+    submitted_foundation_nodes = [node for node in foundation_nodes if node.id in calculations]
+    submitted_steel_nodes = [node for node in steel_nodes if node.id in calculations]
+    if strict_site_conditions and submitted_foundation_nodes and geotechnical_profile is None:
+        raise CalculationInputError(
+            "missing_geotechnical_profile",
+            "场景包含浅基础，必须先保存区域参考土质档或项目勘察参数；不再采用隐藏承载力和地下水默认值。",
+        )
+    if strict_site_conditions and (submitted_foundation_nodes or submitted_steel_nodes) and structural_profile is None:
+        raise CalculationInputError(
+            "missing_structural_profile",
+            "必须显式确认构件截面和基础尺寸；前端默认值不得作为完整场景设计输入。",
+        )
+    if structural_profile is not None:
+        specified_foundations = {item.node_id for item in structural_profile.foundations}
+        missing_foundations = [
+            node.label for node in submitted_foundation_nodes if node.id not in specified_foundations
+        ]
+        if missing_foundations:
+            raise CalculationInputError(
+                "missing_foundation_specification",
+                "以下基础节点缺少显式尺寸：" + "、".join(missing_foundations),
+            )
+        specified_member_roles = {
+            (item.node_id, item.member_role) for item in structural_profile.members
+        }
+        missing_members: list[str] = []
+        for node in submitted_steel_nodes:
+            required_roles = (
+                {"beam", "column"}
+                if node.calculation_module == "portal_frame"
+                else {"beam"}
+                if node.calculation_module == "steel_beam"
+                else {"column"}
+            )
+            missing_members.extend(
+                f"{node.label}（{role}）"
+                for role in required_roles
+                if (node.id, role) not in specified_member_roles
+            )
+        if missing_members:
+            raise CalculationInputError(
+                "missing_member_specification",
+                "以下钢构件节点缺少显式材料与截面：" + "、".join(missing_members),
+            )
+
+        section_by_id = {item.id: item for item in STEEL_SECTIONS}
+        section_by_id.update({item.id: item for item in (custom_sections or [])})
+        for specification in structural_profile.members:
+            calculation = calculations.get(specification.node_id)
+            if calculation is None:
+                continue
+            entry = section_by_id.get(specification.section_catalog_id)
+            if entry is None:
+                raise CalculationInputError(
+                    "unknown_section_catalog_entry",
+                    f"截面目录中不存在 {specification.section_catalog_id}",
+                )
+            dimensions = dict(entry.dimensions)
+            # The current member engine evaluates I-shaped candidates with the
+            # same geometric property path as H sections.
+            section_type = "H" if entry.family == "I" else entry.family
+            if calculation.module is CalculationModule.PORTAL_FRAME:
+                updates = {
+                    "steel_grade": specification.material_grade,
+                    (
+                        "beam_section"
+                        if specification.member_role == "beam"
+                        else "column_section"
+                    ): {"section_type": section_type, **dimensions},
+                }
+                existing_other = (
+                    "column_section"
+                    if specification.member_role == "beam"
+                    else "beam_section"
+                )
+                if existing_other in calculation.inputs:
+                    updates[existing_other] = calculation.inputs[existing_other]
+            else:
+                updates = {
+                    "section_type": section_type,
+                    "steel_grade": specification.material_grade,
+                    "effective_length_m": specification.effective_length_m,
+                    "unbraced_length_m": specification.unbraced_length_m,
+                    **dimensions,
+                }
+            calculations[specification.node_id] = calculation.model_copy(
+                update={"inputs": {**calculation.inputs, **updates}}, deep=True
+            )
+
+        for specification in structural_profile.foundations:
+            calculation = calculations.get(specification.node_id)
+            if calculation is None:
+                continue
+            updates: dict[str, object] = {
+                "length_m": specification.length_m,
+                "width_m": specification.width_m,
+                "thickness_mm": specification.thickness_mm,
+                "embedment_m": specification.embedment_m,
+                "concrete_grade": specification.concrete_grade,
+                "rebar_grade": specification.rebar_grade,
+                "bar_dia_x_mm": specification.bar_diameter_mm,
+                "bar_dia_y_mm": specification.bar_diameter_mm,
+                "bar_spacing_x_mm": specification.bar_spacing_mm,
+                "bar_spacing_y_mm": specification.bar_spacing_mm,
+                "bar_dia_mm": specification.bar_diameter_mm,
+                "bar_spacing_mm": specification.bar_spacing_mm,
+                "foundation_system_id": specification.foundation_system_id,
+                "selection_source": specification.selection_source,
+                "explicit_design_profile": True,
+            }
+            if geotechnical_profile is not None:
+                groundwater = geotechnical_profile.groundwater
+                updates.update(
+                    {
+                        "soil_capacity_kpa": geotechnical_profile.bearing_capacity_kpa,
+                        "soil_source": geotechnical_profile.bearing_capacity_source,
+                        "groundwater_condition": (
+                            "no_influence"
+                            if groundwater.condition == "no_influence"
+                            else "known_water_table"
+                            if groundwater.condition == "known_levels"
+                            else "unknown"
+                        ),
+                        "groundwater_source": groundwater.source,
+                    }
+                )
+                if groundwater.condition == "known_levels":
+                    updates["water_table_depth_m"] = max(
+                        0.0, -(groundwater.service_level_m or 0.0)
+                    )
+            calculations[specification.node_id] = calculation.model_copy(
+                update={"inputs": {**calculation.inputs, **updates}}, deep=True
+            )
 
     recorded_input_nodes = {
         node_id for node_id, node in nodes.items() if node.calculation_module is None
@@ -1080,9 +1323,49 @@ def execute_scene(
             if variant.load_package is not None
             else "none"
         ),
+        "scene_conditions": "3.9",
     }
     for result in calculated.values():
         catalog_versions.update(result.catalog_versions)
+
+    seismic_package: SeismicActionPackage | None = None
+    supports_screening_seismic = (
+        variant.condition_profile.seismic == "required"
+        if variant.condition_profile is not None
+        else family.id in _SEISMIC_SCREENING_FAMILIES
+    )
+    if (
+        site_profile
+        and supports_screening_seismic
+        and site_profile.is_condition_complete("seismic")
+    ):
+        seismic_package = build_screening_seismic_package(
+            site_profile,
+            _scene_gravity_representative_value(graph, calculated, resolved_loads),
+        )
+        catalog_versions["seismic"] = seismic_package.catalog_version
+    if site_profile:
+        catalog_versions.update(site_profile.catalog_versions)
+    if geotechnical_profile:
+        catalog_versions.update(geotechnical_profile.catalog_versions)
+    if structural_profile:
+        catalog_versions.update(structural_profile.catalog_versions)
+
+    space_frame_analysis: dict[str, object] | None = None
+    if (
+        family.id == "pergola-pavilion"
+        and variant_id == "guided-grid"
+        and structural_profile is not None
+        and structural_profile.geometry is not None
+    ):
+        space_frame_analysis = analyze_scene_space_frame(
+            structural_profile,
+            resolved_loads,
+            custom_sections,
+        )
+        catalog_versions["space_frame_solver"] = (
+            "steel-compass-space-frame-adapter-1.0-unverified"
+        )
 
     warnings = [*family.boundaries]
     if missing_load_values:
@@ -1101,6 +1384,34 @@ def execute_scene(
     )
     if mode is CalculationMode.PROFESSIONAL and verification_status == "unverified":
         warnings.append("场景含未独立验证节点，专业模式不得输出通过结论。")
+    if (
+        site_profile
+        and variant.condition_profile is not None
+        and variant.condition_profile.seismic == "not_supported"
+        and site_profile.is_condition_complete("seismic")
+    ):
+        warnings.append("本版本未对该高级场景叠加地震作用。")
+    if seismic_package is not None:
+        warnings.append("等效地震作用为未独立验证的方案筛查结果，不可直接用于施工图或送审。")
+
+    requested_stage = (
+        structural_profile.stage
+        if structural_profile is not None
+        else geotechnical_profile.stage
+        if geotechnical_profile is not None
+        else "scheme_estimate"
+    )
+    project_check_ready = (
+        requested_stage == "project_check"
+        and geotechnical_profile is not None
+        and geotechnical_profile.stage == "project_check"
+        and structural_profile is not None
+        and structural_profile.stage == "project_check"
+        and verification_status == "independently_verified"
+        and workflow_status == "ready"
+    )
+    if requested_stage == "project_check" and not project_check_ready:
+        warnings.append("已请求工程校核，但场景仍包含未独立验证模块或资料不完整；本次仅生成方案测算结论。")
 
     return SceneRevisionResult(
         scene_family_id=family.id,
@@ -1110,14 +1421,27 @@ def execute_scene(
         workflow_status=workflow_status,
         engineering_status=engineering_status,
         quick_outcome=quick_outcome,
-        result_class=(
-            "quick_estimate"
-            if mode is CalculationMode.QUICK
-            else "professional_check"
-        ),
+        result_class="project_check" if project_check_ready else "scheme_estimate",
+        requested_stage=requested_stage,
         verification_status=verification_status,
         graph_template_id=graph.id,
         load_cases=resolved_loads,
+        site_profile=(site_profile.model_dump(mode="json") if site_profile else None),
+        geotechnical_profile=(
+            geotechnical_profile.model_dump(mode="json")
+            if geotechnical_profile
+            else None
+        ),
+        structural_profile=(
+            structural_profile.model_dump(mode="json")
+            if structural_profile
+            else None
+        ),
+        space_frame_analysis=space_frame_analysis,
+        seismic_action_package=(
+            seismic_package.model_dump(mode="json") if seismic_package else None
+        ),
+        applied_conditions=applied_conditions,
         completed_nodes=completed_count,
         total_required_nodes=len(required_ids),
         node_results=node_results,

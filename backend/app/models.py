@@ -58,6 +58,9 @@ class Project(Base):
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str] = mapped_column(Text, default="")
+    site_profile: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    geotechnical_profile: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    custom_sections: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
@@ -144,3 +147,30 @@ class SceneInstance(Base):
     )
 
     project: Mapped[Project] = relationship(back_populates="scene_instances")
+
+
+class SceneAnalysisSnapshotRecord(Base):
+    __tablename__ = "scene_analysis_snapshots"
+    __table_args__ = (
+        UniqueConstraint("scene_instance_id", "snapshot_number", name="uq_scene_analysis_snapshot"),
+        UniqueConstraint(
+            "scene_instance_id",
+            "content_hash",
+            name="uq_scene_analysis_instance_content_hash",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    scene_instance_id: Mapped[int] = mapped_column(
+        ForeignKey("scene_instances.id", ondelete="CASCADE"), index=True
+    )
+    snapshot_number: Mapped[int] = mapped_column(Integer)
+    snapshot_schema_version: Mapped[str] = mapped_column(String(20), default="4.0")
+    standard_profile: Mapped[str] = mapped_column(String(40), default="CN-2026.7")
+    content_hash: Mapped[str] = mapped_column(String(64), index=True)
+    snapshot: Mapped[dict] = mapped_column(JSON)
+    report_number: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

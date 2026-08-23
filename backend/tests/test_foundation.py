@@ -140,6 +140,31 @@ def test_spread_footing_uses_correct_critical_punching_perimeter() -> None:
     assert "u_m=2972.0 mm" in step.substitution
 
 
+def test_pedestal_changes_weight_lever_arm_and_punching_perimeter() -> None:
+    result = calculate(
+        spread_request(
+            pedestal_enabled=True,
+            pedestal_length_mm=600,
+            pedestal_width_mm=500,
+            pedestal_height_mm=800,
+            horizontal_x_kn=10,
+        )
+    )
+    pressure = next(step for step in result.steps if step.name == "基底平均压力")
+    punching = next(step for step in result.steps if step.name == "冲切承载力")
+    # 短柱自重 = 0.6*0.5*0.8*25 = 6 kN。
+    assert pressure.result.value == pytest.approx(39.0)
+    assert result.reactions["My"].value == pytest.approx(8.0)
+    # 冲切周长采用短柱 600x500 根部，而不是钢柱 300x300。
+    assert "u_m=3972.0 mm" in punching.substitution
+    assert result.input_summary["pedestal_weight"].value == pytest.approx(6.0)
+
+
+def test_enabled_pedestal_rejects_missing_geometry() -> None:
+    with pytest.raises(Exception, match="启用短柱"):
+        calculate(spread_request(pedestal_enabled=True))
+
+
 def test_groundwater_reduces_effective_foundation_weight() -> None:
     dry = calculate(spread_request(groundwater_depth_m=2.0))
     submerged = calculate(spread_request(groundwater_depth_m=0.0))

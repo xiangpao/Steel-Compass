@@ -34,11 +34,11 @@ def client() -> Iterator[TestClient]:
 
 def request(module: str, typed_inputs: dict, *, mode: str = "quick") -> dict:
     return {
-        "schema_version": "3.2",
+        "schema_version": "3.3",
         "mode": mode,
         "module": module,
         "project_name": f"infrastructure-{module}",
-        "standard_profile": "CN-2026.1",
+        "standard_profile": "CN-2026.2",
         "typed_inputs": typed_inputs,
         "loads": [],
     }
@@ -300,7 +300,7 @@ def test_infrastructure_modules_run_through_api(
     assert result["combinations"]
     assert result["checks"]
     assert result["steps"]
-    assert result["schema_version"] == "3.2"
+    assert result["schema_version"] == "3.3"
 
 
 def test_infrastructure_openapi_discriminator_is_complete() -> None:

@@ -71,6 +71,11 @@ FACTOR_SETS: tuple[tuple[str, str, dict[str, float]], ...] = (
     ),
 )
 
+# Seismic actions use their own versioned design situation and must never be
+# multiplied by the ordinary variable-action factor set.
+for _, _, _factors in FACTOR_SETS:
+    _factors["seismic"] = 0.0
+
 
 def _combination_metadata(name: str) -> tuple[str | None, str | None]:
     sls_type: str | None = None

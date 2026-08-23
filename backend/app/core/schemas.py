@@ -56,6 +56,7 @@ class LoadKind(str, Enum):
     LIVE = "live"
     WIND = "wind"
     SNOW = "snow"
+    SEISMIC = "seismic"
 
 
 class LoadDirection(str, Enum):
@@ -629,7 +630,7 @@ class LoadCombinationCaseInputs(BaseModel):
     id: str = Field(min_length=1, max_length=80)
     label: str = Field(min_length=1, max_length=160)
     category: Literal[
-        "permanent", "live", "wind", "snow", "soil", "water", "buoyancy"
+        "permanent", "live", "wind", "snow", "soil", "water", "buoyancy", "seismic"
     ]
     characteristic: TypedInputValue
     direction: Literal[
@@ -772,7 +773,7 @@ class CalculationRequest(BaseModel):
     # CN-2024 remains accepted only so saved requests can be parsed without
     # rewriting their original standard basis. New requests default to the
     # versioned, officially reviewed CN-2026.1 profile.
-    standard_profile: Literal["CN-2026.1", "CN-2024"] = STANDARD_PROFILE
+    standard_profile: Literal["CN-2026.7", "CN-2026.6", "CN-2026.5", "CN-2026.4", "CN-2026.3", "CN-2026.2", "CN-2026.1", "CN-2024"] = STANDARD_PROFILE
     # Read compatibility for 3.1 and earlier saved requests. Schema 3.2 clients
     # do not send this field and calculation readiness no longer depends on it.
     confirmed_assumptions: bool | None = Field(default=None, exclude=True)
@@ -833,6 +834,7 @@ class CheckResult(BaseModel):
 
 class LoadCombinationResult(BaseModel):
     name: str
+    design_situation: Literal["persistent", "seismic"] = "persistent"
     limit_state: Literal["ULS", "SLS"]
     combination_id: str | None = None
     sls_type: Literal["standard", "frequent", "quasi_permanent"] | None = None

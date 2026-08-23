@@ -230,7 +230,7 @@ def calculate_load_combinations(
                 f"exclusive_groups={len({case.exclusive_group for case in cases if case.exclusive_group})}"
             ),
             result=Quantity(value=len(combinations), unit="1"),
-            reference="CN-2026.1 组合配置候选映射（待独立复核）",
+            reference="CN-2026.6 组合配置候选映射（待独立复核）",
         )
     ]
     summary: dict[str, Quantity | str | bool] = {

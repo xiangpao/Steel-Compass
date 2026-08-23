@@ -10,6 +10,10 @@ from .schemas import CalculationMode, CalculationRequest, CalculationResult
 SceneMaturity = Literal["verified", "beta", "planned"]
 SceneAvailability = Literal["public", "development"]
 SceneApplicability = Literal["required", "optional", "not_applicable"]
+SceneConditionApplicability = Literal[
+    "required", "optional", "not_applicable", "not_supported"
+]
+SCENE_SNAPSHOT_SCHEMA_VERSION = "3.9"
 WorkflowStatus = Literal[
     "ready", "stale", "missing_inputs", "capability_unavailable"
 ]
@@ -36,6 +40,30 @@ class SceneParameter(BaseModel):
     default: Any = None
     options: list[str] = Field(default_factory=list)
     required: bool = True
+    hidden_when_condition_driven: bool = False
+
+
+class SceneConditionProfile(BaseModel):
+    """Condition requirements and semantic inputs for one scene variant.
+
+    This catalog metadata is intentionally declarative: the frontend can
+    render a scene-specific project-condition form without encoding a branch
+    for every scene family, and the calculation service can enforce the same
+    requirements before executing a graph.
+    """
+
+    wind: SceneConditionApplicability = "not_applicable"
+    snow: SceneConditionApplicability = "not_applicable"
+    seismic: SceneConditionApplicability = "not_applicable"
+    wind_semantics: Literal[
+        "roof", "solid_panel", "open_frame", "bridge_side", "not_applicable"
+    ] = "not_applicable"
+    snow_semantics: Literal["roof", "exposed_horizontal", "not_applicable"] = (
+        "not_applicable"
+    )
+    height_parameter_keys: list[str] = Field(default_factory=list)
+    roof_form_parameter_key: str | None = None
+    geotechnical_mode: Literal["generic", "variant_owned"] = "generic"
 
 
 class SceneNode(BaseModel):
@@ -105,6 +133,7 @@ class SceneLoadItem(BaseModel):
         "live",
         "wind",
         "snow",
+        "seismic",
         "soil",
         "water",
         "buoyancy",
@@ -170,6 +199,7 @@ class SceneVariant(BaseModel):
     availability: SceneAvailability = "public"
     support_system: str
     roof_form: str | None = None
+    condition_profile: SceneConditionProfile | None = None
     graph_template: SceneGraphTemplate | None = None
     load_package: SceneLoadPackage | None = None
     capabilities: list[SceneCapability] = Field(default_factory=list)
@@ -260,10 +290,19 @@ class SceneRevisionResult(BaseModel):
     workflow_status: WorkflowStatus = "missing_inputs"
     engineering_status: EngineeringStatus | None = None
     quick_outcome: Literal["screening_passed", "screening_failed"] | None = None
-    result_class: Literal["quick_estimate", "professional_check"] | None = None
+    result_class: Literal[
+        "quick_estimate", "professional_check", "scheme_estimate", "project_check"
+    ] | None = None
+    requested_stage: Literal["scheme_estimate", "project_check"] = "scheme_estimate"
     verification_status: VerificationStatus = "unverified"
     graph_template_id: str | None = None
     load_cases: list[SceneLoadItem] = Field(default_factory=list)
+    site_profile: dict | None = None
+    geotechnical_profile: dict | None = None
+    structural_profile: dict | None = None
+    space_frame_analysis: dict | None = None
+    seismic_action_package: dict | None = None
+    applied_conditions: list[str] = Field(default_factory=list)
     completed_nodes: int
     total_required_nodes: int
     node_results: dict[str, SceneNodeResult]

@@ -86,7 +86,8 @@ def _reaction_vertical(envelope: ReactionEnvelope) -> float:
 
 
 def _reaction_combinations(
-    envelopes: list[ReactionEnvelope], permanent_weight: float, uplift: float
+    envelopes: list[ReactionEnvelope], permanent_weight: float, uplift: float,
+    horizontal_lever_arm_m: float = 0.0,
 ) -> tuple[list[ReactionEnvelope], list[LoadCombinationResult]]:
     adjusted: list[ReactionEnvelope] = []
     combinations: list[LoadCombinationResult] = []
@@ -103,6 +104,17 @@ def _reaction_combinations(
             for name, quantity in item.components.items()
         }
         components["N"] = Quantity(value=vertical, unit="kN")
+        if horizontal_lever_arm_m > 0:
+            components["Mx"] = Quantity(
+                value=_reaction_component(item, "Mx")
+                + _reaction_component(item, "Vy") * horizontal_lever_arm_m,
+                unit="kN.m",
+            )
+            components["My"] = Quantity(
+                value=_reaction_component(item, "My")
+                + _reaction_component(item, "Vx") * horizontal_lever_arm_m,
+                unit="kN.m",
+            )
         adjusted_item = ReactionEnvelope(
             name=item.name,
             limit_state=item.limit_state,
@@ -200,6 +212,9 @@ def _effective_foundation_weights(
     embedment_m: float,
     soil_cover_m: float,
     groundwater_depth_m: float | None,
+    concrete_volume_m3: float | None = None,
+    soil_cover_volume_m3: float | None = None,
+    total_foundation_height_m: float | None = None,
 ) -> tuple[float, float, float]:
     """Return effective footing, cover and displaced-water weights in kN.
 
@@ -208,22 +223,27 @@ def _effective_foundation_weights(
     """
 
     water_unit_weight = 10.0
-    submerged_footing = 0.0
-    submerged_cover = 0.0
+    foundation_volume = concrete_volume_m3 or plan_area_m2 * thickness_m
+    cover_volume = (
+        soil_cover_volume_m3
+        if soil_cover_volume_m3 is not None
+        else plan_area_m2 * soil_cover_m
+    )
+    total_height = total_foundation_height_m or thickness_m
+    submerged_foundation_volume = 0.0
+    submerged_cover_volume = 0.0
     if groundwater_depth_m is not None:
-        submerged_footing = max(
-            0.0, min(thickness_m, embedment_m - groundwater_depth_m)
-        )
-        submerged_cover = max(
-            0.0, min(soil_cover_m, soil_cover_m - groundwater_depth_m)
-        )
-    gross_footing = plan_area_m2 * thickness_m * 25.0
-    gross_cover = plan_area_m2 * soil_cover_m * 18.0
-    displaced_water = plan_area_m2 * (
-        submerged_footing + submerged_cover
+        submerged_height = max(0.0, min(total_height, embedment_m - groundwater_depth_m))
+        submerged_foundation_volume = foundation_volume * submerged_height / max(total_height, 1e-9)
+        submerged_cover_depth = max(0.0, min(soil_cover_m, soil_cover_m - groundwater_depth_m))
+        submerged_cover_volume = cover_volume * submerged_cover_depth / max(soil_cover_m, 1e-9)
+    gross_footing = foundation_volume * 25.0
+    gross_cover = cover_volume * 18.0
+    displaced_water = (
+        submerged_foundation_volume + submerged_cover_volume
     ) * water_unit_weight
-    footing_effective = gross_footing - plan_area_m2 * submerged_footing * water_unit_weight
-    cover_effective = gross_cover - plan_area_m2 * submerged_cover * water_unit_weight
+    footing_effective = gross_footing - submerged_foundation_volume * water_unit_weight
+    cover_effective = gross_cover - submerged_cover_volume * water_unit_weight
     return footing_effective, cover_effective, displaced_water
 
 
@@ -242,7 +262,14 @@ def _groundwater_depth(request: CalculationRequest) -> tuple[bool, float | None]
         if condition == "no_influence":
             return True, None
         if condition == "unknown":
-            return False, 5.0 if request.mode is CalculationMode.QUICK else None
+            return (
+                False,
+                None
+                if request.inputs.get("explicit_design_profile")
+                else 5.0
+                if request.mode is CalculationMode.QUICK
+                else None,
+            )
         known = True
         raw = request.inputs.get("water_table_depth_m")
         input_field = "water_table_depth_m"
@@ -252,7 +279,14 @@ def _groundwater_depth(request: CalculationRequest) -> tuple[bool, float | None]
         raw = request.inputs.get("groundwater_depth_m")
         input_field = "groundwater_depth_m"
     if raw is None:
-        return known, 5.0 if request.mode is CalculationMode.QUICK else None
+        return (
+            known,
+            None
+            if request.inputs.get("explicit_design_profile")
+            else 5.0
+            if request.mode is CalculationMode.QUICK
+            else None,
+        )
     try:
         depth = float(raw)
     except (TypeError, ValueError):
@@ -280,7 +314,7 @@ def _groundwater_inputs_complete(
     depth: float | None,
     soil_source: str,
 ) -> bool:
-    if request.schema_version != "3.2" or "groundwater_condition" not in request.inputs:
+    if request.schema_version not in {"3.2", "3.3"} or "groundwater_condition" not in request.inputs:
         return known and depth is not None and bool(soil_source)
     condition = str(request.inputs.get("groundwater_condition"))
     groundwater_source = str(request.inputs.get("groundwater_source", "")).strip()
@@ -304,6 +338,26 @@ def calculate_spread_footing(
     column_y = mode_number(
         request, "column_y_mm", quick_default=300, minimum=150, maximum=3000
     )
+    pedestal_enabled = bool(request.inputs.get("pedestal_enabled", False))
+    pedestal_height = 0.0
+    pedestal_weight = 0.0
+    if pedestal_enabled:
+        required_pedestal = ("pedestal_length_mm", "pedestal_width_mm", "pedestal_height_mm")
+        missing = [name for name in required_pedestal if request.inputs.get(name) is None]
+        if missing:
+            from .errors import CalculationInputError
+
+            raise CalculationInputError(
+                "incomplete_pedestal_geometry",
+                f"启用短柱时必须填写：{', '.join(missing)}",
+                field=missing[0],
+            )
+        pedestal_length = mode_number(request, "pedestal_length_mm", quick_default=500, minimum=150, maximum=3000)
+        pedestal_width = mode_number(request, "pedestal_width_mm", quick_default=500, minimum=150, maximum=3000)
+        pedestal_height = mode_number(request, "pedestal_height_mm", quick_default=600, minimum=100, maximum=5000) / 1000
+        column_x = pedestal_length
+        column_y = pedestal_width
+        pedestal_weight = pedestal_length / 1000 * pedestal_width / 1000 * pedestal_height * 25.0
     cover = mode_number(request, "cover_mm", quick_default=50, minimum=35, maximum=150)
     bar_dia_x = mode_number(
         request, "bar_dia_x_mm", quick_default=14, minimum=6, maximum=40
@@ -349,6 +403,27 @@ def calculate_spread_footing(
     soil_cover = mode_number(
         request, "soil_cover_m", quick_default=0.5, minimum=0, maximum=8
     )
+    concrete_volume = request.inputs.get("footing_concrete_volume_m3")
+    soil_cover_volume = request.inputs.get("soil_cover_volume_m3")
+    total_foundation_height = request.inputs.get("total_foundation_height_m")
+    if concrete_volume is not None:
+        concrete_volume = float(concrete_volume)
+        if concrete_volume <= 0:
+            from .errors import CalculationInputError
+
+            raise CalculationInputError("invalid_footing_volume", "基础混凝土体积必须大于 0", field="footing_concrete_volume_m3")
+    if soil_cover_volume is not None:
+        soil_cover_volume = float(soil_cover_volume)
+        if soil_cover_volume < 0:
+            from .errors import CalculationInputError
+
+            raise CalculationInputError("invalid_soil_cover_volume", "基础覆土体积不得小于 0", field="soil_cover_volume_m3")
+    if total_foundation_height is not None:
+        total_foundation_height = float(total_foundation_height)
+        if total_foundation_height <= 0:
+            from .errors import CalculationInputError
+
+            raise CalculationInputError("invalid_foundation_height", "基础总高度必须大于 0", field="total_foundation_height_m")
     moment_x = mode_number(
         request, "moment_x_kn_m", quick_default=0, minimum=-100000, maximum=100000
     )
@@ -387,13 +462,16 @@ def calculate_spread_footing(
         embedment_m=embedment,
         soil_cover_m=soil_cover,
         groundwater_depth_m=groundwater_depth,
+        concrete_volume_m3=concrete_volume,
+        soil_cover_volume_m3=soil_cover_volume,
+        total_foundation_height_m=total_foundation_height,
     )
-    permanent_weight = footing_weight + cover_weight
+    permanent_weight = footing_weight + cover_weight + pedestal_weight
     adjusted_reactions: list[ReactionEnvelope] = []
     design_reaction: ReactionEnvelope | None = None
     if upstream_reactions:
         adjusted_reactions, result_combinations = _reaction_combinations(
-            upstream_reactions, permanent_weight, uplift
+            upstream_reactions, permanent_weight, uplift, pedestal_height
         )
         sls_reactions = [
             item for item in adjusted_reactions if item.limit_state == "SLS"
@@ -447,6 +525,9 @@ def calculate_spread_footing(
     else:
         service_vertical = envelope.maximum_sls.total.value + permanent_weight - uplift
         design_vertical = envelope.maximum_uls.total.value + 1.3 * permanent_weight - 1.5 * uplift
+        if pedestal_height > 0:
+            moment_x += horizontal_y * pedestal_height
+            moment_y += horizontal_x * pedestal_height
         sls_reactions = []
         result_combinations = envelope.combinations
     effective_vertical = max(service_vertical, 1e-9)
@@ -676,9 +757,9 @@ def calculate_spread_footing(
             check.governing_combination = combination_by_check.get(check.name)
     complete = (
         request.mode is CalculationMode.QUICK
-        or _groundwater_inputs_complete(
-            request, groundwater_known, groundwater_depth, soil_source
-        )
+        and not bool(request.inputs.get("explicit_design_profile"))
+    ) or _groundwater_inputs_complete(
+        request, groundwater_known, groundwater_depth, soil_source
     )
     governing = max(checks, key=lambda item: item.utilization)
     warnings = [
@@ -731,6 +812,9 @@ def calculate_spread_footing(
                 "footing_thickness": (thickness, "mm"),
                 "column_x": (column_x, "mm"),
                 "column_y": (column_y, "mm"),
+                "pedestal_enabled": "是" if pedestal_enabled else "否",
+                "pedestal_height": (pedestal_height, "m"),
+                "pedestal_weight": (pedestal_weight, "kN"),
                 "concrete_grade": concrete_grade,
                 "rebar_grade": rebar_grade,
                 "soil_capacity": (soil_capacity, "kPa"),
@@ -843,6 +927,11 @@ def calculate_spread_footing(
         assumptions=[
             "基础按刚性矩形底板、线性基底压力进行首期筛查。",
             "不计被动土压力；基础与覆土自重自动计入。",
+            *(
+                [f"短柱自重 {pedestal_weight:.3f} kN 已计入；柱脚水平力按 {pedestal_height:.3f} m 力臂换算至基础底面，冲切周长采用短柱根部尺寸。"]
+                if pedestal_enabled
+                else ["未启用短柱；冲切周长采用直接支承构件尺寸。"]
+            ),
             f"基底接触压力比 qmin/qmax={contact_ratio:.3f}。",
         ],
         applicability=["柱下方形/矩形独立基础", "中心、单向或双向偏心方案筛查"],
@@ -991,9 +1080,9 @@ def calculate_strip_footing(
     ]
     complete = (
         request.mode is CalculationMode.QUICK
-        or _groundwater_inputs_complete(
-            request, groundwater_known, groundwater_depth, soil_source
-        )
+        and not bool(request.inputs.get("explicit_design_profile"))
+    ) or _groundwater_inputs_complete(
+        request, groundwater_known, groundwater_depth, soil_source
     )
     governing = max(checks, key=lambda item: item.utilization)
     warnings = [

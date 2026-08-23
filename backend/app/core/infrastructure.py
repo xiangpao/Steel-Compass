@@ -197,7 +197,7 @@ def _result(
             "quick_estimate" if request.mode.value == "quick" else "professional_check"
         ),
         verification_status="unverified",
-        standards=["CN-2026.1", "参数化基础设施底座（未独立验证）"],
+        standards=["CN-2026.6", "参数化基础设施底座（未独立验证）"],
         input_summary=input_summary,
         combinations=combinations,
         reactions=reactions,

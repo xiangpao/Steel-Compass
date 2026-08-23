@@ -226,7 +226,7 @@ def calculate_site_rc_wall(request: CalculationRequest, trace_id: str) -> Calcul
             "thickness": Quantity(value=_convert(data.thickness, LENGTH_MM, field="thickness"), unit="mm"),
             "opening_ratio": Quantity(value=_convert(data.opening_ratio, DIMENSIONLESS, field="opening_ratio"), unit="1"),
         },
-        standards=["CN-2026.1", "GB/T 50010-2010 (2024 amendment) candidate mapping"],
+        standards=["CN-2026.6", "GB/T 50010-2010 (2024 amendment) candidate mapping"],
     )
 
 
@@ -259,7 +259,7 @@ def calculate_steel_infill_wall(request: CalculationRequest, trace_id: str) -> C
             "support_spacing": Quantity(value=_convert(data.support_spacing, LENGTH_M, field="support_spacing"), unit="m"),
             "opening_ratio": Quantity(value=_convert(data.opening_ratio, DIMENSIONLESS, field="opening_ratio"), unit="1"),
         },
-        standards=["CN-2026.1", "GB 50017-2017 candidate mapping"],
+        standards=["CN-2026.6", "GB 50017-2017 candidate mapping"],
     )
 
 
@@ -290,5 +290,5 @@ def calculate_plain_masonry_wall(request: CalculationRequest, trace_id: str) -> 
             "thickness": Quantity(value=_convert(data.thickness, LENGTH_MM, field="thickness"), unit="mm"),
             "opening_ratio": Quantity(value=_convert(data.opening_ratio, DIMENSIONLESS, field="opening_ratio"), unit="1"),
         },
-        standards=["CN-2026.1", "GB 50003-2011 candidate mapping"],
+        standards=["CN-2026.6", "GB 50003-2011 candidate mapping"],
     )

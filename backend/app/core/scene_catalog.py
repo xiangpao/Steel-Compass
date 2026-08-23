@@ -3,6 +3,7 @@ from __future__ import annotations
 from .scene_schemas import (
     SceneCapability,
     SceneConnection,
+    SceneConditionProfile,
     SceneFamily,
     SceneGraphTemplate,
     SceneLoadItem,
@@ -637,8 +638,21 @@ SCENE_FAMILIES: list[SceneFamily] = [
         icon="pergola",
         maturity="beta",
         availability="public",
-        default_variant_id="flat-single",
+        default_variant_id="guided-grid",
         variants=[
+            _variant(
+                "guided-grid",
+                "参数化亭廊",
+                "由轴网、柱顶标高和屋面分区生成；平顶、坡顶和多跨是同一模型的几何参数。",
+                ["钢"],
+                STEEL_SINGLE_SPAN_PERGOLA_PARAMETERS,
+                support_system="参数化多柱落地",
+                roof_form="自定义分片屋面",
+                graph=PERGOLA_FLAT_GRAPH.model_copy(
+                    update={"id": "pergola-guided-grid-steel-chain"}, deep=True
+                ),
+                load_package=PERGOLA_LOAD_PACKAGE,
+            ),
             _variant(
                 "flat-single",
                 "平顶单跨（等高钢构）",
@@ -847,7 +861,7 @@ for family_id, title, description, icon, variants, load_label, body_label in [
             ],
             graph_template=graph,
             boundaries=[
-                "当前仅展示规划范围，不允许创建实例或输出结论",
+                "本场景用于方案筛查；适用边界以当前变体和报告说明为准",
                 "依赖：" + "、".join(
                     DEVELOPMENT_DEPENDENCIES.get(
                         family_id, ["完整计算图", "规范映射", "独立验证"]
@@ -2051,7 +2065,17 @@ _replace_public_variant(
         [_number("span_m", "门楼跨度", "m", 5.0), _number("height_m", "柱高", "m", 3.2), _number("bay_spacing_m", "代表纵向间距", "m", 3.0)],
         support_system="双柱落地",
         graph=ENTRANCE_GRAPH_PUBLIC,
-        load_package=_package("entrance-single-span-loads", "钢单跨门楼荷载包", "面层/招牌恒载和正负风。", [_load("entrance-dead", "面层及招牌恒载", "dead", "reference_range", "kN/m2", "按饰面和招牌产品资料", "gate_frame", minimum=0.30, default=0.80, maximum=2.00), _load("entrance-wind-positive", "正向风", "wind", "calculated", "kN/m2", "GB 50009-2012 第8章", "gate_frame", default=0.50, direction="x_positive"), _load("entrance-wind-negative", "反向风", "wind", "calculated", "kN/m2", "GB 50009-2012 第8章", "gate_frame", default=0.50, direction="x_negative")]),
+        load_package=_package(
+            "entrance-single-span-loads",
+            "钢单跨门楼荷载包",
+            "门楣包覆层、附挂招牌和后台自动生成的正负风工况。",
+            [
+                _load("entrance-cladding-dead", "门楣包覆层自重", "dead", "reference_range", "kN/m2", "按包覆材料和龙骨产品资料", "gate_frame", minimum=0.20, default=0.50, maximum=1.50),
+                _load("entrance-sign-dead", "附挂招牌自重", "dead", "project_defined", "kN/m2", "按招牌产品资料或实际支点反力", "gate_frame", default=0.30),
+                _load("entrance-wind-positive", "+X 风工况（自动）", "wind", "calculated", "kN/m2", "GB 50009-2012 第8章", "gate_frame", default=0.50, direction="x_positive"),
+                _load("entrance-wind-negative", "-X 风工况（自动）", "wind", "calculated", "kN/m2", "GB 50009-2012 第8章", "gate_frame", default=0.50, direction="x_negative"),
+            ],
+        ),
     ),
 )
 _replace_public_variant(
@@ -2578,7 +2602,7 @@ for _family_id, _boundaries in (
 # published variants.  Other public variants remain selectable in the same
 # family and development variants remain explicitly blocked.
 for _family_id, _default_variant in (
-    ("pergola-pavilion", "flat-single"),
+    ("pergola-pavilion", "guided-grid"),
     ("canopy", "single-row"),
     ("signage-billboard", "single-post"),
     ("entrance-frame", "single-span"),
@@ -2594,6 +2618,146 @@ for _family_id, _default_variant in (
     _family.graph_template = next(
         item for item in _family.variants if item.id == _default_variant
     ).graph_template or _family.graph_template
+
+
+# ---- 3.4 场景专属项目条件 ----------------------------------------------
+# Keep the condition contract in the catalog rather than in the UI.  The same
+# metadata is consumed by the project-condition wizard and by graph execution
+# to prevent a hidden, unrelated condition from being silently applied.
+_SCENE_CONDITION_PROFILES: dict[str, SceneConditionProfile] = {
+    "pergola-pavilion": SceneConditionProfile(
+        wind="required",
+        snow="required",
+        seismic="required",
+        wind_semantics="roof",
+        snow_semantics="roof",
+        height_parameter_keys=["height_m", "column_height_m", "right_height_m"],
+        roof_form_parameter_key="roof_form",
+    ),
+    "canopy": SceneConditionProfile(
+        wind="required",
+        snow="required",
+        seismic="required",
+        wind_semantics="roof",
+        snow_semantics="roof",
+        height_parameter_keys=["column_height_m", "height_m"],
+        roof_form_parameter_key="roof_form",
+    ),
+    "signage-billboard": SceneConditionProfile(
+        wind="required",
+        snow="not_applicable",
+        seismic="required",
+        wind_semantics="solid_panel",
+        height_parameter_keys=["height_m", "post_height_m", "panel_cg_height_m"],
+    ),
+    "landscape-wall-fence": SceneConditionProfile(
+        wind="required",
+        snow="not_applicable",
+        seismic="required",
+        wind_semantics="solid_panel",
+        height_parameter_keys=["height_m", "wall_height_m"],
+    ),
+    "entrance-frame": SceneConditionProfile(
+        wind="required",
+        snow="not_applicable",
+        seismic="required",
+        wind_semantics="solid_panel",
+        height_parameter_keys=["height_m", "right_height_m"],
+    ),
+    "boardwalk-platform": SceneConditionProfile(
+        wind="not_applicable",
+        snow="required",
+        seismic="required",
+        snow_semantics="exposed_horizontal",
+    ),
+    "bench-planter": SceneConditionProfile(
+        wind="not_applicable",
+        snow="not_applicable",
+        seismic="not_applicable",
+        geotechnical_mode="generic",
+    ),
+    "water-feature-pool": SceneConditionProfile(
+        wind="not_applicable",
+        snow="not_applicable",
+        seismic="not_supported",
+        geotechnical_mode="variant_owned",
+    ),
+    "landscape-bridge": SceneConditionProfile(
+        wind="required",
+        snow="not_applicable",
+        seismic="not_supported",
+        wind_semantics="bridge_side",
+        height_parameter_keys=["deck_width_m"],
+        geotechnical_mode="variant_owned",
+    ),
+    "retaining-facility": SceneConditionProfile(
+        wind="not_applicable",
+        snow="not_applicable",
+        seismic="not_supported",
+        geotechnical_mode="variant_owned",
+    ),
+}
+
+for _family in SCENE_FAMILIES:
+    _profile = _SCENE_CONDITION_PROFILES.get(_family.id)
+    if _profile is None:
+        continue
+    _family.variants = [
+        _variant.model_copy(
+            update={
+                "condition_profile": (
+                    SceneConditionProfile(
+                        wind="optional",
+                        snow="not_applicable",
+                        seismic="not_supported",
+                        wind_semantics="solid_panel",
+                        geotechnical_mode="variant_owned",
+                    )
+                    if _family.id == "bench-planter" and _variant.id == "planter"
+                    else _profile
+                )
+            },
+            deep=True,
+        )
+        for _variant in _family.variants
+    ]
+    if _family.id == "entrance-frame":
+        _family.variants = [
+            _variant.model_copy(
+                update={
+                    "parameters": [
+                        parameter.model_copy(update={"label": "门楣受风宽度"})
+                        if parameter.key == "roof_width_m"
+                        else parameter
+                        for parameter in _variant.parameters
+                    ]
+                },
+                deep=True,
+            )
+            for _variant in _family.variants
+        ]
+    if _family.id == "landscape-bridge":
+        _family.variants = [
+            _variant.model_copy(
+                update={
+                    "parameters": [
+                        parameter.model_copy(update={"hidden_when_condition_driven": True})
+                        if parameter.key == "wind_load_kpa"
+                        else parameter
+                        for parameter in _variant.parameters
+                    ]
+                },
+                deep=True,
+            )
+            for _variant in _family.variants
+        ]
+
+# The former planning-only wording conflicts with the promoted public graphs.
+for _family in SCENE_FAMILIES:
+    _family.boundaries = [
+        boundary.replace("当前仅展示规划范围，不允许创建实例或输出结论", "本场景用于方案筛查；适用边界以当前变体和报告说明为准")
+        for boundary in _family.boundaries
+    ]
 
 
 SCENE_FAMILIES_BY_ID = {item.id: item for item in SCENE_FAMILIES}

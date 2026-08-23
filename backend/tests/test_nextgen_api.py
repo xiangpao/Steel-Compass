@@ -41,7 +41,7 @@ def client() -> Iterator[TestClient]:
 
 def _request(module: str, typed_inputs: dict) -> dict:
     return {
-        "schema_version": "3.2",
+        "schema_version": "3.3",
         "mode": "quick",
         "module": module,
         "project_name": f"nextgen-{module}",
@@ -258,7 +258,7 @@ def test_new_modules_run_through_calculation_api(
     assert result["checks"]
     assert result["steps"]
     assert result["applicability"]
-    assert result["schema_version"] == "3.2"
+    assert result["schema_version"] == "3.3"
     if module == "wall_anchor":
         assert any("GB 50010" in standard for standard in result["standards"])
 
@@ -298,7 +298,7 @@ def test_new_module_cannot_use_legacy_values_shape(client: TestClient) -> None:
 
 def test_existing_schema32_typed_values_and_schema31_read_remain_compatible() -> None:
     current = CalculationRequest(
-        schema_version="3.2",
+        schema_version="3.3",
         mode=CalculationMode.QUICK,
         module=CalculationModule.STEEL_BEAM,
         typed_inputs=TypedModuleInputs(

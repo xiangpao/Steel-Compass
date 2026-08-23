@@ -111,13 +111,13 @@ def masonry_inputs() -> dict:
     }
 
 
-def request(module: str, typed_inputs: dict, *, mode: str = "quick", schema: str = "3.2") -> dict:
+def request(module: str, typed_inputs: dict, *, mode: str = "quick", schema: str = "3.3") -> dict:
     return {
         "schema_version": schema,
         "mode": mode,
         "module": module,
         "project_name": module,
-        "standard_profile": "CN-2026.1",
+        "standard_profile": "CN-2026.2",
         "typed_inputs": typed_inputs,
         "loads": [],
     }
@@ -138,7 +138,7 @@ def test_site_wall_modules_expose_typed_api_and_same_combination_equilibrium(
     assert response.status_code == 200, response.text
     result = response.json()
     assert result["module"] == module
-    assert result["schema_version"] == "3.2"
+    assert result["schema_version"] == "3.3"
     assert result["verification_status"] == "unverified"
     assert result["result_class"] == "quick_estimate"
     assert result["engineering_status"] is None
