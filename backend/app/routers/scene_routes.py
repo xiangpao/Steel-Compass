@@ -81,6 +81,12 @@ from ..report import build_scene_analysis_snapshot_pdf
 router = APIRouter(tags=["scene-system"])
 
 
+def _client_draft(payload: dict) -> dict:
+    """Client drafts cannot restore server-owned analysis pointers or candidates."""
+    return {**payload, "last_analysis_package": None, "last_analysis_snapshot": None,
+            "last_analysis_snapshot_id": None, "foundation_candidate_sets": {}}
+
+
 def _owned_project(db: Session, project_id: int, user_id: int) -> Project:
     project = db.scalar(
         select(Project).where(Project.id == project_id, Project.owner_id == user_id)
@@ -213,7 +219,7 @@ def create_scene_instance(
         title=payload.title,
         mode=payload.mode.value,
         template_version=SCENE_CATALOG_VERSION,
-        draft_state=payload.draft_state,
+        draft_state=_client_draft(payload.draft_state),
         stale_node_ids=[],
     )
     project.updated_at = datetime.now(timezone.utc)
@@ -256,7 +262,9 @@ def update_scene_instance(
             raise HTTPException(status_code=422, detail="重新计算统一采用方案筛查模式")
         instance.mode = "quick"
     if payload.draft_state is not None:
-        instance.draft_state = payload.draft_state
+        instance.draft_state = _client_draft(payload.draft_state)
+    if payload.variant_id is not None or payload.changed_node_ids:
+        instance.draft_state = _client_draft(instance.draft_state or {})
     if payload.archived is not None:
         instance.archived = payload.archived
     if payload.changed_node_ids:
@@ -898,6 +906,7 @@ def analyze_saved_scene(
         "geometry": geometry.model_dump(mode="json"),
         "site_profile": site_profile.model_dump(mode="json") if site_profile else {},
         "geotechnical_profile": geotechnical.model_dump(mode="json") if geotechnical else None,
+        "custom_sections": [item.model_dump(mode="json") for item in custom_sections],
         "roof_load_selection": roof_selection.model_dump(mode="json"),
         "load_cases": [item.model_dump(mode="json") for item in load_package.cases],
         "combinations": [item.model_dump(mode="json") for item in load_package.combinations],
@@ -907,6 +916,7 @@ def analyze_saved_scene(
         geometry=geometry,
         site_profile=snapshot_basis["site_profile"],
         geotechnical_profile=snapshot_basis["geotechnical_profile"],
+        custom_sections=snapshot_basis["custom_sections"],
         roof_load_selection=roof_selection,
         load_cases=snapshot_basis["load_cases"],
         combinations=list(load_package.combinations),
@@ -1196,7 +1206,7 @@ def duplicate_scene_instance(
         title=f"{source.title}（副本）",
         mode="quick",
         template_version=source.template_version,
-        draft_state=deepcopy(source.draft_state),
+        draft_state=_client_draft(deepcopy(source.draft_state or {})),
         stale_node_ids=list(source.stale_node_ids),
         archived=False,
     )

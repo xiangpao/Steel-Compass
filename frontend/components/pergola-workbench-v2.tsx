@@ -11,6 +11,10 @@ import type { CustomSectionDefinition, FoundationDesignSpecification, Foundation
 const SceneModelPreview = dynamic(() => import("@/components/scene-model-preview").then((module) => module.SceneModelPreview), { ssr: false });
 
 type Area = "library" | "conditions" | "model" | "loads" | "foundation" | "results";
+function statusLabel(value?: string) {
+  return ({ ready: "已完成计算", complete: "已完成计算", incomplete: "尚未完成", failed: "不通过",
+    passed: "筛查通过", not_calculated: "未计算", capability_unavailable: "超出当前能力" } as Record<string, string>)[value ?? ""] ?? value ?? "未计算";
+}
 type SoilPreset = {
   id: string;
   title: string;
@@ -700,13 +704,14 @@ function typeLetter(index: number) {
   return String.fromCharCode(65 + index);
 }
 
-export function PergolaWorkbenchV2({ mode = "qa", projects = [] }: PergolaWorkbenchProps) {
+export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChange }: PergolaWorkbenchProps) {
   const shellRef = useRef<HTMLElement>(null);
   const [geometry, setGeometry] = useState<SceneGeometryProfile>(() => initialGeometry());
   const [selection, setSelection] = useState<WorkbenchSelection>(null);
   const [area, setArea] = useState<Area>("model");
   const [view, setView] = useState<OrthographicView>("plan");
   const [message, setMessage] = useState("选择图面对象后，左侧只显示该对象的必要属性。");
+  const [canvasMessage, setCanvasMessage] = useState("");
   const [workElevation, setWorkElevation] = useState(3.2);
   const [activeMemberTypeId, setActiveMemberTypeId] = useState("secondary");
   const [sectionDrafts, setSectionDrafts] = useState<Record<string, SectionDraft>>(DEFAULT_SECTIONS);
@@ -748,10 +753,18 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [] }: PergolaWorkbe
     },
   });
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(projects[0]?.id ?? null);
+  const [newProjectName, setNewProjectName] = useState("");
   const [sceneInstanceId, setSceneInstanceId] = useState<number | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [analysisSnapshotId, setAnalysisSnapshotId] = useState<number | null>(null);
   const [serverBusy, setServerBusy] = useState(false);
+  const savedGeotechnical = useRef<{ profile: ProjectGeotechnicalProfile; ui: string } | null>(null);
+
+  useEffect(() => {
+    setAnalysisResult(null);
+    setAnalysisSnapshotId(null);
+  }, [geometry, siteProfile, sectionDrafts, soilPresetId, geoStage, report,
+      roofAssemblyId, maintenanceCategory, maintenanceLoad]);
 
   useEffect(() => {
     if (mode !== "qa") return;
@@ -826,10 +839,30 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [] }: PergolaWorkbe
       >(`/api/v2/projects/${selectedProjectId}/scene-instances`),
       api<ProjectSiteProfile | null>(`/api/v2/projects/${selectedProjectId}/site-profile`),
       api<{ items: CustomSectionDefinition[] }>(`/api/v2/projects/${selectedProjectId}/custom-sections`),
+      api<ProjectGeotechnicalProfile | null>(`/api/v2/projects/${selectedProjectId}/geotechnical-profile`),
     ])
-      .then(async ([instances, profile, sectionCatalog]) => {
+      .then(async ([instances, profile, sectionCatalog, geotechnical]) => {
         if (cancelled) return;
         if (profile) setSiteProfile(profile);
+        savedGeotechnical.current = null;
+        if (geotechnical) {
+          const soil = SOIL_PRESETS.find(item => item.id === geotechnical.regional_hint_id || item.title === geotechnical.confirmed_soil_class)?.id ?? "plastic-clay";
+          const layer = geotechnical.settlement_layers?.[0];
+          const restoredReport = {
+            name: geotechnical.report_name ?? "", date: geotechnical.report_date ?? "",
+            bearing: geotechnical.bearing_capacity_kpa,
+            modulus: geotechnical.deformation_modulus_mpa ?? layer?.compression_modulus_mpa ?? 0,
+            layerThickness: layer?.thickness_m ?? 0, unitWeight: layer?.unit_weight_kn_m3 ?? 18,
+            settlementFactor: geotechnical.settlement_correction_factor ?? 1,
+            settlementLimit: geotechnical.settlement_limit_mm ?? 0,
+            construction: geotechnical.groundwater.construction_level_m ?? 0,
+            service: geotechnical.groundwater.service_level_m ?? 0,
+            antifloat: geotechnical.groundwater.antifloat_level_m ?? 0,
+          };
+          setGeoStage(geotechnical.stage); setSoilPresetId(soil); setReport(restoredReport);
+          savedGeotechnical.current = { profile: geotechnical,
+            ui: JSON.stringify({ report: restoredReport, soilPresetId: soil, geoStage: geotechnical.stage }) };
+        }
         const instance = instances.find((item) => !item.archived && item.family_id === "pergola-pavilion" && item.variant_id === "guided-grid");
         if (!instance) {
           setSceneInstanceId(null);
@@ -1267,6 +1300,9 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [] }: PergolaWorkbe
   }
 
   function projectGeotechnicalProfile(): ProjectGeotechnicalProfile {
+    if (savedGeotechnical.current?.ui === JSON.stringify({ report, soilPresetId, geoStage })) {
+      return savedGeotechnical.current.profile;
+    }
     if (geoStage === "project_check") {
       return {
         profile_version: "1.1",
@@ -1433,6 +1469,24 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [] }: PergolaWorkbe
     }
   }
 
+  async function createWorkbenchProject() {
+    if (!newProjectName.trim()) { setMessage("请输入新项目名称。"); return; }
+    setServerBusy(true);
+    try {
+      const project = await api<Project>("/api/v2/projects", {
+        method: "POST", body: JSON.stringify({ name: newProjectName.trim(), description: "" }),
+      });
+      onProjectsChange?.([...projects, project]);
+      setSelectedProjectId(project.id);
+      setSceneInstanceId(null);
+      setAnalysisResult(null);
+      setAnalysisSnapshotId(null);
+      setNewProjectName("");
+      setMessage("项目已创建，请完善条件后保存模型。");
+    } catch (error) { setMessage(errorMessage(error)); }
+    finally { setServerBusy(false); }
+  }
+
   async function runProjectAnalysis() {
     if (mode !== "project" || selectedProjectId === null) return;
     try {
@@ -1456,7 +1510,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [] }: PergolaWorkbe
       const snapshots = await api<Array<{ id: number }>>(`/api/v2/projects/${selectedProjectId}/scene-instances/${instanceId}/analysis-snapshots`);
       setAnalysisSnapshotId(snapshots[0]?.id ?? null);
       setArea("results");
-      setMessage(`服务端分析完成：${result.workflow_status}`);
+      setMessage(`服务端分析完成：${statusLabel(result.workflow_status)}`);
     } catch (error) {
       setMessage(errorMessage(error));
     } finally {
@@ -2982,15 +3036,15 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [] }: PergolaWorkbe
         </div>
         <div className="qa-result-summary">
           <span>工作流</span>
-          <strong className={analysisResult.workflow_status === "failed" ? "warning" : ""}>{analysisResult.workflow_status}</strong>
+          <strong className={analysisResult.workflow_status !== "ready" ? "warning" : ""}>{statusLabel(analysisResult.workflow_status)}</strong>
           <span>结构分析</span>
-          <strong>{analysisResult.structural_analysis.status}</strong>
+          <strong>{statusLabel(analysisResult.structural_analysis.status)}</strong>
           <span>构件验算</span>
-          <strong>{analysisResult.member_checks?.status ?? "incomplete"}</strong>
+          <strong>{statusLabel(analysisResult.member_checks?.status ?? "incomplete")}</strong>
           <span>连接验算</span>
-          <strong>{analysisResult.connection_checks.status}</strong>
+          <strong>{statusLabel(analysisResult.connection_checks.status)}</strong>
           <span>基础与地基</span>
-          <strong>{analysisResult.foundation_checks.status}</strong>
+          <strong>{statusLabel(analysisResult.foundation_checks.status)}</strong>
           <span>最低屈曲系数</span>
           <strong>{analysisResult.buckling_analysis?.factors?.[0]?.toFixed(3) ?? "未计算"}</strong>
         </div>
@@ -3112,6 +3166,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [] }: PergolaWorkbe
             title={item.label}
             onClick={() => {
               setArea(item.id);
+              setMobilePane("property");
               setSelection(null);
             }}
           >
@@ -3135,6 +3190,14 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [] }: PergolaWorkbe
         </header>
         <div className="qa-property-scroll">{area === "results" ? renderResultsPanel() : area === "library" ? renderLibraryPanel() : area === "conditions" ? renderConditionsPanel() : area === "model" ? renderModelPanel() : area === "loads" ? renderLoadPanel() : renderFoundationPanel()}</div>
         <footer>
+          <small role="status">{message}</small>
+          {mode === "project" && (
+            <div className="qa-project-create">
+              <input aria-label="新项目名称" placeholder="新项目名称" value={newProjectName}
+                onChange={(event) => setNewProjectName(event.target.value)} />
+              <button type="button" disabled={serverBusy} onClick={createWorkbenchProject}>新建项目</button>
+            </div>
+          )}
           {mode === "project" && (
             <select
               aria-label="保存到项目"
@@ -3184,11 +3247,11 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [] }: PergolaWorkbe
             </button>
           </div>
         </header>
-        <PergolaPlanEditorV2 geometry={geometry} selection={selection} view={view} workElevation={workElevation} activeMemberTypeId={activeMemberTypeId} onSelectionChange={handleSelection} onGeometryChange={setGeometry} onMessage={setMessage} />
+        <PergolaPlanEditorV2 geometry={geometry} selection={selection} view={view} workElevation={workElevation} activeMemberTypeId={activeMemberTypeId} onSelectionChange={handleSelection} onGeometryChange={setGeometry} onMessage={setCanvasMessage} />
         <div className="qa-status-bar">
           <span>
             <GitBranch size={14} />
-            {message}
+            {canvasMessage}
           </span>
           <em>
             节点 {geometry.nodes.length} · 构件 {geometry.members.length} · 基础 {geometry.foundation_instances?.length ?? 0}

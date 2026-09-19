@@ -1,0 +1,1958 @@
+[
+  {
+    "family": "pergola-pavilion",
+    "variant": "guided-grid",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "environment",
+      "roof_members",
+      "main_frame",
+      "base_left",
+      "base_right",
+      "foundation_left",
+      "foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "environment": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "roof_members": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "quick_mode"
+        ]
+      },
+      "main_frame": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "linear_frame_beta",
+          "vertical_displacement"
+        ]
+      },
+      "base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_partial_contact_unresolved"
+        ]
+      },
+      "base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_partial_contact_unresolved"
+        ]
+      },
+      "foundation_left": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      },
+      "foundation_right": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      }
+    }
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "flat-single",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "environment",
+      "roof_members",
+      "main_frame",
+      "base_left",
+      "base_right",
+      "foundation_left",
+      "foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "environment": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "roof_members": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "quick_mode"
+        ]
+      },
+      "main_frame": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "linear_frame_beta",
+          "vertical_displacement"
+        ]
+      },
+      "base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_partial_contact_unresolved"
+        ]
+      },
+      "base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_partial_contact_unresolved"
+        ]
+      },
+      "foundation_left": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      },
+      "foundation_right": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      }
+    }
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "mono-pitch",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "environment",
+      "roof_members",
+      "main_frame",
+      "pergola-mono-pitch-chain_base_left",
+      "pergola-mono-pitch-chain_base_right",
+      "pergola-mono-pitch-chain_foundation_left",
+      "pergola-mono-pitch-chain_foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "environment": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "roof_members": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "钢檩条 / 椽条缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "main_frame": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：roof_members",
+        "warnings": []
+      },
+      "pergola-mono-pitch-chain_base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      "pergola-mono-pitch-chain_base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      "pergola-mono-pitch-chain_foundation_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pergola-mono-pitch-chain_base_left",
+        "warnings": []
+      },
+      "pergola-mono-pitch-chain_foundation_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pergola-mono-pitch-chain_base_right",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "dual-pitch",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "environment",
+      "roof_members",
+      "main_frame",
+      "pergola-dual-pitch-chain_base_left",
+      "pergola-dual-pitch-chain_base_right",
+      "pergola-dual-pitch-chain_foundation_left",
+      "pergola-dual-pitch-chain_foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "environment": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "roof_members": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "钢檩条 / 椽条缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "main_frame": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：roof_members",
+        "warnings": []
+      },
+      "pergola-dual-pitch-chain_base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      "pergola-dual-pitch-chain_base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      "pergola-dual-pitch-chain_foundation_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pergola-dual-pitch-chain_base_left",
+        "warnings": []
+      },
+      "pergola-dual-pitch-chain_foundation_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pergola-dual-pitch-chain_base_right",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "multi-bay",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "environment",
+      "roof_members",
+      "main_frame",
+      "pergola-two-bay-unequal-chain_base_left",
+      "pergola-two-bay-unequal-chain_base_middle",
+      "pergola-two-bay-unequal-chain_base_right",
+      "pergola-two-bay-unequal-chain_foundation_left",
+      "pergola-two-bay-unequal-chain_foundation_middle",
+      "pergola-two-bay-unequal-chain_foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "environment": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "roof_members": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "钢檩条 / 椽条缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "main_frame": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：roof_members",
+        "warnings": []
+      },
+      "pergola-two-bay-unequal-chain_base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      "pergola-two-bay-unequal-chain_base_middle": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      "pergola-two-bay-unequal-chain_base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      "pergola-two-bay-unequal-chain_foundation_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pergola-two-bay-unequal-chain_base_left",
+        "warnings": []
+      },
+      "pergola-two-bay-unequal-chain_foundation_middle": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pergola-two-bay-unequal-chain_base_middle",
+        "warnings": []
+      },
+      "pergola-two-bay-unequal-chain_foundation_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pergola-two-bay-unequal-chain_base_right",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "canopy",
+    "variant": "wall-cantilever",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "canopy_loads",
+      "secondary_beam",
+      "wall_anchor"
+    ],
+    "workflow": "ready",
+    "engineering_status": null,
+    "nodes": {
+      "canopy_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "secondary_beam": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "quick_mode"
+        ]
+      },
+      "wall_anchor": {
+        "workflow": "ready",
+        "status": "failed",
+        "message": null,
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "canopy",
+    "variant": "single-row",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "roof_loads",
+      "secondary",
+      "column",
+      "base_connection",
+      "foundation"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "roof_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "荷载包中的最终采用值和来源已确认。",
+        "warnings": []
+      },
+      "secondary": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "quick_mode"
+        ]
+      },
+      "column": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "second_order_review"
+        ]
+      },
+      "base_connection": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_partial_contact_unresolved"
+        ]
+      },
+      "foundation": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      }
+    }
+  },
+  {
+    "family": "canopy",
+    "variant": "double-row",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "roof_loads",
+      "secondary",
+      "primary",
+      "base_left",
+      "base_right",
+      "foundation_left",
+      "foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "roof_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "secondary": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "quick_mode"
+        ]
+      },
+      "primary": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "linear_frame_beta",
+          "vertical_displacement"
+        ]
+      },
+      "base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_partial_contact_unresolved"
+        ]
+      },
+      "base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_partial_contact_unresolved"
+        ]
+      },
+      "foundation_left": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      },
+      "foundation_right": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      }
+    }
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "single-post",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "wind_panel",
+      "post",
+      "base_plate",
+      "foundation"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "wind_panel": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "post": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "post_anchor_concrete_pending"
+        ]
+      },
+      "base_plate": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_partial_contact_unresolved"
+        ]
+      },
+      "foundation": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      }
+    }
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "double-post",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "wind_panel",
+      "post",
+      "signage-double-post-chain-v32_base_left",
+      "signage-double-post-chain-v32_base_right",
+      "signage-double-post-chain-v32_foundation_left",
+      "signage-double-post-chain-v32_foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "wind_panel": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "post": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "双柱平面框架缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "signage-double-post-chain-v32_base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：post",
+        "warnings": []
+      },
+      "signage-double-post-chain-v32_base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：post",
+        "warnings": []
+      },
+      "signage-double-post-chain-v32_foundation_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：signage-double-post-chain-v32_base_left",
+        "warnings": []
+      },
+      "signage-double-post-chain-v32_foundation_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：signage-double-post-chain-v32_base_right",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "ground-mounted",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "wind_panel",
+      "post",
+      "signage-ground-mounted-chain-v32_base_base",
+      "signage-ground-mounted-chain-v32_foundation_base"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "wind_panel": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "post": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "落地式钢悬臂框架缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "signage-ground-mounted-chain-v32_base_base": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：post",
+        "warnings": []
+      },
+      "signage-ground-mounted-chain-v32_foundation_base": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：signage-ground-mounted-chain-v32_base_base",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "eccentric-panel",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "wind_panel",
+      "post",
+      "base_plate",
+      "foundation"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "wind_panel": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "post": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "post_anchor_concrete_pending"
+        ]
+      },
+      "base_plate": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_partial_contact_unresolved"
+        ]
+      },
+      "foundation": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      }
+    }
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "constrained-masonry",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "wall_loads",
+      "masonry_infill",
+      "construction_columns",
+      "cap_beam",
+      "ground_beam",
+      "wall_foundation"
+    ],
+    "workflow": "ready",
+    "engineering_status": null,
+    "nodes": {
+      "wall_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "masonry_infill": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "masonry_confinement_beta"
+        ]
+      },
+      "construction_columns": {
+        "workflow": "ready",
+        "status": "failed",
+        "message": null,
+        "warnings": [
+          "column_interaction_beta"
+        ]
+      },
+      "cap_beam": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "concrete_beta"
+        ]
+      },
+      "ground_beam": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "concrete_beta"
+        ]
+      },
+      "wall_foundation": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "strip_scope"
+        ]
+      }
+    }
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "concrete-straight",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "wall_loads",
+      "wall_system",
+      "foundation_interface"
+    ],
+    "workflow": "stale",
+    "engineering_status": null,
+    "nodes": {
+      "wall_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "wall_system": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "现浇 RC 景墙墙身缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "foundation_interface": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：wall_system",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "steel-infill",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "wall_loads",
+      "wall_system",
+      "foundation_interface"
+    ],
+    "workflow": "stale",
+    "engineering_status": null,
+    "nodes": {
+      "wall_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "wall_system": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "钢立柱与轻质填充墙缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "foundation_interface": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：wall_system",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "plain-masonry",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "wall_loads",
+      "wall_system",
+      "foundation_interface"
+    ],
+    "workflow": "stale",
+    "engineering_status": null,
+    "nodes": {
+      "wall_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "wall_system": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "低矮纯砌体墙缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "foundation_interface": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：wall_system",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "single-span",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "gate_loads",
+      "gate_frame",
+      "gate_base_left",
+      "gate_base_right",
+      "gate_foundation_left",
+      "gate_foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "gate_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "gate_frame": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "linear_frame_beta",
+          "vertical_displacement"
+        ]
+      },
+      "gate_base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_partial_contact_unresolved"
+        ]
+      },
+      "gate_base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_partial_contact_unresolved"
+        ]
+      },
+      "gate_foundation_left": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      },
+      "gate_foundation_right": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      }
+    }
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "multi-span",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "gate_loads",
+      "gate_frame",
+      "entrance-two-bay-chain-v32_base_left",
+      "entrance-two-bay-chain-v32_base_middle",
+      "entrance-two-bay-chain-v32_base_right",
+      "entrance-two-bay-chain-v32_foundation_left",
+      "entrance-two-bay-chain-v32_foundation_middle",
+      "entrance-two-bay-chain-v32_foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "gate_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "gate_frame": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "双跨参数化门楼框架缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "entrance-two-bay-chain-v32_base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      "entrance-two-bay-chain-v32_base_middle": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      "entrance-two-bay-chain-v32_base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      "entrance-two-bay-chain-v32_foundation_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：entrance-two-bay-chain-v32_base_left",
+        "warnings": []
+      },
+      "entrance-two-bay-chain-v32_foundation_middle": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：entrance-two-bay-chain-v32_base_middle",
+        "warnings": []
+      },
+      "entrance-two-bay-chain-v32_foundation_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：entrance-two-bay-chain-v32_base_right",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "eccentric-lintel",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "gate_loads",
+      "gate_frame",
+      "entrance-eccentric-lintel-chain-v32_base_left",
+      "entrance-eccentric-lintel-chain-v32_base_right",
+      "entrance-eccentric-lintel-chain-v32_foundation_left",
+      "entrance-eccentric-lintel-chain-v32_foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "gate_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "gate_frame": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "偏心门楣参数化框架缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "entrance-eccentric-lintel-chain-v32_base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      "entrance-eccentric-lintel-chain-v32_base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      "entrance-eccentric-lintel-chain-v32_foundation_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：entrance-eccentric-lintel-chain-v32_base_left",
+        "warnings": []
+      },
+      "entrance-eccentric-lintel-chain-v32_foundation_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：entrance-eccentric-lintel-chain-v32_base_right",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "unequal-columns",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "gate_loads",
+      "gate_frame",
+      "entrance-unequal-column-chain-v32_base_left",
+      "entrance-unequal-column-chain-v32_base_right",
+      "entrance-unequal-column-chain-v32_foundation_left",
+      "entrance-unequal-column-chain-v32_foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "gate_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "gate_frame": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "不同柱高参数化框架缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "entrance-unequal-column-chain-v32_base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      "entrance-unequal-column-chain-v32_base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      "entrance-unequal-column-chain-v32_foundation_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：entrance-unequal-column-chain-v32_base_left",
+        "warnings": []
+      },
+      "entrance-unequal-column-chain-v32_foundation_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：entrance-unequal-column-chain-v32_base_right",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "boardwalk-platform",
+    "variant": "straight",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "deck_loads",
+      "deck",
+      "secondary",
+      "primary",
+      "column_left",
+      "column_right",
+      "base_left",
+      "base_right",
+      "foundation_left",
+      "foundation_right"
+    ],
+    "workflow": "ready",
+    "engineering_status": null,
+    "nodes": {
+      "deck_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "deck": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "timber_deck_beta"
+        ]
+      },
+      "secondary": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "quick_mode"
+        ]
+      },
+      "primary": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "quick_mode"
+        ]
+      },
+      "column_left": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "second_order_review"
+        ]
+      },
+      "column_right": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "second_order_review"
+        ]
+      },
+      "base_left": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked"
+        ]
+      },
+      "base_right": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "anchor_concrete_failure_modes_checked"
+        ]
+      },
+      "foundation_left": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      },
+      "foundation_right": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "foundation_geotechnical_scope"
+        ]
+      }
+    }
+  },
+  {
+    "family": "boardwalk-platform",
+    "variant": "viewing-platform",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "deck_loads",
+      "deck",
+      "secondary",
+      "primary",
+      "platform_base_left",
+      "platform_base_right",
+      "platform_foundation_left",
+      "platform_foundation_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "deck_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "deck": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "双向混凝土平台板缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "secondary": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：deck",
+        "warnings": []
+      },
+      "primary": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：secondary",
+        "warnings": []
+      },
+      "platform_base_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：primary",
+        "warnings": []
+      },
+      "platform_base_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：primary",
+        "warnings": []
+      },
+      "platform_foundation_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：platform_base_left",
+        "warnings": []
+      },
+      "platform_foundation_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：platform_base_right",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "bench-planter",
+    "variant": "bench",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "seat_loads",
+      "seat_slab",
+      "support_beam",
+      "bench_foundation"
+    ],
+    "workflow": "ready",
+    "engineering_status": null,
+    "nodes": {
+      "seat_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "seat_slab": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "concrete_beta"
+        ]
+      },
+      "support_beam": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "concrete_beta"
+        ]
+      },
+      "bench_foundation": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "strip_scope"
+        ]
+      }
+    }
+  },
+  {
+    "family": "bench-planter",
+    "variant": "planter",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "planter_loads",
+      "planter_wall",
+      "planter_foundation"
+    ],
+    "workflow": "ready",
+    "engineering_status": null,
+    "nodes": {
+      "planter_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "planter_wall": {
+        "workflow": "ready",
+        "status": "failed",
+        "message": null,
+        "warnings": [
+          "rc_wall_beta"
+        ]
+      },
+      "planter_foundation": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "strip_scope"
+        ]
+      }
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-above",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "pool_loads",
+      "pool_structure",
+      "antifloat_support"
+    ],
+    "workflow": "stale",
+    "engineering_status": null,
+    "nodes": {
+      "pool_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "pool_structure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "antifloat_support": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-buried",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "pool_loads",
+      "pool_structure",
+      "antifloat_support"
+    ],
+    "workflow": "stale",
+    "engineering_status": null,
+    "nodes": {
+      "pool_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "pool_structure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "antifloat_support": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-semi-buried",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "pool_loads",
+      "pool_structure",
+      "antifloat_support"
+    ],
+    "workflow": "stale",
+    "engineering_status": null,
+    "nodes": {
+      "pool_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "pool_structure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "antifloat_support": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-above-pile",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "pool_loads",
+      "pool_structure",
+      "antifloat_support",
+      "pile_cap"
+    ],
+    "workflow": "stale",
+    "engineering_status": null,
+    "nodes": {
+      "pool_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "pool_structure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "antifloat_support": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      },
+      "pile_cap": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：antifloat_support",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-semi-buried-pile",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "pool_loads",
+      "pool_structure",
+      "antifloat_support",
+      "pile_cap"
+    ],
+    "workflow": "stale",
+    "engineering_status": null,
+    "nodes": {
+      "pool_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "pool_structure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "antifloat_support": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      },
+      "pile_cap": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：antifloat_support",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-buried-pile",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "pool_loads",
+      "pool_structure",
+      "antifloat_support",
+      "pile_cap"
+    ],
+    "workflow": "stale",
+    "engineering_status": null,
+    "nodes": {
+      "pool_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "pool_structure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "antifloat_support": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      },
+      "pile_cap": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：antifloat_support",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-straight",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "bridge_loads",
+      "bridge_superstructure",
+      "support_left",
+      "support_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "bridge_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "bridge_superstructure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "support_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-span",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "bridge_loads",
+      "bridge_superstructure",
+      "support_left",
+      "support_middle",
+      "support_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "bridge_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "bridge_superstructure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "support_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_middle": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-steel-timber-pile",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "bridge_loads",
+      "bridge_superstructure",
+      "support_left",
+      "support_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "bridge_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "bridge_superstructure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "support_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-steel-timber-pile",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "bridge_loads",
+      "bridge_superstructure",
+      "support_left",
+      "support_middle",
+      "support_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "bridge_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "bridge_superstructure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "support_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_middle": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-rc-shallow",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "bridge_loads",
+      "bridge_superstructure",
+      "support_left",
+      "support_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "bridge_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "bridge_superstructure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "support_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-rc-pile",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "bridge_loads",
+      "bridge_superstructure",
+      "support_left",
+      "support_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "bridge_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "bridge_superstructure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "support_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-rc-shallow",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "bridge_loads",
+      "bridge_superstructure",
+      "support_left",
+      "support_middle",
+      "support_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "bridge_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "bridge_superstructure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "support_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_middle": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-rc-pile",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "bridge_loads",
+      "bridge_superstructure",
+      "support_left",
+      "support_middle",
+      "support_right"
+    ],
+    "workflow": "capability_unavailable",
+    "engineering_status": null,
+    "nodes": {
+      "bridge_loads": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "bridge_superstructure": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "support_left": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_middle": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      "support_right": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "retaining-facility",
+    "variant": "cantilever-rc",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "soil_water_inputs",
+      "retaining_wall",
+      "soil_contact"
+    ],
+    "workflow": "ready",
+    "engineering_status": null,
+    "nodes": {
+      "soil_water_inputs": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "retaining_wall": {
+        "workflow": "ready",
+        "status": "passed",
+        "message": null,
+        "warnings": [
+          "retaining_scope"
+        ]
+      },
+      "soil_contact": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "墙身模块已完成基础稳定筛查；地勘承载力和水位仍需项目资料确认。",
+        "warnings": []
+      }
+    }
+  },
+  {
+    "family": "retaining-facility",
+    "variant": "gravity",
+    "input_basis": "catalog defaults plus explicitly confirmed reference load fixture; not engineering input",
+    "graph_order": [
+      "soil_water_inputs",
+      "gravity_wall",
+      "soil_contact"
+    ],
+    "workflow": "stale",
+    "engineering_status": null,
+    "nodes": {
+      "soil_water_inputs": {
+        "workflow": "ready",
+        "status": "completed",
+        "message": "输入、边界和传力条件已录入。",
+        "warnings": []
+      },
+      "gravity_wall": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "重力式挡土墙墙体与底座缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      "soil_contact": {
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "message": "上游节点尚未完成：gravity_wall",
+        "warnings": []
+      }
+    }
+  }
+]

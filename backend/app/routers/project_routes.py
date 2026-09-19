@@ -24,7 +24,7 @@ from ..core import SCHEMA_VERSION
 from ..core.schemas import CalculationResult, require_current_request_schema
 from ..core.schemas import CalculationModule, LoadItem, LoadKind
 from ..database import get_db
-from ..models import Project, ProjectRevision, ProjectVersion, User
+from ..models import Project, ProjectRevision, ProjectVersion, SceneInstance, User
 from ..core.scene_schemas import SceneRevisionResult
 from ..core.site_profile import ProjectSiteProfile
 from ..core.design_profiles import ProjectGeotechnicalProfile
@@ -36,6 +36,24 @@ from ..report import (
 
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+def _invalidate_project_analysis(db: Session, project: Project) -> None:
+    """Invalidate mutable pointers only; historical analysis snapshots stay intact."""
+    from ..core.scene_catalog import get_scene_family, instantiate_scene_graph
+    for instance in db.scalars(select(SceneInstance).where(SceneInstance.project_id == project.id)):
+        instance.draft_state = {**(instance.draft_state or {}), "last_analysis_package": None,
+            "last_analysis_snapshot": None, "last_analysis_snapshot_id": None, "foundation_candidate_sets": {}}
+        family = get_scene_family(instance.family_id)
+        if family:
+            try:
+                graph = instantiate_scene_graph(family, instance.variant_id)
+            except KeyError:
+                # Historical variants remain readable even after catalog changes.
+                pass
+            else:
+                instance.stale_node_ids = [n.id for n in graph.nodes if n.applicability != "not_applicable"]
+        instance.updated_at = datetime.now(timezone.utc)
 
 
 def _owned_project(db: Session, project_id: int, user_id: int) -> Project:
@@ -261,6 +279,8 @@ def update_project_site_profile(
             )
         )
     updated = ProjectSiteProfile.model_validate({**existing, **incoming})
+    if project.site_profile != updated.model_dump(mode="json"):
+        _invalidate_project_analysis(db, project)
     project.site_profile = updated.model_dump(mode="json")
     project.updated_at = datetime.now(timezone.utc)
     db.commit()
@@ -296,6 +316,7 @@ def update_project_geotechnical_profile(
 ) -> ProjectGeotechnicalProfile:
     project = _owned_project(db, project_id, user.id)
     project.geotechnical_profile = payload.model_dump(mode="json")
+    _invalidate_project_analysis(db, project)
     project.updated_at = datetime.now(timezone.utc)
     db.commit()
     return payload
@@ -320,6 +341,7 @@ def update_project_custom_sections(
 ) -> ProjectCustomSections:
     project = _owned_project(db, project_id, user.id)
     project.custom_sections = [item.model_dump(mode="json") for item in payload.items]
+    _invalidate_project_analysis(db, project)
     project.updated_at = datetime.now(timezone.utc)
     db.commit()
     return payload
@@ -339,6 +361,7 @@ def create_project_custom_section(
     section = calculate_custom_section(payload, section_id=payload.id)
     current.append(section.model_dump(mode="json"))
     project.custom_sections = current
+    _invalidate_project_analysis(db, project)
     project.updated_at = datetime.now(timezone.utc)
     db.commit()
     return ProjectCustomSections(items=current)
@@ -367,6 +390,7 @@ def revise_project_custom_section(
     record["supersedes_id"] = section_id
     current.append(record)
     project.custom_sections = current
+    _invalidate_project_analysis(db, project)
     project.updated_at = datetime.now(timezone.utc)
     db.commit()
     return section

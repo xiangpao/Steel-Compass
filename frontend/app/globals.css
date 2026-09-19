@@ -3579,8 +3579,8 @@ button {
   --qa-accent: #176879;
   --qa-orange: #d86b32;
   display: grid;
-  grid-template-columns: 56px minmax(280px, 300px) minmax(330px, var(--qa-plan-fr, 55fr)) 12px minmax(330px, var(--qa-3d-fr, 45fr));
-  width: 100vw;
+  grid-template-columns: 56px minmax(220px, 300px) minmax(0, var(--qa-plan-fr, 55fr)) 12px minmax(0, var(--qa-3d-fr, 45fr));
+  width: 100%;
   height: 100dvh;
   min-height: 720px;
   overflow: hidden;
@@ -3832,9 +3832,12 @@ button {
 .qa-result-details .pass { color: #34725e; }
 .qa-result-details .fail { color: #b85e32; }
 .qa-mobile-tabs { display: none; }
+.qa-project-create { display: flex; gap: 6px; }
+.qa-project-create input { min-width: 0; width: 100%; padding: 6px; }
+.qa-project-create button { flex-shrink: 0; }
 
 @media (max-width: 1200px) and (min-width: 761px) {
-  .qa-workbench-shell { grid-template-columns: 56px 270px minmax(300px, var(--qa-plan-fr, 55fr)) 12px minmax(300px, var(--qa-3d-fr, 45fr)); }
+  .qa-workbench-shell { grid-template-columns: 56px 240px minmax(0, var(--qa-plan-fr, 55fr)) 12px minmax(0, var(--qa-3d-fr, 45fr)); }
   .qa-canvas-toolbar button span { display: none; }
   .qa-tool-guidance em { display: none; }
 }
@@ -3847,6 +3850,8 @@ button {
   .qa-icon-rail button { width: 42px; min-height: 44px; }
   .qa-property-panel,
   .qa-canvas-panel { display: none; width: 100%; height: calc(100dvh - 58px); border: 0; }
+  .workspace-main .qa-property-panel,
+  .workspace-main .qa-canvas-panel { height: calc(100dvh - 148px); }
   .qa-canvas-splitter { display: none; }
   .qa-property-panel.mobile-active { display: grid; }
   .qa-canvas-panel.mobile-active { display: grid; }

@@ -534,6 +534,7 @@ class SavedSceneAnalysisSnapshot(BaseModel):
     geometry: SceneGeometryProfile
     site_profile: dict[str, object]
     geotechnical_profile: dict[str, object] | None = None
+    custom_sections: list[dict[str, object]] = Field(default_factory=list)
     roof_load_selection: RoofLoadSelectionProfile
     load_cases: list[dict[str, object]] = Field(default_factory=list)
     combinations: list[DesignLoadCombination] = Field(default_factory=list)

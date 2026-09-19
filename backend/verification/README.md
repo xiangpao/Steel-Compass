@@ -18,3 +18,7 @@
 ## 亭廊商业软件对照门禁
 
 `PERGOLA_COMMERCIAL_COMPARISON_TEMPLATE.json` 是 YJK/PKPM 实际导出结果的录入模板；必须填写软件版本、模型编号、导出日期、复核人和源文件。`pergola_commercial_comparison.compare_file()` 只负责逐指标误差计算，不会自动生成或冒充外部软件结果。只有真实导出文件进入证据库并经具名复核后，`PERGOLA_PROFESSIONAL_EVIDENCE.md` 中的商业软件对照门禁才允许关闭。
+
+2026-09-19 门禁修正：模板本身不可通过。源文件与不可变快照均须提供 SHA-256，指标通过 `snapshot_path` 绑定实际快照数值；占位、缺文件、非有限值或哈希不符均拒绝。`status` 仅表示数值对比，`evidence_status=unreviewed` 与 `verification_status=unverified` 始终保留。`test_fixture` 不是工程证据。
+
+反力/内力/压力相对容差上限 1%，承载力/利用率上限 2%；相对误差以外部参考值为分母。位移、屈曲与近零指标须登记量纲化容差和 `tolerance_basis`，不能事后放宽。公开算例复算、全模块与场景缺口见 `../../docs/audit-20260919/README.md`。

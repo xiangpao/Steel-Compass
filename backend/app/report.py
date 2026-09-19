@@ -532,6 +532,9 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
     body = ParagraphStyle("SnapshotBody", parent=styles["BodyText"], fontName="STSong-Light", fontSize=8, leading=12)
     title = ParagraphStyle("SnapshotTitle", parent=styles["Title"], fontName="STSong-Light", fontSize=17, leading=23, alignment=TA_CENTER)
     heading = ParagraphStyle("SnapshotHeading", parent=styles["Heading2"], fontName="STSong-Light", fontSize=11, leading=16, spaceBefore=8)
+    cell_style = ParagraphStyle("SnapshotCell", parent=body, wordWrap="CJK", splitLongWords=True)
+    def wrapped_table(rows, **kwargs):
+        return Table([[Paragraph(escape(str(value)), cell_style) for value in row] for row in rows], **kwargs)
     analysis = snapshot.get("analysis", {})
     structural = analysis.get("structural_analysis", {})
     story = [
@@ -541,6 +544,7 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
         Paragraph(f"快照：Schema {escape(str(snapshot.get('snapshot_schema_version', '4.0')))} / {escape(str(snapshot.get('standard_profile', 'CN-2026.7')))}", body),
         Paragraph(f"内容哈希：{escape(str(snapshot.get('content_hash', '—')))}", body),
         Paragraph(f"工作流状态：{escape(str(analysis.get('workflow_status', 'incomplete')))}", body),
+        Paragraph("验证状态：未完成独立工程核验。此报告用于方案筛查，未计算或超出能力的项目不得解释为通过。", body),
         Paragraph("项目条件与屋面构造", heading),
     ]
     site = snapshot.get("site_profile", {})
@@ -556,9 +560,9 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
     condition_rows.extend([
         ["地基阶段 / 持力层", f"{geotechnical.get('stage', '—')} / {geotechnical.get('confirmed_soil_class', '—')}"],
         ["地基承载力", f"{geotechnical.get('bearing_capacity_kpa', '—')} kPa"],
-        ["沉降分层 / 允许值", f"{len(geotechnical.get('settlement_layers', []))} 层 / {geotechnical.get('settlement_limit_mm', '—')} mm"],
+        ["沉降分层 / 允许值", f"{len(geotechnical.get('settlement_layers', []))} 层 / {geotechnical.get('settlement_limit_mm') if geotechnical.get('settlement_limit_mm') is not None else '未提供'} mm"],
     ])
-    table = Table(condition_rows, colWidths=[48 * mm, 122 * mm])
+    table = wrapped_table(condition_rows, colWidths=[48 * mm, 122 * mm])
     table.setStyle(_table_style())
     story.append(table)
     story.append(Paragraph("结构简图", heading))
@@ -585,14 +589,14 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
             str(item.get("direction", "—")),
             str(item.get("source_reference", "—")),
         ])
-    table = Table(load_rows, colWidths=[32 * mm, 20 * mm, 25 * mm, 25 * mm, 68 * mm], repeatRows=1)
+    table = wrapped_table(load_rows, colWidths=[32 * mm, 20 * mm, 25 * mm, 25 * mm, 68 * mm], repeatRows=1)
     table.setStyle(_table_style())
     story.append(table)
     combo_rows = [["组合", "设计状况", "系数"]]
     for item in snapshot.get("combinations", []):
         factors = "；".join(f"{key}×{value:g}" for key, value in item.get("factors", {}).items())
         combo_rows.append([str(item.get("id", "—")), str(item.get("design_situation", "—")), factors])
-    combo_table = Table(combo_rows, colWidths=[45 * mm, 30 * mm, 95 * mm], repeatRows=1)
+    combo_table = wrapped_table(combo_rows, colWidths=[45 * mm, 30 * mm, 95 * mm], repeatRows=1)
     combo_table.setStyle(_table_style())
     story.append(combo_table)
 
@@ -604,19 +608,20 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
         ["荷载平衡", "满足" if solver.get("balanced") else "不满足/未完成"],
         ["最低弹性屈曲系数", str((analysis.get("buckling_analysis", {}).get("factors") or ["—"])[0])],
     ]
-    summary_table = Table(summary_rows, colWidths=[58 * mm, 112 * mm])
+    summary_table = wrapped_table(summary_rows, colWidths=[58 * mm, 112 * mm])
     summary_table.setStyle(_table_style())
     story.append(summary_table)
     reaction_rows = [["支承节点", "Fx", "Fy", "Fz", "Mx", "My", "Mz", "控制组合来源"]]
     for item in structural.get("reactions", []):
-        sources = sorted({str(value) for value in item.get("component_sources", {}).values() if value})
+        sources = [f"{key}: {value}" for key, value in item.get("component_sources", {}).items() if value]
         reaction_rows.append([
             str(item.get("support_node_id", "—")),
             f"{item.get('fx_kn', 0):.3f}", f"{item.get('fy_kn', 0):.3f}", f"{item.get('fz_kn', 0):.3f}",
             f"{item.get('mx_kn_m', 0):.3f}", f"{item.get('my_kn_m', 0):.3f}", f"{item.get('mz_kn_m', 0):.3f}",
-            "；".join(sources[:3]) or "—",
+            "；".join(sources) or "—",
         ])
-    reaction_table = Table(reaction_rows, colWidths=[22 * mm, 17 * mm, 17 * mm, 17 * mm, 17 * mm, 17 * mm, 17 * mm, 46 * mm], repeatRows=1)
+    story.append(Paragraph("以下为分量包络，各分量可能由不同组合控制；不得拼接为同一组合反力。力单位 kN，力矩单位 kN·m。", body))
+    reaction_table = wrapped_table(reaction_rows, colWidths=[22 * mm, 17 * mm, 17 * mm, 17 * mm, 17 * mm, 17 * mm, 17 * mm, 46 * mm], repeatRows=1)
     reaction_table.setStyle(_table_style())
     story.append(reaction_table)
 
@@ -631,7 +636,7 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
             str(item.get("utilization", "—")),
             str(item.get("status", "—")),
         ])
-    member_table = Table(member_rows, colWidths=[25 * mm, 48 * mm, 45 * mm, 25 * mm, 27 * mm], repeatRows=1)
+    member_table = wrapped_table(member_rows, colWidths=[25 * mm, 48 * mm, 45 * mm, 25 * mm, 27 * mm], repeatRows=1)
     member_table.setStyle(_table_style())
     story.append(member_table)
 
@@ -653,7 +658,7 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
         if len(rows) == 1:
             return
         story.append(Paragraph(section_title, heading))
-        detail_table = Table(rows, colWidths=[18 * mm, 35 * mm, 25 * mm, 25 * mm, 18 * mm, 18 * mm, 31 * mm], repeatRows=1)
+        detail_table = wrapped_table(rows, colWidths=[18 * mm, 35 * mm, 25 * mm, 25 * mm, 18 * mm, 18 * mm, 31 * mm], repeatRows=1)
         detail_table.setStyle(_table_style())
         story.append(detail_table)
 
@@ -667,7 +672,7 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
             checks = item.get("checks", [])
             summary = "；".join(str(check.get("name", check.get("id", ""))) for check in checks[:4]) or str(item.get("issue_code", "—"))
             rows.append([str(object_id), str(item.get("status", "—")), summary])
-        package_table = Table(rows, colWidths=[35 * mm, 28 * mm, 107 * mm], repeatRows=1)
+        package_table = wrapped_table(rows, colWidths=[35 * mm, 28 * mm, 107 * mm], repeatRows=1)
         package_table.setStyle(_table_style())
         story.append(package_table)
         append_check_details(f"{section_title}逐项验算", analysis.get(package_key, {}).get("items", []))
@@ -727,6 +732,7 @@ def _scene_geometry_schematics(snapshot: dict) -> tuple[Drawing, Drawing, Drawin
         def point(value: tuple[float, float]) -> tuple[float, float]:
             return 9 + (value[0] - min_x) * scale, 6 + (value[1] - min_y) * scale
 
+        label_boxes = []
         for member in members:
             start = projected.get(member.get("start_node_id"))
             end = projected.get(member.get("end_node_id"))
@@ -736,7 +742,13 @@ def _scene_geometry_schematics(snapshot: dict) -> tuple[Drawing, Drawing, Drawin
             x2, y2 = point(end)
             color = colors.HexColor("#B45309") if member.get("role") == "column" else colors.HexColor("#176879")
             drawing.add(Line(x1, y1, x2, y2, strokeColor=color, strokeWidth=1.2))
-            drawing.add(String((x1 + x2) / 2 + 1, (y1 + y2) / 2 + 1, str(member.get("id", "")), fontSize=4.5, fillColor=colors.HexColor("#40545B")))
+            label = str(member.get("id", ""))
+            lx, ly = (x1 + x2) / 2 + 1, (y1 + y2) / 2 + 1
+            box = (lx, ly, lx + len(label) * 2.5, ly + 6)
+            overlaps = any(box[0] < b[2] and box[2] > b[0] and box[1] < b[3] and box[3] > b[1] for b in label_boxes)
+            if not overlaps and box[2] < width - 2:
+                drawing.add(String(lx, ly, label, fontSize=4.5, fillColor=colors.HexColor("#40545B")))
+                label_boxes.append(box)
         for node_id, projected_point in projected.items():
             x, y = point(projected_point)
             drawing.add(Circle(x, y, 1.4, fillColor=colors.white, strokeColor=colors.HexColor("#17333B"), strokeWidth=0.6))

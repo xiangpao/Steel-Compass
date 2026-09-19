@@ -372,7 +372,7 @@ def transferred_axial_load_envelope(raw_envelopes: list[dict]) -> LoadEnvelope:
     for index, raw in enumerate(raw_envelopes, start=1):
         components = raw.get("components") or {}
         axial = components.get("N")
-        if axial is None or abs(float(axial.get("value", 0.0))) < 1e-12:
+        if axial is None:
             axial = components.get("Vy")
         if not isinstance(axial, dict) or axial.get("unit") not in {"kN", "kN/m"}:
             raise CalculationInputError(
@@ -392,7 +392,7 @@ def transferred_axial_load_envelope(raw_envelopes: list[dict]) -> LoadEnvelope:
         direction = LoadDirection(raw.get("direction") or ("uplift" if value < 0 else "gravity"))
         sls_type = "standard" if "标准组合" in name else "frequent" if "频遇组合" in name else "quasi_permanent" if "准永久组合" in name else None
         leading = "live" if "活荷载控制" in name else "wind" if "风荷载控制" in name else "snow" if "雪荷载控制" in name else "uplift" if "上拔控制" in name else None
-        source_moment = components.get("My") or components.get("Mx") or {}
+        source_moment = components.get("My") or {}
         components_out = {
             "N": Quantity(value=value, unit="kN"),
             "Vx": Quantity(value=float((components.get("Vx") or {}).get("value", 0.0)), unit="kN"),
@@ -418,3 +418,27 @@ def transferred_axial_load_envelope(raw_envelopes: list[dict]) -> LoadEnvelope:
     if not combinations:
         raise CalculationInputError("empty_upstream_reaction_envelopes", "上游反力包不能为空。", field="upstream_reaction_envelopes")
     return LoadEnvelope(totals={"upstream_reaction": sum(item.total.value for item in combinations)}, combinations=combinations)
+
+
+def column_interaction_envelope(envelope: LoadEnvelope, axial_capacity: float,
+                                mx_capacity: float, my_capacity: float):
+    """Screen each original ULS vector; never assemble maxima from different cases.
+
+    My is the existing column depth/major-axis bending convention; Mx uses
+    the orthogonal section property. This is a linear screening interaction,
+    not a normative biaxial section-equilibrium or stability solution.
+    """
+    def effects(combination):
+        components = combination.effect_components
+        mx = abs(components.get("Mx", Quantity(value=0, unit="kN.m")).value)
+        my = abs(components.get("My", Quantity(value=0, unit="kN.m")).value)
+        return mx, my
+    def score(combination):
+        mx, my = effects(combination)
+        return abs(combination.total.value)/axial_capacity + mx/mx_capacity + my/my_capacity
+    uls = [item for item in envelope.combinations if item.limit_state == "ULS"]
+    if not uls:
+        raise CalculationInputError("missing_uls_combination", "柱验算缺少 ULS 组合", field="upstream_reaction_envelopes")
+    governing = max(uls, key=score)
+    mx, my = effects(governing)
+    return score(governing), mx, my, governing.name

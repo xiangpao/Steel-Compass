@@ -228,6 +228,8 @@ def calculate_steel_baseplate_anchor(
         + supplementary_capacity_each
     )
 
+    partial_contact = False
+    demands_by_check: dict[str, tuple[float, str | None]] = {}
     for item in design:
         axial = _component(item, "N")
         if item.direction is LoadDirection.UPLIFT:
@@ -235,8 +237,17 @@ def calculate_steel_baseplate_anchor(
         shear = hypot(_component(item, "Vx"), _component(item, "Vy"))
         moment = hypot(_component(item, "Mx"), _component(item, "My"))
         compression = max(axial, 0.0)
+        if (compression <= 0 and moment > 0) or (
+            compression > 0 and 6 * abs(_component(item, "Mx")) / (compression * plate_width / 1000)
+            + 6 * abs(_component(item, "My")) / (compression * plate_length / 1000) > 1
+        ):
+            partial_contact = True
         uplift = max(-axial, 0.0)
-        pressure = compression * 1000 / plate_area
+        # Full-contact rigid plate: maximum corner pressure, including both axes.
+        # Using this maximum over the whole projection is conservative for plate bending.
+        pressure = (compression * 1000 / plate_area
+                    + 6 * abs(_component(item, "Mx")) * 1e6 / (plate_length * plate_width**2)
+                    + 6 * abs(_component(item, "My")) * 1e6 / (plate_width * plate_length**2))
         moment_tension = moment / lever_arm
         raw_anchor_tension = uplift + max(moment_tension - compression / 2, 0.0)
         # 计入弹性底板撬力放大系数 1.25
@@ -253,6 +264,18 @@ def calculate_steel_baseplate_anchor(
         splitting_ratio = tension_each / max(anchor_splitting_capacity, 1e-9)
         plate_moment_per_mm = pressure * projection**2 / 2
         plate_stress = 6 * plate_moment_per_mm / plate_thickness**2
+        for name, demand in {
+            "底板下混凝土局部承压（快算）": pressure,
+            "底板悬臂弯曲": plate_stress,
+            "锚栓钢材拉剪组合": interaction,
+            "锚栓受拉混凝土锥体破坏验算": tension_each,
+            "锚栓受剪混凝土边缘破坏验算": shear_each,
+            "锚栓头部拔出破坏验算": tension_each,
+            "锚栓劈裂破坏验算": tension_each,
+            "柱底角焊缝承载力（快算）": hypot(shear, moment / 0.1),
+        }.items():
+            if name not in demands_by_check or demand > demands_by_check[name][0]:
+                demands_by_check[name] = (demand, item.combination_name)
         utilization = max(
             pressure / concrete_bearing,
             plate_stress / steel["fd"],
@@ -359,6 +382,13 @@ def calculate_steel_baseplate_anchor(
             "GB 50017-2017；等效合力筛查",
         ),
     ]
+    for check in checks:
+        if check.name in demands_by_check:
+            demand, combination = demands_by_check[check.name]
+            check.demand.value = demand
+            check.utilization = demand / max(check.capacity.value, 1e-9)
+            check.passed = demand <= check.capacity.value
+            check.governing_combination = combination
     governing = max(checks, key=lambda item: item.utilization)
 
     outgoing = [
@@ -382,12 +412,23 @@ def calculate_steel_baseplate_anchor(
             message="已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。",
         )
     ]
+    if partial_contact:
+        # Average N/A and a cantilever strip are not a partial-contact solution.
+        # Keep anchor screening, but do not publish fictitious zero-pressure passes.
+        checks = checks[2:]
+        governing = max(checks, key=lambda item: item.utilization)
+        status = "incomplete"
+        warnings.append(CalculationWarning(
+            severity="critical", code="baseplate_partial_contact_unresolved",
+            message="底板存在脱开或纯弯矩；平均承压和底板条带模型不适用，承压区与锚栓耦合尚未计算。",
+        ))
     return CalculationResult(
         trace_id=trace_id,
         project_name=request.project_name,
         module=request.module,
         mode=request.mode,
         status=status,  # type: ignore[arg-type]
+        workflow_status="capability_unavailable" if partial_contact else "ready",
         result_class=(
             "quick_estimate" if request.mode.value == "quick" else "professional_check"
         ),

@@ -4,19 +4,30 @@
   "model_id": "REPLACE_WITH_REFERENCE_MODEL_ID",
   "export_date": "2026-08-24",
   "reviewer": "REPLACE_WITH_REVIEWER",
-  "source_files": ["REPLACE_WITH_EXPORTED_CALCULATION_FILE"],
+  "evidence_kind": "external_commercial_software_export",
+  "source_files": [{"path": "REPLACE_WITH_EXPORTED_CALCULATION_FILE", "sha256": "REPLACE_WITH_FILE_SHA256"}],
+  "snapshot_reference": {"file": "REPLACE_WITH_SNAPSHOT_JSON", "sha256": "REPLACE_WITH_SNAPSHOT_SHA256", "id": "REPLACE_WITH_SNAPSHOT_ID"},
   "metrics": [
     {
       "name": "foundation_F-A-01_settlement_mm",
+      "snapshot_path": ["snapshot", "REPLACE_WITH_ACTUAL_METRIC_PATH"],
+      "unit": "mm",
+      "quantity_kind": "displacement",
+      "tolerance_mode": "absolute",
+      "tolerance_basis": "REPLACE_WITH_PREREGISTERED_SOURCE_TOLERANCE",
       "steel_compass": 0.0,
       "external": 0.0,
       "tolerance": 0.1
     },
     {
       "name": "foundation_F-A-01_punching_utilization",
+      "snapshot_path": ["snapshot", "REPLACE_WITH_ACTUAL_METRIC_PATH"],
+      "unit": "1",
+      "quantity_kind": "utilization",
+      "tolerance_mode": "relative",
       "steel_compass": 0.0,
       "external": 0.0,
-      "tolerance": 0.1
+      "tolerance": 0.02
     }
   ]
 }

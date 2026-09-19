@@ -148,6 +148,14 @@ def _execute_public_variant(family_id: str, variant_id: str, values: dict[str, o
 )
 def test_public_batch_variants_execute_real_transfer_chain(family_id, variant_id, values):
     result = _execute_public_variant(family_id, variant_id, values)
+    if family_id in {"canopy", "signage-billboard", "entrance-frame"}:
+        # These fixtures include uplift/eccentric baseplates outside N/A contact.
+        # Keep downstream reactions, but explicitly report the missing check.
+        assert result.workflow_status == "capability_unavailable"
+        calculations = [n.calculation_result for n in result.node_results.values() if n.calculation_result]
+        assert any(any(w.code == "baseplate_partial_contact_unresolved" for w in r.warnings) for r in calculations)
+        assert any(r.module == CalculationModule.SPREAD_FOOTING for r in calculations)
+        return
     assert result.workflow_status == "ready"
     assert result.completed_nodes == result.total_required_nodes
     assert not result.missing_nodes

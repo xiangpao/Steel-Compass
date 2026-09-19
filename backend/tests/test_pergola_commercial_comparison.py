@@ -10,8 +10,9 @@ def test_comparison_gate_requires_real_provenance() -> None:
         compare_record({"metrics": [{"name": "x", "steel_compass": 1, "external": 1, "tolerance": 0.1}]})
 
 
-def test_comparison_gate_reports_numeric_difference_without_claiming_source() -> None:
-    result = compare_record({
+def test_unbound_numeric_fixture_is_not_external_evidence() -> None:
+    with pytest.raises(ValueError, match="source_files"):
+        compare_record({
         "product": "synthetic-test-only",
         "product_version": "fixture",
         "model_id": "unit-test",
@@ -22,6 +23,3 @@ def test_comparison_gate_reports_numeric_difference_without_claiming_source() ->
             {"name": "settlement", "steel_compass": 12, "external": 15, "tolerance": 0.10},
         ],
     })
-    assert result["status"] == "failed"
-    assert result["comparisons"][0]["passed"] is True
-    assert result["comparisons"][1]["passed"] is False

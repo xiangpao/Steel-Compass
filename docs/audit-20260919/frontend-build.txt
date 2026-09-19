@@ -1,0 +1,32 @@
+
+> steel-compass-frontend@2.0.0 build
+> next build
+
+   ▲ Next.js 15.5.22
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 3.6s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/7) ...
+   Generating static pages (1/7) 
+   Generating static pages (3/7) 
+   Generating static pages (5/7) 
+ ✓ Generating static pages (7/7)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                     294 kB         526 kB
+├ ○ /_not-found                            993 B         104 kB
+├ ○ /change-password                     2.24 kB         105 kB
+├ ○ /login                               2.77 kB         105 kB
+└ ○ /qa/pergola-workbench-v2               165 B         232 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/255-3d881dfa8c72bc56.js       46.3 kB
+  ├ chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB
+  └ other shared chunks (total)          2.17 kB
+
+
+○  (Static)  prerendered as static content
+

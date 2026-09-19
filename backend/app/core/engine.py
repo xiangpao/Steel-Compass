@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from uuid import uuid4
+from math import isfinite
 
 from .baseplate import calculate_steel_baseplate_anchor
 from .advanced import (
@@ -74,7 +75,7 @@ def _apply_result_contract(
     critical_warning = any(
         warning.severity == "critical" for warning in result.warnings
     )
-    result.workflow_status = "ready"
+    result.workflow_status = result.workflow_status or "ready"
     if request.mode is CalculationMode.QUICK:
         result.quick_outcome = (
             "screening_failed"
@@ -82,6 +83,8 @@ def _apply_result_contract(
             else "screening_passed"
         )
         result.engineering_status = None
+        if result.status == "incomplete":
+            result.quick_outcome = None
         if result.status not in {"incomplete", "not_applicable"}:
             result.status = "failed" if hard_failure or critical_warning else "passed"
     else:
@@ -162,6 +165,22 @@ def _validate_load_directions(request: CalculationRequest) -> None:
 
 
 def calculate(request: CalculationRequest) -> CalculationResult:
+    def finite_tree(value, path):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                finite_tree(child, f"{path}.{key}")
+        elif isinstance(value, (list, tuple)):
+            for index, child in enumerate(value):
+                finite_tree(child, f"{path}[{index}]")
+        elif isinstance(value, (float, str)):
+            try:
+                number = float(value)
+            except ValueError:
+                return
+            if not isfinite(number):
+                raise CalculationInputError("nonfinite_calculation_input", "计算输入必须是有限数值。", field=path)
+    # Validate at execution rather than rewriting or rejecting historical snapshots.
+    finite_tree(request.model_dump(), "request")
     trace_id = str(uuid4())
     _validate_load_directions(request)
     handlers = {

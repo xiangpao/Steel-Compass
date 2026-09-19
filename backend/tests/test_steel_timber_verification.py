@@ -264,8 +264,10 @@ def test_baseplate_golden_case_matches_independent_strip_and_anchor_group() -> N
         weld_throat_mm=8,
         weld_shear_strength_mpa=170,
     )
-    assert _check(result, "底板下混凝土局部承压（快算）").demand.value == pytest.approx(reference.bearing_pressure_mpa)
-    assert _check(result, "底板悬臂弯曲").demand.value == pytest.approx(reference.plate_stress_mpa)
+    # e=14/105m > 0.36/6m: the old N/A reference is outside full contact.
+    assert result.status == "incomplete"
+    assert any(w.code == "baseplate_partial_contact_unresolved" for w in result.warnings)
+    assert not any(c.name == "底板悬臂弯曲" for c in result.checks)
     assert _check(result, "锚栓钢材拉剪组合").demand.value == pytest.approx(reference.anchor_interaction)
     assert _check(result, "柱底角焊缝承载力（快算）").capacity.value == pytest.approx(reference.weld_capacity_kn)
 

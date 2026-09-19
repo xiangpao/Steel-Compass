@@ -164,7 +164,23 @@ def _released_dofs(member: SpaceMember) -> list[int]:
     ]
 
 
+def _rigid_arm_transform(member: SpaceMember) -> np.ndarray:
+    """Joint DOFs to flexible-face DOFs: u_face = u_joint + theta x r."""
+    transform = np.eye(12)
+    for base, arm in ((0, member.rigid_offset_start_m * 1000), (6, -member.rigid_offset_end_m * 1000)):
+        if not isfinite(arm) or (base == 0 and arm < 0) or (base == 6 and arm > 0):
+            raise CalculationInputError("invalid_rigid_offset", "刚性偏移必须为有限非负数", field="rigid_offset")
+        transform[base + 1, base + 5] = arm
+        transform[base + 2, base + 4] = -arm
+    return transform
+
+
 def _frame_local_stiffness(member: SpaceMember, length_mm: float, *, apply_releases: bool = True) -> np.ndarray:
+    arm = _rigid_arm_transform(member)
+    return arm.T @ _frame_face_stiffness(member, length_mm, apply_releases=apply_releases) @ arm
+
+
+def _frame_face_stiffness(member: SpaceMember, length_mm: float, *, apply_releases: bool = True) -> np.ndarray:
     e = _finite_positive(member.elastic_modulus_mpa, "elastic_modulus_mpa")
     g = _finite_positive(member.shear_modulus_mpa, "shear_modulus_mpa")
     a = _finite_positive(member.area_mm2, "area_mm2")
@@ -256,8 +272,14 @@ def _uniform_local_load_vector(member: SpaceMember, rotation: np.ndarray, length
     fixed[[2, 8]] = qz * effective_length / 2
     fixed[4] = -qz * effective_length**2 / 12
     fixed[10] = -fixed[4]
-    full_stiffness = _frame_local_stiffness(member, length_mm, apply_releases=False)
-    return _condense_local_load(member, full_stiffness, fixed)
+    full_stiffness = _frame_face_stiffness(member, length_mm, apply_releases=False)
+    result = _rigid_arm_transform(member).T @ _condense_local_load(member, full_stiffness, fixed)
+    # Distributed load acts over the full physical member, including rigid arms.
+    for base, arm in ((0, member.rigid_offset_start_m * 1000), (6, -member.rigid_offset_end_m * 1000)):
+        result[base:base + 3] += np.array([qx, qy, qz]) * abs(arm)
+        result[base + 4] -= qz * abs(arm) * arm / 2
+        result[base + 5] += qy * abs(arm) * arm / 2
+    return result
 
 
 def _assemble_load_vector(
@@ -436,6 +458,12 @@ def analyze_space_frame_stability(
     """
 
     first = first_order or analyze_space_frame(model)
+    if any(_released_dofs(member) for member in model.members):
+        raise CalculationInputError(
+            "released_member_stability_unavailable",
+            "含杆端释放的二阶与屈曲分析尚未完成切线刚度凝聚验证；一阶静力可单独计算，不生成稳定通过结论。",
+            field="geometry",
+        )
     node_index = {node.id: index for index, node in enumerate(model.nodes)}
     coordinates = [np.array([node.x_m, node.y_m, node.z_m], dtype=float) * 1000 for node in model.nodes]
     size = len(model.nodes) * 6
@@ -463,8 +491,8 @@ def analyze_space_frame_stability(
         elastic[np.ix_(dofs, dofs)] += global_elastic
         prepared[member.id] = (local, transform, dofs, length)
 
-        axial = max(float(first.members[member.id].local_end_forces[0]), 0.0)
-        if axial <= 1e-6 or member.behavior != "frame":
+        axial = float(first.members[member.id].local_end_forces[0])
+        if abs(axial) <= 1e-6 or member.behavior != "frame":
             continue
         effective_length = length - (member.rigid_offset_start_m + member.rigid_offset_end_m) * 1000
         p_over_30l = axial / (30 * effective_length)
@@ -478,10 +506,14 @@ def analyze_space_frame_stability(
             dtype=float,
         )
         local_geometric = np.zeros((12, 12), dtype=float)
-        for indices in ((1, 5, 7, 11), (2, 4, 8, 10)):
+        for indices, sign in (((1, 5, 7, 11), 1), ((2, 4, 8, 10), -1)):
+            signs = np.diag([1, sign, 1, sign])
+            block = signs @ plane @ signs
             for row, target_row in enumerate(indices):
                 for column, target_column in enumerate(indices):
-                    local_geometric[target_row, target_column] += plane[row, column]
+                    local_geometric[target_row, target_column] += block[row, column]
+        arm = _rigid_arm_transform(member)
+        local_geometric = arm.T @ local_geometric @ arm
         global_geometric = transform.T @ local_geometric @ transform
         geometric[np.ix_(dofs, dofs)] += global_geometric
 

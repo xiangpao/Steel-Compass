@@ -418,11 +418,11 @@ def test_steel_single_span_pergola_executes_full_traceable_chain() -> None:
         load_cases=load_cases,
     )
 
-    assert result.workflow_status == "ready", result.model_dump_json(indent=2)
+    assert result.workflow_status == "capability_unavailable"
     assert result.engineering_status is None
-    assert result.quick_outcome in {"screening_passed", "screening_failed"}
-    assert result.completed_nodes == result.total_required_nodes == 7
-    assert result.missing_nodes == []
+    assert result.quick_outcome is None
+    assert result.total_required_nodes == 7
+    assert all(result.node_results[k].status == "incomplete" for k in ("base_left", "base_right"))
     for node_id in (
         "main_frame",
         "base_left",

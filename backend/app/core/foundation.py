@@ -78,7 +78,7 @@ def _reaction_component(
 
 def _reaction_vertical(envelope: ReactionEnvelope) -> float:
     value = _reaction_component(envelope, "N")
-    if abs(value) < 1e-12:
+    if "N" not in envelope.components:
         value = _reaction_component(envelope, "Vy")
     if envelope.direction is LoadDirection.UPLIFT:
         return -abs(value)
@@ -92,7 +92,8 @@ def _reaction_combinations(
     adjusted: list[ReactionEnvelope] = []
     combinations: list[LoadCombinationResult] = []
     for index, item in enumerate(envelopes):
-        permanent_factor = 1.0 if item.limit_state == "SLS" else 1.3
+        favorable = item.leading_action == "uplift" or "上拔控制" in (item.combination_name or "")
+        permanent_factor = 1.0 if item.limit_state == "SLS" else 0.9 if favorable else 1.3
         uplift_factor = 1.0 if item.limit_state == "SLS" else 1.5
         vertical = (
             _reaction_vertical(item)
@@ -514,7 +515,7 @@ def calculate_spread_footing(
                 _reaction_component(item, "Vy")
                 if "N" in item.components
                 else 0.0,
-            ),
+            ) / max(max(_reaction_vertical(item), 0) * friction, 1e-9),
         )
         horizontal_x = _reaction_component(horizontal_reaction, "Vx")
         horizontal_y = (
@@ -560,7 +561,7 @@ def calculate_spread_footing(
             key=lambda item: hypot(
                 _reaction_component(item, "Mx"),
                 _reaction_component(item, "My"),
-            ),
+            ) / max(max(_reaction_vertical(item), 0) * min(length, width) / 2, 1e-9),
         )
         overturning = hypot(
             _reaction_component(overturning_reaction, "Mx"),
@@ -616,7 +617,13 @@ def calculate_spread_footing(
         (column_x / 1000 + punching_depth / 1000)
         * (column_y / 1000 + punching_depth / 1000),
     )
-    punching_demand = max(design_vertical - q_design * punching_inside_area, 0)
+    # For a centered critical perimeter under full linear contact, odd pressure
+    # terms integrate to zero. Subtract average pressure, never the peak corner.
+    punching_reaction = (max(uls_reactions, key=_reaction_vertical)
+                         if design_reaction is not None else None)
+    punching_vertical = (_reaction_vertical(punching_reaction)
+                         if punching_reaction is not None else design_vertical)
+    punching_demand = max(punching_vertical * (1 - punching_inside_area / area), 0)
     punching_capacity = (
         0.7 * concrete["ft"] * punching_perimeter * punching_depth / 1000
     )
@@ -654,8 +661,11 @@ def calculate_spread_footing(
     as_provided_y = _provided_rebar_area(bar_dia_y, spacing_y, length * 1000)
 
     # 水浮力抗浮安全系数验算 (GB 50007 / GB 55003)
-    buoyancy_force = displaced_water + uplift_demand
-    buoyancy_safety_factor = permanent_weight / max(buoyancy_force, 1e-9) if buoyancy_force > 0 else 2.0
+    # Effective permanent weight already excludes displaced water. Restore gross
+    # resistance once when expressing the water-only safety factor.
+    buoyancy_force = displaced_water
+    net_vertical = (minimum_vertical if sls_reactions else uplift_resistance - uplift_demand)
+    buoyancy_safety_factor = max(net_vertical + displaced_water, 0) / max(buoyancy_force, 1e-9) if buoyancy_force > 0 else 2.0
 
     checks = [
         _check(
@@ -749,7 +759,7 @@ def calculate_spread_footing(
             "抗浮稳定": uplift_reaction.combination_name,
             "X向单向剪切": design_reaction.combination_name,
             "Y向单向剪切": design_reaction.combination_name,
-            "柱边冲切": design_reaction.combination_name,
+            "柱边冲切": punching_reaction.combination_name,
             "X向底筋": design_reaction.combination_name,
             "Y向底筋": design_reaction.combination_name,
         }
@@ -769,12 +779,18 @@ def calculate_spread_footing(
             message="基础计算不包含沉降、软弱下卧层、液化和复杂地基作用，必须结合勘察报告复核。",
         )
     ]
-    if qmin < 0:
+    contact_unresolved = any(
+        _reaction_vertical(item) <= 0 or
+        6 * abs(_reaction_component(item, "My")) / length
+        + 6 * abs(_reaction_component(item, "Mx")) / width > _reaction_vertical(item)
+        for item in adjusted_reactions
+    ) if adjusted_reactions else (6 * ex / length + 6 * ey / width > 1)
+    if contact_unresolved:
         warnings.append(
             CalculationWarning(
                 severity="critical",
                 code="partial_contact",
-                message="基底出现局部脱开；当前结果仅作风险提示，需采用适用的非线性压力分布方法专项复核。",
+                message="存在脱开或失压组合；当前线性压力与中心冲切模型不适用，需压区耦合专项计算，以下需求只供风险筛查。",
             )
         )
     if not complete:
@@ -802,7 +818,8 @@ def calculate_spread_footing(
         project_name=request.project_name,
         module=request.module,
         mode=request.mode,
-        status=_foundation_status(checks, complete, request.mode),  # type: ignore[arg-type]
+        status="incomplete" if contact_unresolved else _foundation_status(checks, complete, request.mode),  # type: ignore[arg-type]
+        workflow_status="capability_unavailable" if contact_unresolved else "ready",
         result_class=result_class(request),  # type: ignore[arg-type]
         standards=STANDARDS["foundation"],
         input_summary=quantity_summary(

@@ -75,7 +75,8 @@ def test_second_order_amplification_and_buckling_are_load_sensitive() -> None:
 
 
 def test_buckling_factor_below_one_blocks_analysis() -> None:
-    model = _compressed_cantilever(300)
+    # Euler reference pi^2*EI/(4L^2) = 451.8kN; 300kN is below buckling.
+    model = _compressed_cantilever(600)
     with pytest.raises(CalculationInputError, match="弹性临界状态"):
         analyze_space_frame_stability(model, analyze_space_frame(model))
 

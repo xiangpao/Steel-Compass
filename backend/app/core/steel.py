@@ -396,13 +396,7 @@ def calculate_steel_column(
         if request.loads:
             raise CalculationInputError("duplicate_member_load_source", "接收上游组合反力后不得再次提交普通轴力荷载。", field="loads")
         envelope = transferred_axial_load_envelope(raw_upstream)
-        upstream_moment = max(
-            [
-                abs(float(((item.get("components") or {}).get("My") or (item.get("components") or {}).get("Mx") or {}).get("value", 0.0)))
-                for item in raw_upstream
-            ],
-            default=0.0,
-        )
+        upstream_moment = 0.0
     else:
         envelope = axial_load_envelope(request.loads)
         upstream_moment = 0.0
@@ -416,6 +410,14 @@ def calculate_steel_column(
     axial_capacity = phi * section.area_mm2 * grade["fd"] / 1000
     moment_capacity = grade["fd"] * section.wx_mm3 / 1e6
     interaction = axial_kn / axial_capacity + moment_kn_m / moment_capacity
+    interaction_combination = None
+    if isinstance(raw_upstream, list) and raw_upstream:
+        from .loads import column_interaction_envelope
+        if moment_kn_m:
+            raise CalculationInputError("duplicate_member_moment_source", "上游组合已包含弯矩，不得另填设计弯矩", field="design_moment_kn_m")
+        interaction, mx, my, interaction_combination = column_interaction_envelope(
+            envelope, axial_capacity, grade["fd"] * section.wy_mm3 / 1e6, moment_capacity)
+        moment_kn_m = mx + my
     checks = [
         CheckResult(
             name="轴压稳定承载力",
@@ -435,12 +437,13 @@ def calculate_steel_column(
         ),
         CheckResult(
             name="压弯组合",
+            governing_combination=interaction_combination,
             demand=Quantity(value=interaction, unit="1"),
             capacity=Quantity(value=1, unit="1"),
             utilization=interaction,
             passed=interaction <= 1,
             reference="GB 50017-2017 压弯构件线性相互作用筛查",
-            note="首期采用保守线性相互作用，专业模式须复核二阶效应。",
+            note="采用组合一致的双分量线性筛查；不替代规范完整双向压弯与二阶分析。",
         ),
     ]
     governing = max(checks, key=lambda item: item.utilization)
@@ -469,7 +472,7 @@ def calculate_steel_column(
             ),
             "base_moment": Quantity(value=moment_kn_m, unit="kN·m"),
         },
-        reaction_envelopes=[
+        reaction_envelopes=([ReactionEnvelope.model_validate(item) for item in raw_upstream] if isinstance(raw_upstream, list) and raw_upstream else [
             ReactionEnvelope(
                 name="column_base",
                 limit_state=combination.limit_state,
@@ -481,7 +484,7 @@ def calculate_steel_column(
                 },
             )
             for combination in envelope.combinations
-        ],
+        ]),
         steps=[
             CalculationStep(
                 name="构件长细比",
@@ -507,8 +510,8 @@ def calculate_steel_column(
                 message="压弯构件尚未自动计入结构整体二阶效应，专业模式必须复核。",
             )
         ],
-        assumptions=["等截面轴压/单向压弯构件。", "稳定系数采用首期 Beta 映射曲线。"],
-        applicability=["轴心受压柱", "单向小偏心压弯筛查"],
+        assumptions=["等截面轴压/压弯构件，弯矩分量采用线性相互作用筛查。", "稳定系数采用首期 Beta 映射曲线。"],
+        applicability=["轴心受压柱", "压弯方案筛查，非完整双偏压设计"],
         disclaimer=DISCLAIMER,
     )
     if governing_thickness < 3.0:

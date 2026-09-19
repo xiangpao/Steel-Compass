@@ -386,6 +386,16 @@ def calculate_concrete_column(
     ) / 1000
     moment_capacity = 0.8 * rebar["fy"] * as_mm2 * lever_arm / 1e6
     interaction = axial_kn / max(axial_capacity, 1e-9) + moment_kn_m / max(moment_capacity, 1e-9)
+    interaction_combination = None
+    if isinstance(upstream_axial, list) and upstream_axial:
+        from .loads import column_interaction_envelope
+        from .errors import CalculationInputError
+        if moment_kn_m:
+            raise CalculationInputError("duplicate_member_moment_source", "上游组合已包含弯矩，不得另填设计弯矩", field="design_moment_kn_m")
+        orthogonal_capacity = moment_capacity * b / h if shape == "rectangular" else moment_capacity
+        interaction, mx, my, interaction_combination = column_interaction_envelope(
+            envelope, axial_capacity, orthogonal_capacity, moment_capacity)
+        moment_kn_m = mx + my
     reinforcement_ratio = as_mm2 / gross_area
     checks = [
         CheckResult(
@@ -398,6 +408,7 @@ def calculate_concrete_column(
         ),
         CheckResult(
             name="偏压相互作用筛查",
+            governing_combination=interaction_combination,
             demand=Quantity(value=interaction, unit="1"),
             capacity=Quantity(value=1, unit="1"),
             utilization=interaction,
@@ -439,7 +450,7 @@ def calculate_concrete_column(
             ),
             "base_moment": Quantity(value=moment_kn_m, unit="kN·m"),
         },
-        reaction_envelopes=[
+        reaction_envelopes=([ReactionEnvelope.model_validate(item) for item in upstream_axial] if isinstance(upstream_axial, list) and upstream_axial else [
             ReactionEnvelope(
                 name="column_base",
                 limit_state=combination.limit_state,
@@ -455,7 +466,7 @@ def calculate_concrete_column(
                 },
             )
             for combination in envelope.combinations
-        ],
+        ]),
         steps=[
             CalculationStep(
                 name="计算长细比",

@@ -1835,7 +1835,10 @@ function LegacySceneWorkspace({
         module: calculationModule,
         project_name: `${sceneTitle} · ${nodeId}`,
         standard_profile: "CN-2026.6",
-        typed_inputs: {
+        // These single-module builders contain their own load/model defaults.
+        // Until a scene-specific adapter exists, preserve the input gap rather
+        // than silently compute a different model or submit an invalid union.
+        typed_inputs: definition.buildTypedInputs ? undefined : {
           module: calculationModule,
           values: typedValues,
         },

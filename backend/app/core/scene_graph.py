@@ -518,6 +518,18 @@ def _apply_reaction(
         return tagged
 
     converted_envelopes = _tag_governing_envelopes([item.model_dump(mode="json") for item in upstream_envelopes])
+    # Beam local transverse reaction becomes downstream vertical/axial force.
+    # Do this at the coordinate interface, never infer it from a zero N value.
+    beam_modules = {CalculationModule.STEEL_BEAM, CalculationModule.TIMBER_BEAM,
+                    CalculationModule.CONCRETE_BEAM, CalculationModule.CONCRETE_SLAB,
+                    CalculationModule.TIMBER_DECK_PANEL, CalculationModule.CONTINUOUS_BEAM,
+                    CalculationModule.PLANAR_FRAME, CalculationModule.PLANAR_TRUSS,
+                    CalculationModule.TWO_WAY_SLAB}
+    if source.module in beam_modules and connection.transfer in {"reaction_package", "combination_package"}:
+        for item in converted_envelopes:
+            components = item["components"]
+            components["N"] = dict(components["Vy"])
+            components["Vy"] = {"value": 0.0, "unit": "kN"}
     conversion_scale: float | None = None
     if connection.transfer == "reaction_to_line":
         key = connection.conversion_input_key
@@ -1064,6 +1076,11 @@ def execute_scene(
             connection.source_node_id
             for connection in dependencies
             if node_results[connection.source_node_id].workflow_status != "ready"
+            and not (
+                connection.source_node_id in calculated
+                and calculated[connection.source_node_id].reaction_envelopes
+                and node_results[connection.source_node_id].workflow_status == "capability_unavailable"
+            )
         ]
         if blocked_dependencies:
             blocked_by_capability = any(
@@ -1203,7 +1220,19 @@ def execute_scene(
                 effective_calculation = _apply_reaction(
                     effective_calculation, connection, source_result
                 )
-        result = calculate(effective_calculation)
+        try:
+            result = calculate(effective_calculation)
+        except CalculationInputError as exc:
+            if exc.code != "typed_input_module_mismatch":
+                raise
+            node_results[node_id] = SceneNodeResult(
+                node_id=node.id, label=node.label, status="incomplete",
+                maturity=node.maturity, applicability=node.applicability,
+                workflow_status="capability_unavailable", engineering_status="incomplete",
+                verification_status=node.verification_status,
+                message=f"{node.label}缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+            )
+            continue
         calculated[node_id] = result
         professional_gate = (
             mode is CalculationMode.PROFESSIONAL
@@ -1219,7 +1248,7 @@ def execute_scene(
             applicability=node.applicability,
             workflow_status=(
                 "capability_unavailable"
-                if professional_gate
+                if professional_gate or result.workflow_status == "capability_unavailable"
                 else "ready"
                 if result.status in {"passed", "failed"}
                 else "missing_inputs"
