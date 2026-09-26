@@ -764,14 +764,17 @@ def analyze_saved_scene(
         for result_id, result in (solver_result.get("combination_results") or {}).items()
     ]
     member_check_data = solver_result["member_checks"]
+    stability_scope = solver_result.get("stability_scope", {})
+    stability_gaps = (["整体稳定包含尚未计算几何刚度的桁架杆件：" + ", ".join(stability_scope.get("excluded_truss_member_ids", []))]
+                      if stability_scope.get("status") == "incomplete" else [])
     structural = StructuralAnalysisPackage(
-        status=("failed" if member_check_data["status"] == "failed" else "complete"),
+        status=("failed" if member_check_data["status"] == "failed" else "incomplete" if stability_gaps else "complete"),
         load_cases=[item.model_dump(mode="json") for item in load_package.cases],
         combinations=[item.model_dump(mode="json") for item in load_package.combinations],
         reactions=reactions,
         member_checks=member_check_data["items"],
         balance_checks=balance,
-        missing_inputs=[],
+        missing_inputs=stability_gaps,
     )
     member_checks = MemberCheckPackage.model_validate(member_check_data)
     buckling_values = sorted(
@@ -781,10 +784,10 @@ def analyze_saved_scene(
         if value > 0
     )
     buckling_analysis = BucklingAnalysisPackage(
-        status=("failed" if buckling_values and buckling_values[0] <= 1.0 else "complete" if buckling_values else "incomplete"),
+        status=("failed" if buckling_values and buckling_values[0] <= 1.0 else "incomplete" if stability_gaps else "complete" if buckling_values else "incomplete"),
         factors=buckling_values[:10],
         controlling_mode=1 if buckling_values else None,
-        missing_inputs=[] if buckling_values else ["当前组合没有形成可识别的受压几何刚度模态"],
+        missing_inputs=stability_gaps + ([] if buckling_values else ["当前组合没有形成可识别的受压几何刚度模态"]),
     )
     if buckling_analysis.status == "failed":
         structural.status = "failed"
@@ -881,6 +884,7 @@ def analyze_saved_scene(
             {"topic": "foundation", "source": "GB 55003-2021；GB 50007-2011；22G101-3"},
         ],
         unsupported_capabilities=[
+            *stability_gaps,
             *sorted({str(item["reason"]) for item in member_check_data["items"]
                      if item.get("status") == "not_calculated" and item.get("reason")}),
             "焊接矩形管节点屈服线/刚度精细模型",
@@ -906,6 +910,8 @@ def analyze_saved_scene(
         "solver_result": solver_result,
     }
     snapshot_basis = {
+        "engine_version": ENGINE_VERSION,
+        "analysis_method": solver_result.get("solver"),
         "geometry": geometry.model_dump(mode="json"),
         "site_profile": site_profile.model_dump(mode="json") if site_profile else {},
         "geotechnical_profile": geotechnical.model_dump(mode="json") if geotechnical else None,

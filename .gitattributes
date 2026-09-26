@@ -1,4 +1,7 @@
 * text=auto
+*.pdf binary
+# Preserve the exact downloaded evidence bytes and source hashes.
+docs/calculation-completion-20260926/sources/*.html binary
 *.sh text eol=lf
 Dockerfile text eol=lf
 *.yml text eol=lf

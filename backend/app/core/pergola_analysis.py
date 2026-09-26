@@ -128,7 +128,12 @@ def analyze_pergola_package(
         default=0.0,
     )
     return {
-        "solver": "steel-compass-pergola-analysis-2.0",
+        "solver": "steel-compass-pergola-analysis-2.1",
+        "stability_scope": {
+            "status": "incomplete" if any((r.get("stability_scope") or {}).get("status") == "incomplete" for r in check_basis.values()) else "complete",
+            "incomplete_cases": [case for case, r in check_basis.items() if (r.get("stability_scope") or {}).get("status") == "incomplete"],
+            "excluded_truss_member_ids": sorted({mid for r in check_basis.values() for mid in (r.get("stability_scope") or {}).get("excluded_truss_member_ids", [])}),
+        },
         "verification_status": "unverified",
         "case_results": case_results,
         "combination_results": combination_results,

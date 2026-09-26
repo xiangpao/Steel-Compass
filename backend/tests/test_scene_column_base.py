@@ -63,8 +63,15 @@ def _payload() -> dict:
 
 
 def test_saved_column_base_runs_real_component_checks() -> None:
+    payload = _payload()
+    payload["column_bases"][0].update({
+        "contact_stiffness_kn_m3": 1e7,
+        "contact_model_source": "explicit test spring model",
+        "anchor_springs": [{"x_m":x,"y_m":y,"stiffness_kn_m":100000}
+                           for x in (-.14,.14) for y in (-.14,.14)],
+    })
     item = calculate_scene_column_bases(
-        SceneGeometryProfile.model_validate(_payload()),
+        SceneGeometryProfile.model_validate(payload),
         REACTIONS,
         [],
         project_name="亭廊柱脚",

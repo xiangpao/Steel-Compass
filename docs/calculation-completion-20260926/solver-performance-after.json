@@ -1,0 +1,20 @@
+{
+  "scope": "read-only project2 scene1 saved geometry; full pergola mechanics package",
+  "nodes": 18,
+  "members": 21,
+  "cases": 14,
+  "combinations": 132,
+  "wall_seconds": 43.95097419999365,
+  "timed_call_counts": {
+    "analyze_space_frame": 146,
+    "analyze_space_frame_stability_converged": 146,
+    "compare_with_pynite": 292
+  },
+  "timed_seconds": {
+    "analyze_space_frame": 0.44846999997389503,
+    "analyze_space_frame_stability_converged": 39.445540600048844,
+    "compare_with_pynite": 3.607338800051366
+  },
+  "member_check_status": "complete",
+  "balanced": true
+}

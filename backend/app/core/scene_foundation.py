@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 from .concrete import CONCRETE
+from .contact import solve_rectangular_contact
 from .design_profiles import (
     FoundationTypeDefinition,
     ProjectGeotechnicalProfile,
@@ -207,6 +208,7 @@ def _nonprismatic_checks(
     loaded_length_mm: float,
     loaded_width_mm: float,
     reaction: dict[str, float],
+    contact_solutions: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Check every step/taper transition instead of replacing it by one slab."""
     if foundation.form_id == "spread-prismatic":
@@ -214,8 +216,8 @@ def _nonprismatic_checks(
     concrete = CONCRETE.get(foundation.concrete_grade)
     if concrete is None or foundation.cover_mm is None:
         return []
-    uls = [item for item in scene_reaction_envelopes(reaction) if item["limit_state"] == "ULS"]
-    if not uls:
+    uls = [item for item in contact_solutions if item["limit_state"] == "ULS"]
+    if not uls or any(item["status"] != "solved" for item in uls):
         return []
     area = foundation.length_m * foundation.width_m
     ft = concrete["ft"]
@@ -241,20 +243,22 @@ def _nonprismatic_checks(
             continue
         governing: dict[str, Any] | None = None
         for case in uls:
-            n = max(_case_component(case, "N"), 0.0)
-            mx = abs(_case_component(case, "Mx"))
-            my = abs(_case_component(case, "My"))
-            q = n / area + 6 * mx / (foundation.length_m * foundation.width_m**2) + 6 * my / (foundation.width_m * foundation.length_m**2)
-            punching = max(n - q * upper_l * upper_b, 0.0)
+            n, mx, my = case["resultants_n_mx_my"]
+            solution = solve_rectangular_contact(foundation.length_m, foundation.width_m, n, mx, my)
+            q = solution.qmax_kpa
+            px, py = (upper_l+d_mm/1000)/2, (upper_b+d_mm/1000)/2
+            punching = max(n-solution.integrate((-px,px,-py,py))[0], 0.0)
             perimeter_mm = 2 * ((upper_l + d_mm / 1000) + (upper_b + d_mm / 1000)) * 1000
             punch_capacity = 0.7 * ft * perimeter_mm * d_mm / 1000
-            shear_x = q * max((foundation.length_m - upper_l) / 2, 0.0) * foundation.width_m
-            shear_y = q * max((foundation.width_m - upper_b) / 2, 0.0) * foundation.length_m
+            xlo,xhi,ylo,yhi = -foundation.length_m/2, foundation.length_m/2, -foundation.width_m/2, foundation.width_m/2
+            sx,sy = upper_l/2+d_mm/1000, upper_b/2+d_mm/1000
+            shear_x = max(solution.integrate((sx,xhi,ylo,yhi))[0],solution.integrate((xlo,-sx,ylo,yhi))[0])
+            shear_y = max(solution.integrate((xlo,xhi,sy,yhi))[0],solution.integrate((xlo,xhi,ylo,-sy))[0])
             cap_x = 0.7 * ft * foundation.width_m * 1000 * d_mm / 1000
             cap_y = 0.7 * ft * foundation.length_m * 1000 * d_mm / 1000
             utilization = max(punching / max(punch_capacity, 1e-9), shear_x / max(cap_x, 1e-9), shear_y / max(cap_y, 1e-9))
             if governing is None or utilization > governing["utilization"]:
-                governing = {"combination_id": case["combination_id"], "pressure_kpa": q, "punching_kn": punching, "punch_capacity_kn": punch_capacity, "shear_x_kn": shear_x, "shear_x_capacity_kn": cap_x, "shear_y_kn": shear_y, "shear_y_capacity_kn": cap_y, "utilization": utilization}
+                governing = {"combination_id": case["combination_name"], "pressure_kpa": q, "punching_kn": punching, "punch_capacity_kn": punch_capacity, "shear_x_kn": shear_x, "shear_x_capacity_kn": cap_x, "shear_y_kn": shear_y, "shear_y_capacity_kn": cap_y, "utilization": utilization}
         assert governing is not None
         results.append({
             "level": label,
@@ -370,6 +374,13 @@ def calculate_scene_foundations(
             "upstream_reaction_envelopes": scene_reaction_envelopes(reaction),
             **_groundwater_inputs(geotechnical),
         }
+        for axis in ("x", "y"):
+            top_text = getattr(foundation_type, f"top_{axis}", None)
+            if top_text:
+                parsed_top = _parse_rebar(top_text)
+                if parsed_top is not None:
+                    inputs[f"top_bar_dia_{axis}_mm"] = parsed_top[0]
+                    inputs[f"top_bar_spacing_{axis}_mm"] = parsed_top[1]
         if pedestal and pedestal.enabled:
             inputs.update({
                 "pedestal_enabled": True,
@@ -388,7 +399,7 @@ def calculate_scene_foundations(
         failed_checks = [item.name for item in result.checks if not item.passed]
         settlement = _settlement_check(foundation_type, geotechnical, reaction)
         detailed_shape_checks = _nonprismatic_checks(
-            foundation_type, loaded_length, loaded_width, reaction
+            foundation_type, loaded_length, loaded_width, reaction, result.contact_solutions
         )
         for level in detailed_shape_checks:
             failed_checks.extend(
@@ -397,6 +408,12 @@ def calculate_scene_foundations(
         if settlement is not None and not settlement["passed"]:
             failed_checks.append(settlement["name"])
         pending_checks = ["基础构造锚固"]
+        if any(item.get("contact_area_m2", 0) < foundation_type.length_m * foundation_type.width_m * (1-1e-9)
+               for item in result.contact_solutions):
+            pending_checks.append("非均匀接触沉降")
+            if any(requirement.get("missing_inputs") for record in result.contact_solutions
+                   for requirement in record.get("top_reinforcement_requirements",{}).values()):
+                pending_checks.append("脱开区向下荷载产生反向弯矩，需要明确顶筋")
         if settlement is None:
             pending_checks.append("沉降计算（需录入分层压缩参数与允许值）")
         items.append({
@@ -409,6 +426,7 @@ def calculate_scene_foundations(
             "calculation_trace_id": result.trace_id,
             "checks": [item.model_dump(mode="json") for item in result.checks],
             "steps": [item.model_dump(mode="json") for item in result.steps],
+            "contact_solutions": result.contact_solutions,
             "reactions": {key: value.model_dump(mode="json") for key, value in result.reactions.items()},
             "warnings": [item.model_dump(mode="json") for item in result.warnings],
             "failed_checks": failed_checks,

@@ -46,6 +46,7 @@ from .schemas import (
 )
 from .site_profile import ProjectSiteProfile
 from .scene_space_frame import analyze_scene_space_frame
+from .scene_typed_adapters import MODELS as SCENE_TYPED_MODELS, adapt_scene_requests, apply_vertical_line, saved_section_properties, include_member_self_weight
 
 
 _SITE_WALL_TYPED_INPUTS = (
@@ -278,6 +279,23 @@ def _typed_reaction_input(
     if not selected:
         selected = list(converted_envelopes)
 
+    if calculation.inputs.get('slab_edge_id') and isinstance(typed, ContinuousBeamInputs):
+        values={**calculation.inputs.get('scene_parameters',{}),**calculation.inputs}
+        a=float(values['short_span_m']);b=float(values['long_span_m'])
+        vector=selected[0]
+        total=float(vector['components']['N']['value'])
+        pressure=total/(a*b)
+        edge_length=sum(span.length.value for span in typed.spans)
+        position=0.;spans=[]
+        for span in typed.spans:
+            midpoint=position+span.length.value/2
+            tributary_width=min(midpoint,edge_length-midpoint,a/2)
+            spans.append(span.model_copy(update={'uniform_load_local_y':TypedInputValue(value=span.uniform_load_local_y.value-pressure*tributary_width,unit='kN/m')},deep=True))
+            position+=span.length.value
+        return typed.model_copy(update={'spans':spans,
+            'combination_id':vector['combination_id'], 'combination_name':vector.get('combination_name') or vector['combination_id'],
+            'limit_state':vector['limit_state']},deep=True)
+
     if connection.transfer == "reaction_to_line" and isinstance(
         typed, (PlanarFrameInputs, ContinuousBeamInputs)
     ):
@@ -293,6 +311,9 @@ def _typed_reaction_input(
         if isinstance(typed, ContinuousBeamInputs):
             return typed.model_copy(
                 update={
+                    'combination_id': selected[0].get('combination_id') or typed.combination_id,
+                    'combination_name': selected[0].get('combination_name') or typed.combination_name,
+                    'limit_state': selected[0].get('limit_state', typed.limit_state),
                     "spans": [
                         span.model_copy(
                             update={"uniform_load_local_y": line_load}, deep=True
@@ -303,6 +324,12 @@ def _typed_reaction_input(
                 deep=True,
             )
 
+        if calculation.inputs.get("scene_adapter_version"):
+            return apply_vertical_line(typed, line_value).model_copy(update={
+                "combination_id": selected[0]["combination_id"],
+                "combination_name": selected[0].get("combination_name") or selected[0]["combination_id"],
+                "limit_state": selected[0]["limit_state"],
+            }, deep=True)
         uniform_loads = list(typed.uniform_loads)
         if not uniform_loads:
             coordinates = {
@@ -518,6 +545,10 @@ def _apply_reaction(
         return tagged
 
     converted_envelopes = _tag_governing_envelopes([item.model_dump(mode="json") for item in upstream_envelopes])
+    for envelope in converted_envelopes:
+        combination=next((c for c in source.combinations if c.combination_id==envelope.get('combination_id')),None)
+        if combination is not None:
+            envelope['action_factors']=dict(combination.factors)
     # Beam local transverse reaction becomes downstream vertical/axial force.
     # Do this at the coordinate interface, never infer it from a zero N value.
     beam_modules = {CalculationModule.STEEL_BEAM, CalculationModule.TIMBER_BEAM,
@@ -565,6 +596,25 @@ def _apply_reaction(
                 "value": vertical_component["value"] / conversion_scale,
                 "unit": "kN/m",
             }
+    previous = calculation.inputs.get('upstream_reaction_envelopes', [])
+    if previous and connection.transfer in {'reaction_package','combination_package'}:
+        # Multiple physical members meeting at the same support contribute to
+        # one real vector per combination. Never overwrite the first member.
+        combined={ (item.get('combination_id'),item.get('limit_state')):dict(item) for item in previous }
+        for item in converted_envelopes:
+            key=(item.get('combination_id'),item.get('limit_state'))
+            if key not in combined:
+                combined[key]=item
+                continue
+            old=combined[key]
+            components={}
+            for component in ('N','Vx','Vy','Mx','My','T'):
+                first=old['components'][component];second=item['components'][component]
+                if first['unit']!=second['unit']:
+                    raise CalculationInputError('scene_reaction_unit_mismatch','汇合反力单位不一致。')
+                components[component]={'value':first['value']+second['value'],'unit':first['unit']}
+            combined[key]={**old,'components':components}
+        converted_envelopes=list(combined.values())
     updated_inputs = {
         **calculation.inputs,
         "reaction_source_node_id": connection.source_node_id,
@@ -725,6 +775,9 @@ def _apply_scene_loads(
             # the immutable revision and consumed by that node's parameter
             # contract rather than forced into CalculationRequest.loads.
             continue
+        if calculation.module.value in SCENE_TYPED_MODELS and not isinstance(calculation.typed_inputs, _SITE_WALL_TYPED_INPUTS):
+            # Scene adapters own these typed load contracts.
+            continue
         if isinstance(calculation.typed_inputs, _SITE_WALL_TYPED_INPUTS):
             typed = calculation.typed_inputs
             dead_total = sum(
@@ -834,6 +887,59 @@ def _apply_scene_loads(
     return updated, sorted(set(missing_mappings))
 
 
+def _calculate_scene_cases(adapted, dependencies, calculated):
+    """Run every source combination without synthesizing a component envelope."""
+    run_results = []
+    transfers = [(c, calculated[c.source_node_id]) for c in dependencies
+        if c.source_node_id in calculated
+        and c.transfer in {'reaction_to_line', 'reaction_package', 'combination_package'}]
+    for template in adapted:
+        typed_module = template.module.value in SCENE_TYPED_MODELS
+        if typed_module:
+            template = template.model_copy(update={'inputs':{**template.inputs,'scene_adapter_version':'1.0'}},deep=True)
+            if template.module is CalculationModule.PILE_GROUP_CAP and not transfers:
+                raise CalculationInputError('scene_adapter_missing_inputs', '桩承台缺少上游组合反力。', details={'missing_fields':['upstream_reaction_envelopes']})
+        case_ids = sorted({(e.combination_id or e.combination_name,e.limit_state)
+            for _,source in transfers for e in source.reaction_envelopes}) if typed_module else []
+        if len(adapted)>1 and case_ids:
+            template_case=(template.typed_inputs.combination_id,template.typed_inputs.limit_state)
+            if template_case not in case_ids:
+                raise CalculationInputError('scene_adapter_missing_inputs','本地作用与上游反力缺少一致组合。',details={'missing_fields':[f'combination:{template_case[0]}']})
+            case_ids=[template_case]
+        for case in case_ids or [None]:
+            effective=template.model_copy(deep=True)
+            if transfers:
+                # Recomputing a saved request must not add its old reaction
+                # sidecar to this revision's fresh incoming members.
+                fresh_inputs=dict(effective.inputs)
+                fresh_inputs.pop('upstream_reaction_envelopes',None)
+                effective=effective.model_copy(update={'inputs':fresh_inputs},deep=True)
+            for connection,source in transfers:
+                if case is not None:
+                    envelopes=[e for e in source.reaction_envelopes if (e.combination_id or e.combination_name,e.limit_state)==case]
+                    if not envelopes:
+                        raise CalculationInputError('scene_adapter_missing_inputs','多个上游节点缺少一致组合。',details={'missing_fields':[f'combination:{case[0]}:{connection.source_node_id}']})
+                    source=source.model_copy(update={'reaction_envelopes':envelopes},deep=True)
+                effective=_apply_reaction(effective,connection,source)
+            if typed_module and effective.inputs.get("scene_adapter_generated"):
+                effective=include_member_self_weight(effective)
+            run_results.append(calculate(effective))
+    if len(run_results)==1:return run_results[0]
+    # Keep the governing case's displayed scalar summary; concatenate explicit
+    # per-case checks/reactions for all downstream selection and audit.
+    def rank(result):
+        return ({'incomplete':3,'failed':2,'passed':1}.get(result.status,0),
+                max((c.utilization for c in result.checks),default=0))
+    governing=max(run_results,key=rank)
+    return governing.model_copy(update={
+        'reaction_envelopes':[e for result in run_results for e in result.reaction_envelopes],
+        'checks':[c for result in run_results for c in result.checks],
+        'combinations':[c for result in run_results for c in result.combinations],
+        'assumptions':list(dict.fromkeys(a for result in run_results for a in result.assumptions)),
+        'verification_status':'unverified',
+    },deep=True)
+
+
 def execute_scene(
     family: SceneFamily,
     variant_id: str,
@@ -900,7 +1006,7 @@ def execute_scene(
     steel_nodes = [
         node
         for node in active_nodes
-        if node.calculation_module in {"steel_beam", "steel_column", "portal_frame"}
+        if node.calculation_module in {"steel_beam", "steel_column", "portal_frame", "continuous_beam", "planar_frame"}
     ]
     submitted_foundation_nodes = [node for node in foundation_nodes if node.id in calculations]
     submitted_steel_nodes = [node for node in steel_nodes if node.id in calculations]
@@ -931,9 +1037,9 @@ def execute_scene(
         for node in submitted_steel_nodes:
             required_roles = (
                 {"beam", "column"}
-                if node.calculation_module == "portal_frame"
+                if node.calculation_module in {"portal_frame", "planar_frame"}
                 else {"beam"}
-                if node.calculation_module == "steel_beam"
+                if node.calculation_module in {"steel_beam", "continuous_beam"}
                 else {"column"}
             )
             missing_members.extend(
@@ -959,6 +1065,11 @@ def execute_scene(
                     "unknown_section_catalog_entry",
                     f"截面目录中不存在 {specification.section_catalog_id}",
                 )
+            if calculation.module.value in {"continuous_beam", "planar_frame"}:
+                updates = saved_section_properties(specification, entry)
+                calculations[specification.node_id] = calculation.model_copy(
+                    update={"inputs": {**calculation.inputs, **updates}}, deep=True)
+                continue
             dimensions = dict(entry.dimensions)
             # The current member engine evaluates I-shaped candidates with the
             # same geometric property path as H sections.
@@ -1209,28 +1320,18 @@ def execute_scene(
                 },
             )
 
-        effective_calculation = calculation
-        for connection in dependencies:
-            source_result = calculated.get(connection.source_node_id)
-            if (
-                source_result is not None
-                and connection.transfer
-                in {"reaction_to_line", "reaction_package", "combination_package"}
-            ):
-                effective_calculation = _apply_reaction(
-                    effective_calculation, connection, source_result
-                )
         try:
-            result = calculate(effective_calculation)
+            adapted = adapt_scene_requests(calculation, family.id, variant_id, node_id, resolved_loads)
+            result = _calculate_scene_cases(adapted, dependencies, calculated)
         except CalculationInputError as exc:
-            if exc.code != "typed_input_module_mismatch":
+            if exc.code not in {"typed_input_module_mismatch", "scene_adapter_missing_inputs"}:
                 raise
             node_results[node_id] = SceneNodeResult(
                 node_id=node.id, label=node.label, status="incomplete",
                 maturity=node.maturity, applicability=node.applicability,
-                workflow_status="capability_unavailable", engineering_status="incomplete",
+                workflow_status="missing_inputs" if exc.code == "scene_adapter_missing_inputs" else "capability_unavailable", engineering_status="incomplete",
                 verification_status=node.verification_status,
-                message=f"{node.label}缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+                message=exc.message,
             )
             continue
         calculated[node_id] = result
@@ -1393,10 +1494,20 @@ def execute_scene(
             custom_sections,
         )
         catalog_versions["space_frame_solver"] = (
-            "steel-compass-space-frame-adapter-2.0-unverified"
+            "steel-compass-space-frame-adapter-2.1-unverified"
         )
 
+    stability_incomplete = bool(space_frame_analysis and (space_frame_analysis.get("stability_scope") or {}).get("status") == "incomplete")
+    if stability_incomplete:
+        if workflow_status != "stale": workflow_status = "capability_unavailable"
+        if quick_outcome != "screening_failed": quick_outcome = None
+        if engineering_status == "passed": engineering_status = "incomplete"
+        if legacy_status != "failed": legacy_status = "incomplete"
     warnings = [*family.boundaries]
+    if stability_incomplete:
+        warnings.append("空间分析稳定范围未完整覆盖当前模型，不能形成筛查通过结论。")
+    if family.id == "boardwalk-platform" and variant_id == "viewing-platform":
+        warnings.append("四边简支板按显式45度几何分担区传力；边梁分段均布逼近三角/梯形荷载，四角各汇总相邻两边梁。此方案级分配不是弹性板精确边界反力。")
     if missing_load_values:
         warnings.append("以下场景荷载缺少采用值：" + "、".join(missing_load_values))
     if missing_load_mappings:

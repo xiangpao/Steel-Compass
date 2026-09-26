@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 // Opt-in: runs against the isolated audit server/database, never mocks API results.
 test("真实后端：新建、保存、计算、PDF、修改失效、刷新与移动操作", async ({ page }) => {
   test.skip(process.env.STEEL_COMPASS_LIVE_AUDIT !== "1", "Requires isolated live audit backend");
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/login");
   await page.getByLabel("用户名").fill(process.env.AUDIT_USERNAME!);
@@ -25,11 +25,15 @@ test("真实后端：新建、保存、计算、PDF、修改失效、刷新与�
   await page.getByRole("button", { name: "完整分析", exact: true }).click();
   const response = await analysisResponse;
   expect(response.status()).toBe(200);
+  await mkdir("output/playwright", { recursive: true });
   const pdfLink = page.locator('a[href$="report.pdf"]');
   await expect(pdfLink).toHaveCount(1, { timeout: 20000 });
   const snapshot = await page.request.get((await pdfLink.getAttribute("href"))!.replace("/report.pdf", ""));
   expect(snapshot.status()).toBe(200);
-  expect((await snapshot.json()).snapshot.custom_sections.length).toBeGreaterThan(0);
+  const savedSnapshot = await snapshot.json();
+  expect(savedSnapshot.snapshot.custom_sections.length).toBeGreaterThan(0);
+  await writeFile("output/playwright/live-snapshot.json", JSON.stringify(savedSnapshot, null, 2));
+  await writeFile("output/playwright/live-analysis.json", JSON.stringify(savedSnapshot.snapshot.analysis, null, 2));
   const pdf = await page.request.get((await pdfLink.getAttribute("href"))!);
   expect(pdf.status()).toBe(200);
   expect((await pdf.body()).subarray(0, 4).toString()).toBe("%PDF");

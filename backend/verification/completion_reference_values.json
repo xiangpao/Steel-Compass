@@ -1,0 +1,27 @@
+{
+  "evidence_kind": "public_reference",
+  "evidence_status": "unreviewed",
+  "verification_status": "unverified",
+  "registered_before_execution": true,
+  "source": {
+    "publisher": "Dlubal Software",
+    "title": "Isolated Footing Design According to IBC (ASD)",
+    "url": "https://www.dlubal.com/en/support-and-learning/support/knowledge-base/002041",
+    "location": "Soil Bearing Pressure / ASD Load Combination 6",
+    "version": "RFEM 6; IBC ASD example; accessed 2026-09-26"
+  },
+  "case": {
+    "id": "DLUBAL-002041-contact-pressure",
+    "geometry": {"length_ft": 6, "width_ft": 6},
+    "boundary": "rigid footing, full compression contact, linear pressure distribution",
+    "loads": {"n_kip": 92.35, "mx_kipft": 0, "my_kipft": 14.175},
+    "load_note": "N includes combined self weight and soil weight; do not add them a second time",
+    "material": "not needed for equilibrium pressure; not a footing capacity benchmark",
+    "metrics": [
+      {"metric": "qmax", "reference": 2.959, "unit": "ksf", "absolute_tolerance": 0.0005},
+      {"metric": "qmin", "reference": 2.172, "unit": "ksf", "absolute_tolerance": 0.0005}
+    ],
+    "tolerance_basis": "half of the published last decimal, fixed before first local execution",
+    "exclusions": ["Chinese load combinations", "Chinese material capacity", "detachment", "settlement", "signed engineering approval"]
+  }
+}

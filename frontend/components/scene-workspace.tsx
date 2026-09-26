@@ -1,5 +1,6 @@
 "use client";
 
+import { SCENE_ADAPTER_FIELDS } from "@/lib/scene-adapter-fields";
 import {
   AlertTriangle,
   Archive,
@@ -268,6 +269,26 @@ const CUSTOM_SECTION_DIMENSION_LABELS: Record<string, string> = {
   tf_mm: "翼缘厚度",
 };
 
+function specialistLabel(key: string): string {
+  const labels: Record<string, string> = {
+    groundwater_condition: "地下水条件", groundwater_source: "地下水资料依据", submerged_depth: "承台淹没高度", buoyancy_factor_uls: "ULS浮力分项系数",
+    frame_wind_exposed_height: "门楣迎风高度",
+    base_restraint: "柱脚边界条件", poisson_ratio: "泊松比",
+    base_projection: "底板外挑", retained_soil_height: "墙外挡土高度", full_external_head: "满池外水头", empty_external_head: "空池外水头", external_water_head: "外部地下水水头",
+    concrete_unit_weight: "混凝土重度", water_unit_weight: "水重度", soil_unit_weight: "土重度", wall_unit_weight: "墙体重度", concrete_fc: "混凝土抗压设计值", concrete_ft: "混凝土抗拉设计值", rebar_fy: "钢筋抗拉设计值", rebar_es: "钢筋弹性模量",
+    wall_vertical_as: "池壁竖向配筋", wall_horizontal_as: "池壁水平配筋", base_x_as: "底板X向配筋", base_y_as: "底板Y向配筋", wall_bar_diameter: "池壁钢筋直径", base_bar_diameter: "底板钢筋直径", wall_cover: "池壁保护层", base_cover: "底板保护层", minimum_reinforcement_ratio: "最小配筋率", maximum_reinforcement_ratio: "最大配筋率", crack_width_limit: "裂缝限值",
+    girder_count: "主梁数量", thickness: "厚度", elastic_modulus: "弹性模量", bending_strength: "抗弯设计强度", shear_strength: "抗剪设计强度", unit_weight: "材料重度", deflection_limit_ratio: "挠度限值分母", area: "截面面积", inertia: "截面惯性矩", section_modulus: "截面模量", shear_area: "抗剪面积", yield_strength: "屈服强度", damping_ratio: "阻尼比", walking_frequency: "步行激振频率", pedestrian_dynamic_force: "行人动力荷载", acceleration_limit: "加速度限值", wind_height: "迎风高度",
+    concrete_elastic_modulus: "混凝土弹性模量", concrete_compressive_strength: "混凝土抗压强度", concrete_tensile_strength: "混凝土抗拉强度", rebar_yield_strength: "钢筋屈服强度", concrete_density: "混凝土重度", cover: "保护层", slab_bar_diameter: "板钢筋直径", slab_bar_spacing: "板钢筋间距", girder_bottom_area: "主梁底筋面积", girder_top_area: "主梁顶筋面积", girder_stirrup_area: "主梁箍筋面积", girder_stirrup_spacing: "主梁箍筋间距", minimum_vertical_frequency: "最小竖向频率", slab_deflection_ratio: "板挠度限值分母", girder_deflection_ratio: "梁挠度限值分母", cracked_stiffness_factor: "开裂刚度折减系数", railing_left: "左侧栏杆恒载", railing_right: "右侧栏杆恒载",
+    length_x: "X向长度", width_y: "Y向宽度", column_x: "柱X向尺寸", column_y: "柱Y向尺寸", bar_diameter: "钢筋直径", provided_rebar_x: "X向配筋", provided_rebar_y: "Y向配筋", material_compressive_design: "材料抗压设计值", sliding_safety_factor: "抗滑安全系数", overturning_safety_factor: "抗倾覆安全系数", short_moment_capacity: "短向抗弯承载力", long_moment_capacity: "长向抗弯承载力", support_condition: "板边界条件", deflection_limit: "挠度限值", displacement_limit: "节点位移限值", roof_member_tributary_width: "屋面构件分担宽度", post_height: "面板中心离地高度", additional_ballast: "附加抗浮压重", antifloat_factor: "抗浮安全系数",
+  };
+  let base = key.replace(/_(kn_m3|mm2_m|kn_m_m|kn_m|m_s2|mpa|kpa|mm4|mm3|mm2|mm|deg|hz|kn|m|n)$/, "");
+  let prefix = "";
+  for (const [token, label] of [["timber_", "木面板·"], ["crossbeam_", "钢横梁·"], ["longitudinal_", "钢纵梁·"], ["cap_", "承台·"]]) {
+    if (base.startsWith(token)) { prefix = label; base = base.slice(token.length); break; }
+  }
+  return prefix + (labels[base] ?? key);
+}
+
 export function SceneWorkspace(props: Props) {
   if (props.family.id === "pergola-pavilion") {
     return <PergolaWorkbenchV2 mode="project" projects={props.projects} onProjectsChange={props.onProjectsChange} />;
@@ -481,7 +502,7 @@ function LegacySceneWorkspace({
   useEffect(() => {
     if (!availableSections.length) return;
     const steelNodes = visibleNodes.filter((node) =>
-      ["steel_beam", "steel_column", "portal_frame"].includes(
+      ["steel_beam", "steel_column", "portal_frame", "continuous_beam", "planar_frame"].includes(
         node.calculation_module ?? "",
       ),
     );
@@ -491,9 +512,9 @@ function LegacySceneWorkspace({
       );
       return steelNodes.flatMap((node) => {
         const roles =
-          node.calculation_module === "portal_frame"
+          ["portal_frame", "planar_frame"].includes(node.calculation_module ?? "")
             ? ["beam", "column"]
-            : [node.calculation_module === "steel_beam" ? "beam" : "column"];
+            : [["steel_beam", "continuous_beam"].includes(node.calculation_module ?? "") ? "beam" : "column"];
         return roles.map((role) => {
           const existing = currentByKey.get(`${node.id}:${role}`);
           if (existing) return existing;
@@ -1400,7 +1421,7 @@ function LegacySceneWorkspace({
   function currentStructuralProfile(): SceneStructuralProfile | null {
     const steelNodeIds = new Set(
       visibleNodes
-        .filter((node) => ["steel_beam", "steel_column", "portal_frame"].includes(node.calculation_module ?? ""))
+        .filter((node) => ["steel_beam", "steel_column", "portal_frame", "continuous_beam", "planar_frame"].includes(node.calculation_module ?? ""))
         .map((node) => node.id),
     );
     const foundationNodeIds = new Set(
@@ -1609,6 +1630,7 @@ function LegacySceneWorkspace({
     const calculationModule = visibleNodes.find(
       (node) => node.id === nodeId,
     )?.calculation_module as Module | undefined;
+    if (calculationModule && SCENE_ADAPTER_FIELDS[calculationModule]) return [];
     const acceptedUnits = new Set<string>(
       calculationModule &&
       [
@@ -1714,12 +1736,17 @@ function LegacySceneWorkspace({
         }
       : {};
     const nextInputs: Record<string, unknown> = {
-      ...definition.defaults,
+      ...(SCENE_ADAPTER_FIELDS[calculationModule] ? {} : definition.defaults),
       ...Object.fromEntries(
         Object.entries(parameters).filter(([key]) => key in definition.defaults),
       ),
       ...boundInputs,
       ...geometryDrivenInputs,
+      ...(SCENE_ADAPTER_FIELDS[calculationModule] ? {
+        ...parameters,
+        ...((parameters.scene_node_inputs as Record<string, Record<string, unknown>> | undefined)?.[nodeId] ?? {}),
+        scene_parameters: parameters,
+      } : {}),
     };
     const hiddenCriticalInputs: Record<string, string[]> = {
       steel_beam: ["steel_grade", "section_type", "h_mm", "b_mm", "t_mm", "diameter_mm", "tw_mm", "tf_mm", "effective_length_m", "unbraced_length_m"],
@@ -1835,9 +1862,8 @@ function LegacySceneWorkspace({
         module: calculationModule,
         project_name: `${sceneTitle} · ${nodeId}`,
         standard_profile: "CN-2026.6",
-        // These single-module builders contain their own load/model defaults.
-        // Until a scene-specific adapter exists, preserve the input gap rather
-        // than silently compute a different model or submit an invalid union.
+        // Dedicated server adapters consume saved scene geometry, loads and
+        // explicit specialist fields; never invoke single-tool default builders.
         typed_inputs: definition.buildTypedInputs ? undefined : {
           module: calculationModule,
           values: typedValues,
@@ -2312,6 +2338,35 @@ function LegacySceneWorkspace({
                   )}
                 </div>
               </details>
+
+              {visibleNodes.filter((node) => SCENE_ADAPTER_FIELDS[node.calculation_module ?? ""]).map((node) => {
+                const saved = (parameters.scene_node_inputs as Record<string, Record<string, unknown>> | undefined)?.[node.id] ?? {};
+                const definition = MODULE_MAP[node.calculation_module as Module];
+                const fields = Object.entries(SCENE_ADAPTER_FIELDS[node.calculation_module!]).filter(([key]) => !(key in parameters)
+                  && !(["cap_submerged_depth_m", "cap_water_unit_weight_kn_m3", "cap_buoyancy_factor_uls"].includes(key) && saved.cap_groundwater_condition !== "known_water_table")
+                  && !(key === "slab_load_distribution" && family.id !== "boardwalk-platform")
+                  && !(key === "frame_wind_exposed_height_m" && family.id !== "entrance-frame")
+                  && !(key === "post_height_m" && family.id !== "signage-billboard")
+                  && !(key === "roof_member_tributary_width_m" && family.id !== "pergola-pavilion"));
+                return <details className="settings-section" key={`specialist-${node.id}`}>
+                  <summary><span><strong>{node.label} · 专项参数</strong><small>按材料、配筋和勘察资料填写；空白项会阻止该节点计算</small></span><ChevronDown size={17} /></summary>
+                  <div className="settings-section-body parameter-grid compact-parameters">
+                    {fields.map(([key, unit]) => {
+                      const known = definition.fields.find((field) => field.key === key);
+                      const label = known?.label ?? specialistLabel(key);
+                      const options = key === "cap_groundwater_condition" ? [["no_influence", "有资料证明无地下水影响"], ["known_water_table", "已知淹没高度"]] : key === "base_restraint" ? [["fixed", "固定"], ["pinned", "铰支"]] : key === "support_condition" ? [["four_edges_simply_supported", "四边简支"], ...(family.id === "boardwalk-platform" ? [] : [["four_edges_fixed", "四边固支"]])]
+                        : key === "pile_type" ? [["bored", "灌注桩"], ["precast_pipe", "预制管桩"], ["precast_square", "预制方桩"]] : null;
+                      const update = (value: unknown) => setParameters((current) => ({ ...current, scene_node_inputs: {
+                        ...((current.scene_node_inputs as Record<string, Record<string, unknown>>) ?? {}),
+                        [node.id]: { ...saved, [key]: value },
+                      }}));
+                      return <label key={key}><span>{label}</span>{options
+                        ? <select value={String(saved[key] ?? "")} onChange={(event) => update(event.target.value)}><option value="">请选择</option>{options.map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select>
+                        : <div className="input-with-unit"><input type={unit === "text" ? "text" : "number"} step="any" value={String(saved[key] ?? "")} onChange={(event) => update(event.target.value === "" ? undefined : unit === "text" ? event.target.value : Number(event.target.value))} /><span>{unit === "text" ? "" : unit}</span></div>}</label>;
+                    })}
+                  </div>
+                </details>;
+              })}
 
               <details className="settings-section" open>
                 <summary>

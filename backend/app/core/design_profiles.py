@@ -295,6 +295,8 @@ class FoundationTypeDefinition(BaseModel):
     rebar_grade: str = Field(min_length=3, max_length=30)
     bottom_x: str = Field(min_length=3, max_length=40)
     bottom_y: str = Field(min_length=3, max_length=40)
+    top_x: str | None = Field(default=None, min_length=3, max_length=40)
+    top_y: str | None = Field(default=None, min_length=3, max_length=40)
     cover_mm: float | None = Field(default=None, ge=35, le=150)
     steps: list[FoundationStep] = Field(default_factory=list, max_length=3)
     tapered_top_length_m: float | None = Field(default=None, ge=0.15, le=30)
@@ -364,6 +366,14 @@ class ConnectionInstanceAssignment(BaseModel):
     message: str | None = Field(default=None, max_length=300)
 
 
+class AnchorSpringProfile(BaseModel):
+    """Elastic tension-only anchor stiffness; coordinates relative to plate centre."""
+
+    x_m: float = Field(allow_inf_nan=False)
+    y_m: float = Field(allow_inf_nan=False)
+    stiffness_kn_m: float = Field(gt=0, allow_inf_nan=False)
+
+
 class ColumnBaseAssembly(BaseModel):
     id: str = Field(min_length=1, max_length=80)
     column_member_id: str = Field(min_length=1, max_length=80)
@@ -384,6 +394,25 @@ class ColumnBaseAssembly(BaseModel):
     weld_throat_mm: float | None = Field(default=None, ge=3, le=40)
     concrete_bearing_capacity_mpa: float | None = Field(default=None, ge=1, le=60)
     grout_thickness_mm: float = Field(default=30, ge=0, le=200)
+    contact_stiffness_kn_m3: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+    contact_model_source: str | None = Field(default=None, min_length=1, max_length=1000)
+    anchor_springs: list[AnchorSpringProfile] = Field(default_factory=list, max_length=32)
+    continuous_perimeter_weld: bool | None = None
+
+    @model_validator(mode="after")
+    def validate_contact_parameters(self) -> "ColumnBaseAssembly":
+        if self.contact_model_source is not None and not self.contact_model_source.strip():
+            raise ValueError("接触模型来源不得为空白")
+        if self.anchor_springs:
+            if len(self.anchor_springs) != self.anchor_count:
+                raise ValueError("锚栓弹簧数量必须与实际锚栓数量相同")
+            positions = {(a.x_m, a.y_m) for a in self.anchor_springs}
+            if len(positions) != len(self.anchor_springs):
+                raise ValueError("锚栓坐标不得重复")
+            if any(abs(a.x_m) >= self.base_plate_length_mm / 2000
+                   or abs(a.y_m) >= self.base_plate_width_mm / 2000 for a in self.anchor_springs):
+                raise ValueError("锚栓坐标必须位于底板内部")
+        return self
 
 
 class SceneGeometryProfile(BaseModel):

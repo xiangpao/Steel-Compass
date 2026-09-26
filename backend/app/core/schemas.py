@@ -198,6 +198,7 @@ class FrameNodalLoadInput(BaseModel):
 class FrameUniformLoadInput(BaseModel):
     member: str
     local_y: TypedInputValue
+    local_x: TypedInputValue | None = None
 
 
 class PlanarFrameInputs(AnalysisCombinationInput):
@@ -890,6 +891,7 @@ class CalculationResult(BaseModel):
     steps: list[CalculationStep] = Field(default_factory=list)
     checks: list[CheckResult] = Field(default_factory=list)
     provisional_checks: list[CheckResult] = Field(default_factory=list)
+    contact_solutions: list[dict[str, Any]] = Field(default_factory=list)
     governing_check: str | None = None
     warnings: list[CalculationWarning] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)

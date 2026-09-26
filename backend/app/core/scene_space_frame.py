@@ -23,7 +23,7 @@ from .space_frame import (
     SpaceNode,
     SpaceRestraint,
     analyze_space_frame,
-    analyze_space_frame_stability,
+    analyze_space_frame_stability_converged,
 )
 
 
@@ -491,7 +491,7 @@ def analyze_scene_space_frame(
             member_uniform_loads=tuple(member_uniform_loads),
         )
     result = analyze_space_frame(analysis_model)
-    stability = analyze_space_frame_stability(analysis_model, result)
+    stability = analyze_space_frame_stability_converged(analysis_model, result)
     try:
         parallel_check = compare_with_pynite(analysis_model, result)
     except Exception as exc:  # PyNite remains an independent, unverified check path.
@@ -538,7 +538,7 @@ def analyze_scene_space_frame(
         for item in stability.second_order.displacements.values()
     )
     return {
-        "solver": "steel-compass-space-frame-adapter-2.0",
+        "solver": "steel-compass-space-frame-adapter-2.1",
         "analysis_basis": "second_order",
         "first_order_results": {
             "analysis_basis": "first_order",
@@ -565,6 +565,11 @@ def analyze_scene_space_frame(
         "second_order_amplification_ratio": round(stability.amplification_ratio, 6),
         "elastic_buckling_factors": [round(value, 6) for value in stability.buckling_factors],
         "stability_method": "first-order axial-force geometric stiffness / elastic eigen-buckling",
+        "stability_scope": {
+            "status": "incomplete" if any(member.behavior == "truss" for member in members) else "complete",
+            "excluded_truss_member_ids": [member.id for member in members if member.behavior == "truss"],
+            "boundary": "Euler-Bernoulli梁柱初应力弯曲屈曲；桁架几何刚度、扭转/侧扭/翘曲屈曲、材料非线性和大转角不在覆盖范围",
+        },
         "node_displacements": {
             node_id: {
                 "ux_mm": item.ux_mm,
@@ -610,6 +615,7 @@ def analyze_scene_space_frame(
                     "mz_kn_m": result.members[member.id].local_end_forces[11] / 1e6,
                 },
                 "force_basis": "member-local-axis",
+                "along_member": result.members[member.id].along_member,
                 "uniform_load_local": {
                     "qx_kn_m": result.member_uniform_loads_local.get(member.id, (0.0, 0.0, 0.0))[0],
                     "qy_kn_m": result.member_uniform_loads_local.get(member.id, (0.0, 0.0, 0.0))[1],

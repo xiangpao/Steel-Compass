@@ -1,0 +1,4725 @@
+{
+  "module_count": 33,
+  "family_count": 10,
+  "variant_count": 40,
+  "modules": [
+    {
+      "module": "steel_beam",
+      "handler": "app.core.steel.calculate_steel_beam",
+      "implementation": "app/core/steel.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_api.py",
+        "test_calculation_library_catalog.py",
+        "test_engine.py",
+        "test_milestone_scenes.py",
+        "test_nextgen_api.py",
+        "test_scene_graph.py",
+        "test_schema32_contract.py",
+        "test_steel_beam_reference.py",
+        "test_steel_timber_verification.py",
+        "test_transfer_audit.py"
+      ],
+      "independent_reference_files": [
+        "steel_timber_references.py"
+      ],
+      "evidence_registers": [
+        "STEEL_TIMBER_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "steel_column",
+      "handler": "app.core.steel.calculate_steel_column",
+      "implementation": "app/core/steel.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_api.py",
+        "test_engine.py",
+        "test_steel_timber_verification.py",
+        "test_transfer_audit.py"
+      ],
+      "independent_reference_files": [
+        "steel_timber_references.py"
+      ],
+      "evidence_registers": [
+        "STEEL_TIMBER_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "portal_frame",
+      "handler": "app.core.frame.calculate_portal_frame",
+      "implementation": "app/core/frame.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_api.py",
+        "test_frame.py",
+        "test_milestone_scenes.py",
+        "test_parametric_frame_advanced.py",
+        "test_steel_timber_verification.py"
+      ],
+      "independent_reference_files": [
+        "steel_timber_references.py"
+      ],
+      "evidence_registers": [
+        "STEEL_TIMBER_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "concrete_beam",
+      "handler": "app.core.concrete.calculate_concrete_member",
+      "implementation": "app/core/concrete.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_engine.py",
+        "test_milestone_scenes.py",
+        "test_rc_geotech_verification.py",
+        "test_scene_typed_adapters.py"
+      ],
+      "independent_reference_files": [
+        "rc_geotech_references.py"
+      ],
+      "evidence_registers": [
+        "RC_GEOTECH_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "concrete_slab",
+      "handler": "app.core.concrete.calculate_concrete_member",
+      "implementation": "app/core/concrete.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_engine.py",
+        "test_rc_geotech_verification.py"
+      ],
+      "independent_reference_files": [
+        "rc_geotech_references.py"
+      ],
+      "evidence_registers": [
+        "RC_GEOTECH_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "concrete_column",
+      "handler": "app.core.concrete.calculate_concrete_column",
+      "implementation": "app/core/concrete.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_rc_geotech_verification.py",
+        "test_scene_typed_adapters.py",
+        "test_transfer_audit.py"
+      ],
+      "independent_reference_files": [
+        "rc_geotech_references.py"
+      ],
+      "evidence_registers": [
+        "RC_GEOTECH_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "spread_footing",
+      "handler": "app.core.foundation.calculate_spread_footing",
+      "implementation": "app/core/foundation.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_api.py",
+        "test_contact_completion.py",
+        "test_contact_independent_review.py",
+        "test_foundation.py",
+        "test_milestone_scenes.py",
+        "test_rc_geotech_verification.py",
+        "test_scene_pool_bridge_pile_variants.py",
+        "test_scene_typed_adapters.py",
+        "test_schema32_contract.py",
+        "test_transfer_audit.py"
+      ],
+      "independent_reference_files": [
+        "rc_geotech_references.py"
+      ],
+      "evidence_registers": [
+        "RC_GEOTECH_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "strip_footing",
+      "handler": "app.core.foundation.calculate_strip_footing",
+      "implementation": "app/core/foundation.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_foundation.py",
+        "test_milestone_scenes.py",
+        "test_rc_geotech_verification.py",
+        "test_scene_typed_adapters.py"
+      ],
+      "independent_reference_files": [
+        "rc_geotech_references.py"
+      ],
+      "evidence_registers": [
+        "RC_GEOTECH_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "timber_beam",
+      "handler": "app.core.timber.calculate_timber_beam",
+      "implementation": "app/core/timber.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_engine.py",
+        "test_steel_timber_verification.py"
+      ],
+      "independent_reference_files": [
+        "steel_timber_references.py"
+      ],
+      "evidence_registers": [
+        "STEEL_TIMBER_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "timber_column",
+      "handler": "app.core.timber.calculate_timber_column",
+      "implementation": "app/core/timber.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_steel_timber_verification.py"
+      ],
+      "independent_reference_files": [
+        "steel_timber_references.py"
+      ],
+      "evidence_registers": [
+        "STEEL_TIMBER_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "steel_baseplate_anchor",
+      "handler": "app.core.baseplate.calculate_steel_baseplate_anchor",
+      "implementation": "app/core/baseplate.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_baseplate.py",
+        "test_contact_completion.py",
+        "test_contact_independent_review.py",
+        "test_scene_graph.py",
+        "test_scene_typed_adapters.py",
+        "test_steel_timber_verification.py",
+        "test_transfer_audit.py"
+      ],
+      "independent_reference_files": [
+        "steel_timber_references.py"
+      ],
+      "evidence_registers": [
+        "STEEL_TIMBER_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "timber_deck_panel",
+      "handler": "app.core.advanced.calculate_timber_deck_panel",
+      "implementation": "app/core/advanced.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_milestone_references.py",
+        "test_steel_timber_verification.py"
+      ],
+      "independent_reference_files": [
+        "steel_timber_references.py"
+      ],
+      "evidence_registers": [
+        "STEEL_TIMBER_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "steel_cantilever_post",
+      "handler": "app.core.advanced.calculate_steel_cantilever_post",
+      "implementation": "app/core/advanced.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_milestone_references.py",
+        "test_milestone_scenes.py",
+        "test_steel_timber_verification.py"
+      ],
+      "independent_reference_files": [
+        "steel_timber_references.py"
+      ],
+      "evidence_registers": [
+        "STEEL_TIMBER_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "masonry_wall",
+      "handler": "app.core.advanced.calculate_masonry_wall",
+      "implementation": "app/core/advanced.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_milestone_references.py",
+        "test_milestone_scenes.py",
+        "test_rc_geotech_verification.py",
+        "test_scene_site_walls_gravity.py",
+        "test_scene_typed_adapters.py",
+        "test_site_walls.py",
+        "test_site_wall_api.py"
+      ],
+      "independent_reference_files": [
+        "rc_geotech_references.py"
+      ],
+      "evidence_registers": [
+        "RC_GEOTECH_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "rc_wall",
+      "handler": "app.core.advanced.calculate_rc_wall",
+      "implementation": "app/core/advanced.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_milestone_references.py",
+        "test_milestone_scenes.py",
+        "test_rc_geotech_verification.py",
+        "test_scene_site_walls_gravity.py",
+        "test_scene_typed_adapters.py",
+        "test_site_walls.py",
+        "test_site_wall_api.py"
+      ],
+      "independent_reference_files": [
+        "milestone_references.py",
+        "rc_geotech_references.py"
+      ],
+      "evidence_registers": [
+        "RC_GEOTECH_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "retaining_wall",
+      "handler": "app.core.advanced.calculate_retaining_wall",
+      "implementation": "app/core/advanced.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_geotech_infrastructure_verification.py",
+        "test_gravity_retaining.py",
+        "test_infrastructure_api.py",
+        "test_milestone_references.py",
+        "test_milestone_scenes.py",
+        "test_rc_geotech_verification.py",
+        "test_scene_site_walls_gravity.py",
+        "test_scene_typed_adapters.py"
+      ],
+      "independent_reference_files": [
+        "milestone_references.py",
+        "rc_geotech_references.py"
+      ],
+      "evidence_registers": [
+        "RC_GEOTECH_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "continuous_beam",
+      "handler": "app.core.nextgen.calculate_continuous_beam",
+      "implementation": "app/core/nextgen.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_continuous_beam.py",
+        "test_nextgen_api.py",
+        "test_scene_site_walls_gravity.py",
+        "test_scene_structural_variants.py",
+        "test_scene_typed_adapters.py",
+        "test_structural_solvers.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "planar_frame",
+      "handler": "app.core.nextgen.calculate_planar_frame",
+      "implementation": "app/core/nextgen.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_nextgen_api.py",
+        "test_scene_adapter_independent_review.py",
+        "test_scene_structural_variants.py",
+        "test_scene_typed_adapters.py",
+        "test_transfer_audit.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "planar_truss",
+      "handler": "app.core.nextgen.calculate_planar_truss",
+      "implementation": "app/core/nextgen.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_api.py",
+        "test_nextgen_api.py",
+        "test_planar_truss.py",
+        "test_scene_site_walls_gravity.py",
+        "test_structural_solvers.py",
+        "test_transfer_audit.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "two_way_slab",
+      "handler": "app.core.nextgen.calculate_two_way_slab",
+      "implementation": "app/core/nextgen.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_nextgen_api.py",
+        "test_scene_site_walls_gravity.py",
+        "test_scene_typed_adapters.py",
+        "test_structural_solvers.py",
+        "test_transfer_audit.py",
+        "test_two_way_slab.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "timber_connection",
+      "handler": "app.core.nextgen.calculate_timber_connection",
+      "implementation": "app/core/nextgen.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_nextgen_api.py",
+        "test_scene_site_walls_gravity.py",
+        "test_timber_connection.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "wall_anchor",
+      "handler": "app.core.wall_anchor.calculate_wall_anchor",
+      "implementation": "app/core/wall_anchor.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_connections.py",
+        "test_nextgen_api.py",
+        "test_scene_graph.py",
+        "test_scene_structural_variants.py",
+        "test_wall_anchor.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "pool_structure",
+      "handler": "app.core.infrastructure.calculate_pool_structure",
+      "implementation": "app/core/infrastructure.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_geotech_infrastructure_verification.py",
+        "test_infrastructure_api.py",
+        "test_pool_structure.py",
+        "test_scene_pool_bridge_pile_variants.py",
+        "test_scene_site_walls_gravity.py",
+        "test_scene_typed_adapters.py"
+      ],
+      "independent_reference_files": [
+        "geotech_infrastructure_references.py"
+      ],
+      "evidence_registers": [
+        "GEOTECH_INFRASTRUCTURE_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "pile_group_cap",
+      "handler": "app.core.infrastructure.calculate_pile_group_cap",
+      "implementation": "app/core/infrastructure.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_infrastructure_api.py",
+        "test_scene_adapter_independent_review.py",
+        "test_scene_pool_bridge_pile_variants.py",
+        "test_scene_site_walls_gravity.py"
+      ],
+      "independent_reference_files": [
+        "geotech_infrastructure_references.py"
+      ],
+      "evidence_registers": [
+        "GEOTECH_INFRASTRUCTURE_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "bridge_steel_timber",
+      "handler": "app.core.infrastructure.calculate_bridge_steel_timber",
+      "implementation": "app/core/infrastructure.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_infrastructure_api.py",
+        "test_scene_pool_bridge_pile_variants.py",
+        "test_scene_typed_adapters.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "bridge_rc",
+      "handler": "app.core.infrastructure.calculate_bridge_rc",
+      "implementation": "app/core/infrastructure.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_bridge_rc.py",
+        "test_infrastructure_api.py",
+        "test_scene_pool_bridge_pile_variants.py",
+        "test_scene_typed_adapters.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "gravity_retaining_wall",
+      "handler": "app.core.infrastructure.calculate_gravity_retaining_wall",
+      "implementation": "app/core/infrastructure.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_geotech_infrastructure_verification.py",
+        "test_gravity_retaining.py",
+        "test_infrastructure_api.py",
+        "test_scene_site_walls_gravity.py",
+        "test_scene_typed_adapters.py"
+      ],
+      "independent_reference_files": [
+        "geotech_infrastructure_references.py"
+      ],
+      "evidence_registers": [
+        "GEOTECH_INFRASTRUCTURE_EVIDENCE.md"
+      ],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "site_rc_wall",
+      "handler": "app.core.site_wall_api.calculate_site_rc_wall",
+      "implementation": "app/core/site_wall_api.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_scene_site_walls_gravity.py",
+        "test_scene_typed_adapters.py",
+        "test_site_wall_api.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "steel_infill_wall",
+      "handler": "app.core.site_wall_api.calculate_steel_infill_wall",
+      "implementation": "app/core/site_wall_api.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_api.py",
+        "test_scene_site_walls_gravity.py",
+        "test_scene_typed_adapters.py",
+        "test_site_wall_api.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "plain_masonry_wall",
+      "handler": "app.core.site_wall_api.calculate_plain_masonry_wall",
+      "implementation": "app/core/site_wall_api.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_scene_site_walls_gravity.py",
+        "test_scene_typed_adapters.py",
+        "test_site_wall_api.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "load_combinations",
+      "handler": "app.core.load_environment_api.calculate_load_combinations",
+      "implementation": "app/core/load_environment_api.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_calculation_library_catalog.py",
+        "test_load_environment_api.py",
+        "test_scene_site_walls_gravity.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "wind_snow_guide",
+      "handler": "app.core.load_environment_api.calculate_wind_snow_guide",
+      "implementation": "app/core/load_environment_api.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_calculation_library_catalog.py",
+        "test_load_environment.py",
+        "test_load_environment_api.py",
+        "test_scene_site_walls_gravity.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    },
+    {
+      "module": "soil_water_actions",
+      "handler": "app.core.load_environment_api.calculate_soil_water_action_package",
+      "implementation": "app/core/load_environment_api.py",
+      "input_model": "CalculationRequest / typed_inputs for nextgen",
+      "api": "POST /api/v2/calculate",
+      "storage": "ProjectVersion / ProjectRevision immutable snapshot",
+      "report": "app/report.py",
+      "tests": [
+        "test_calculation_library_catalog.py",
+        "test_load_environment.py",
+        "test_load_environment_api.py",
+        "test_scene_site_walls_gravity.py"
+      ],
+      "independent_reference_files": [],
+      "evidence_registers": [],
+      "external_same_model_comparison": "not_completed",
+      "verification_status": "unverified",
+      "remaining_evidence": [
+        "Chinese-standard clause and applicability review",
+        "independent signed review",
+        "applicable external same-model comparison"
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "family": "pergola-pavilion",
+      "variant": "guided-grid",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "environment",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "roof_members",
+          "module": "steel_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "main_frame",
+          "module": "portal_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "c1",
+          "source_node_id": "environment",
+          "target_node_id": "roof_members",
+          "transfer": "area_to_line",
+          "output_unit": "kN/m",
+          "input_unit": "kN/m",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "c2",
+          "source_node_id": "roof_members",
+          "target_node_id": "main_frame",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": "purlin_spacing_m",
+          "requires_source_trace": true,
+          "description": "代表性檩条支座反力按檩条间距换算为横向框架梁线荷载。"
+        },
+        {
+          "id": "c3",
+          "source_node_id": "main_frame",
+          "target_node_id": "base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "c4",
+          "source_node_id": "main_frame",
+          "target_node_id": "base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "c5",
+          "source_node_id": "base_left",
+          "target_node_id": "foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "c6",
+          "source_node_id": "base_right",
+          "target_node_id": "foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "pergola-pavilion",
+      "variant": "flat-single",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "environment",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "roof_members",
+          "module": "steel_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "main_frame",
+          "module": "portal_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "c1",
+          "source_node_id": "environment",
+          "target_node_id": "roof_members",
+          "transfer": "area_to_line",
+          "output_unit": "kN/m",
+          "input_unit": "kN/m",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "c2",
+          "source_node_id": "roof_members",
+          "target_node_id": "main_frame",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": "purlin_spacing_m",
+          "requires_source_trace": true,
+          "description": "代表性檩条支座反力按檩条间距换算为横向框架梁线荷载。"
+        },
+        {
+          "id": "c3",
+          "source_node_id": "main_frame",
+          "target_node_id": "base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "c4",
+          "source_node_id": "main_frame",
+          "target_node_id": "base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "c5",
+          "source_node_id": "base_left",
+          "target_node_id": "foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "c6",
+          "source_node_id": "base_right",
+          "target_node_id": "foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "pergola-pavilion",
+      "variant": "mono-pitch",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "environment",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "roof_members",
+          "module": "continuous_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "main_frame",
+          "module": "planar_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-mono-pitch-chain_base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-mono-pitch-chain_foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-mono-pitch-chain_base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-mono-pitch-chain_foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "rear_frame",
+          "module": "planar_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-mono-pitch-chain_rear_base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-mono-pitch-chain_rear_foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-mono-pitch-chain_rear_base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-mono-pitch-chain_rear_foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "pergola-mono-pitch-chain-loads-roof",
+          "source_node_id": "environment",
+          "target_node_id": "roof_members",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "pergola-mono-pitch-chain-roof-main_frame",
+          "source_node_id": "roof_members",
+          "target_node_id": "main_frame",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-mono-pitch-chain-main_frame-left",
+          "source_node_id": "main_frame",
+          "target_node_id": "pergola-mono-pitch-chain_base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-mono-pitch-chain-main_frame-right",
+          "source_node_id": "main_frame",
+          "target_node_id": "pergola-mono-pitch-chain_base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-mono-pitch-chain-left-foundation",
+          "source_node_id": "pergola-mono-pitch-chain_base_left",
+          "target_node_id": "pergola-mono-pitch-chain_foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-mono-pitch-chain-right-foundation",
+          "source_node_id": "pergola-mono-pitch-chain_base_right",
+          "target_node_id": "pergola-mono-pitch-chain_foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-mono-pitch-chain-roof-rear_frame",
+          "source_node_id": "roof_members",
+          "target_node_id": "rear_frame",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-mono-pitch-chain-rear_frame-left",
+          "source_node_id": "rear_frame",
+          "target_node_id": "pergola-mono-pitch-chain_rear_base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-mono-pitch-chain-rear_frame-right",
+          "source_node_id": "rear_frame",
+          "target_node_id": "pergola-mono-pitch-chain_rear_base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-mono-pitch-chain_rear-left-foundation",
+          "source_node_id": "pergola-mono-pitch-chain_rear_base_left",
+          "target_node_id": "pergola-mono-pitch-chain_rear_foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-mono-pitch-chain_rear-right-foundation",
+          "source_node_id": "pergola-mono-pitch-chain_rear_base_right",
+          "target_node_id": "pergola-mono-pitch-chain_rear_foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "pergola-pavilion",
+      "variant": "dual-pitch",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "environment",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "roof_members",
+          "module": "continuous_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "main_frame",
+          "module": "planar_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-dual-pitch-chain_base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-dual-pitch-chain_foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-dual-pitch-chain_base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-dual-pitch-chain_foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "rear_frame",
+          "module": "planar_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-dual-pitch-chain_rear_base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-dual-pitch-chain_rear_foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-dual-pitch-chain_rear_base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-dual-pitch-chain_rear_foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "pergola-dual-pitch-chain-loads-roof",
+          "source_node_id": "environment",
+          "target_node_id": "roof_members",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "pergola-dual-pitch-chain-roof-main_frame",
+          "source_node_id": "roof_members",
+          "target_node_id": "main_frame",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-dual-pitch-chain-main_frame-left",
+          "source_node_id": "main_frame",
+          "target_node_id": "pergola-dual-pitch-chain_base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-dual-pitch-chain-main_frame-right",
+          "source_node_id": "main_frame",
+          "target_node_id": "pergola-dual-pitch-chain_base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-dual-pitch-chain-left-foundation",
+          "source_node_id": "pergola-dual-pitch-chain_base_left",
+          "target_node_id": "pergola-dual-pitch-chain_foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-dual-pitch-chain-right-foundation",
+          "source_node_id": "pergola-dual-pitch-chain_base_right",
+          "target_node_id": "pergola-dual-pitch-chain_foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-dual-pitch-chain-roof-rear_frame",
+          "source_node_id": "roof_members",
+          "target_node_id": "rear_frame",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-dual-pitch-chain-rear_frame-left",
+          "source_node_id": "rear_frame",
+          "target_node_id": "pergola-dual-pitch-chain_rear_base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-dual-pitch-chain-rear_frame-right",
+          "source_node_id": "rear_frame",
+          "target_node_id": "pergola-dual-pitch-chain_rear_base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-dual-pitch-chain_rear-left-foundation",
+          "source_node_id": "pergola-dual-pitch-chain_rear_base_left",
+          "target_node_id": "pergola-dual-pitch-chain_rear_foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-dual-pitch-chain_rear-right-foundation",
+          "source_node_id": "pergola-dual-pitch-chain_rear_base_right",
+          "target_node_id": "pergola-dual-pitch-chain_rear_foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "pergola-pavilion",
+      "variant": "multi-bay",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "environment",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "roof_members",
+          "module": "continuous_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "main_frame",
+          "module": "planar_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_base_middle",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_foundation_middle",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "rear_frame",
+          "module": "planar_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_rear_base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_rear_foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_rear_base_middle",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_rear_foundation_middle",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_rear_base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_rear_foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "pergola-two-bay-unequal-chain-loads-roof",
+          "source_node_id": "environment",
+          "target_node_id": "roof_members",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain-roof-main_frame",
+          "source_node_id": "roof_members",
+          "target_node_id": "main_frame",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain-main_frame-left",
+          "source_node_id": "main_frame",
+          "target_node_id": "pergola-two-bay-unequal-chain_base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain-main_frame-middle",
+          "source_node_id": "main_frame",
+          "target_node_id": "pergola-two-bay-unequal-chain_base_middle",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain-main_frame-right",
+          "source_node_id": "main_frame",
+          "target_node_id": "pergola-two-bay-unequal-chain_base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain-left-foundation",
+          "source_node_id": "pergola-two-bay-unequal-chain_base_left",
+          "target_node_id": "pergola-two-bay-unequal-chain_foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain-middle-foundation",
+          "source_node_id": "pergola-two-bay-unequal-chain_base_middle",
+          "target_node_id": "pergola-two-bay-unequal-chain_foundation_middle",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain-right-foundation",
+          "source_node_id": "pergola-two-bay-unequal-chain_base_right",
+          "target_node_id": "pergola-two-bay-unequal-chain_foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain-roof-rear_frame",
+          "source_node_id": "roof_members",
+          "target_node_id": "rear_frame",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain-rear_frame-left",
+          "source_node_id": "rear_frame",
+          "target_node_id": "pergola-two-bay-unequal-chain_rear_base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain-rear_frame-middle",
+          "source_node_id": "rear_frame",
+          "target_node_id": "pergola-two-bay-unequal-chain_rear_base_middle",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain-rear_frame-right",
+          "source_node_id": "rear_frame",
+          "target_node_id": "pergola-two-bay-unequal-chain_rear_base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_rear-left-foundation",
+          "source_node_id": "pergola-two-bay-unequal-chain_rear_base_left",
+          "target_node_id": "pergola-two-bay-unequal-chain_rear_foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_rear-middle-foundation",
+          "source_node_id": "pergola-two-bay-unequal-chain_rear_base_middle",
+          "target_node_id": "pergola-two-bay-unequal-chain_rear_foundation_middle",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pergola-two-bay-unequal-chain_rear-right-foundation",
+          "source_node_id": "pergola-two-bay-unequal-chain_rear_base_right",
+          "target_node_id": "pergola-two-bay-unequal-chain_rear_foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "canopy",
+      "variant": "wall-cantilever",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "canopy_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "secondary_beam",
+          "module": "steel_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "wall_anchor",
+          "module": "wall_anchor",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "canopy-wall-load-beam",
+          "source_node_id": "canopy_loads",
+          "target_node_id": "secondary_beam",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "canopy-wall-beam-anchor",
+          "source_node_id": "secondary_beam",
+          "target_node_id": "wall_anchor",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "canopy",
+      "variant": "single-row",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "roof_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "secondary",
+          "module": "steel_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "column",
+          "module": "steel_column",
+          "applicability": "required"
+        },
+        {
+          "id": "base_connection",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "cs-1",
+          "source_node_id": "roof_loads",
+          "target_node_id": "secondary",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "cs-2",
+          "source_node_id": "secondary",
+          "target_node_id": "column",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "cs-3",
+          "source_node_id": "column",
+          "target_node_id": "base_connection",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "cs-4",
+          "source_node_id": "base_connection",
+          "target_node_id": "foundation",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "canopy",
+      "variant": "double-row",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "roof_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "secondary",
+          "module": "steel_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "primary",
+          "module": "portal_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "cd-1",
+          "source_node_id": "roof_loads",
+          "target_node_id": "secondary",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "cd-2",
+          "source_node_id": "secondary",
+          "target_node_id": "primary",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "cd-3",
+          "source_node_id": "primary",
+          "target_node_id": "base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "cd-4",
+          "source_node_id": "primary",
+          "target_node_id": "base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "cd-5",
+          "source_node_id": "base_left",
+          "target_node_id": "foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "cd-6",
+          "source_node_id": "base_right",
+          "target_node_id": "foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "signage-billboard",
+      "variant": "single-post",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "wind_panel",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "post",
+          "module": "steel_cantilever_post",
+          "applicability": "required"
+        },
+        {
+          "id": "base_plate",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "sg-1",
+          "source_node_id": "wind_panel",
+          "target_node_id": "post",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "sg-2",
+          "source_node_id": "post",
+          "target_node_id": "base_plate",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "sg-3",
+          "source_node_id": "base_plate",
+          "target_node_id": "foundation",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "signage-billboard",
+      "variant": "double-post",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "wind_panel",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "post",
+          "module": "planar_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "signage-double-post-chain-v32_base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "signage-double-post-chain-v32_foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "signage-double-post-chain-v32_base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "signage-double-post-chain-v32_foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "signage-double-post-chain-v32-load-frame",
+          "source_node_id": "wind_panel",
+          "target_node_id": "post",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "signage-double-post-chain-v32-frame-left",
+          "source_node_id": "post",
+          "target_node_id": "signage-double-post-chain-v32_base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "signage-double-post-chain-v32-frame-right",
+          "source_node_id": "post",
+          "target_node_id": "signage-double-post-chain-v32_base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "signage-double-post-chain-v32-left-foundation",
+          "source_node_id": "signage-double-post-chain-v32_base_left",
+          "target_node_id": "signage-double-post-chain-v32_foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "signage-double-post-chain-v32-right-foundation",
+          "source_node_id": "signage-double-post-chain-v32_base_right",
+          "target_node_id": "signage-double-post-chain-v32_foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "signage-billboard",
+      "variant": "ground-mounted",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "wind_panel",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "post",
+          "module": "planar_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "signage-ground-mounted-chain-v32_base_base",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "signage-ground-mounted-chain-v32_foundation_base",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "signage-ground-mounted-chain-v32-load-frame",
+          "source_node_id": "wind_panel",
+          "target_node_id": "post",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "signage-ground-mounted-chain-v32-frame-base",
+          "source_node_id": "post",
+          "target_node_id": "signage-ground-mounted-chain-v32_base_base",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "signage-ground-mounted-chain-v32-base-foundation",
+          "source_node_id": "signage-ground-mounted-chain-v32_base_base",
+          "target_node_id": "signage-ground-mounted-chain-v32_foundation_base",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "signage-billboard",
+      "variant": "eccentric-panel",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "wind_panel",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "post",
+          "module": "steel_cantilever_post",
+          "applicability": "required"
+        },
+        {
+          "id": "base_plate",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "sign-ecc-load-post",
+          "source_node_id": "wind_panel",
+          "target_node_id": "post",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "sign-ecc-post-base",
+          "source_node_id": "post",
+          "target_node_id": "base_plate",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "sign-ecc-base-foundation",
+          "source_node_id": "base_plate",
+          "target_node_id": "foundation",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-wall-fence",
+      "variant": "constrained-masonry",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "wall_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "masonry_infill",
+          "module": "masonry_wall",
+          "applicability": "required"
+        },
+        {
+          "id": "construction_columns",
+          "module": "concrete_column",
+          "applicability": "required"
+        },
+        {
+          "id": "cap_beam",
+          "module": "concrete_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "ground_beam",
+          "module": "concrete_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "wall_foundation",
+          "module": "strip_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "wm-1",
+          "source_node_id": "wall_loads",
+          "target_node_id": "masonry_infill",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "wm-2",
+          "source_node_id": "masonry_infill",
+          "target_node_id": "construction_columns",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "wm-3",
+          "source_node_id": "construction_columns",
+          "target_node_id": "cap_beam",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "wm-4",
+          "source_node_id": "cap_beam",
+          "target_node_id": "ground_beam",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "wm-5",
+          "source_node_id": "ground_beam",
+          "target_node_id": "wall_foundation",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-wall-fence",
+      "variant": "concrete-straight",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "wall_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "wall_system",
+          "module": "site_rc_wall",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation_interface",
+          "module": null,
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "sw-1",
+          "source_node_id": "wall_loads",
+          "target_node_id": "wall_system",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "sw-2",
+          "source_node_id": "wall_system",
+          "target_node_id": "foundation_interface",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": "传递墙体底部同组合六分量反力及基础线荷载追踪号。"
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-wall-fence",
+      "variant": "steel-infill",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "wall_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "wall_system",
+          "module": "steel_infill_wall",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation_interface",
+          "module": null,
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "sw-1",
+          "source_node_id": "wall_loads",
+          "target_node_id": "wall_system",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "sw-2",
+          "source_node_id": "wall_system",
+          "target_node_id": "foundation_interface",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": "传递墙体底部同组合六分量反力及基础线荷载追踪号。"
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-wall-fence",
+      "variant": "plain-masonry",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "wall_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "wall_system",
+          "module": "plain_masonry_wall",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation_interface",
+          "module": null,
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "sw-1",
+          "source_node_id": "wall_loads",
+          "target_node_id": "wall_system",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "sw-2",
+          "source_node_id": "wall_system",
+          "target_node_id": "foundation_interface",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": "传递墙体底部同组合六分量反力及基础线荷载追踪号。"
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "entrance-frame",
+      "variant": "single-span",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "gate_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "gate_frame",
+          "module": "portal_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "gate_base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "gate_base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "gate_foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "gate_foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "eg-1",
+          "source_node_id": "gate_loads",
+          "target_node_id": "gate_frame",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "eg-2",
+          "source_node_id": "gate_frame",
+          "target_node_id": "gate_base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "eg-3",
+          "source_node_id": "gate_frame",
+          "target_node_id": "gate_base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "eg-4",
+          "source_node_id": "gate_base_left",
+          "target_node_id": "gate_foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "eg-5",
+          "source_node_id": "gate_base_right",
+          "target_node_id": "gate_foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "entrance-frame",
+      "variant": "multi-span",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "gate_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "gate_frame",
+          "module": "planar_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-two-bay-chain-v32_base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-two-bay-chain-v32_foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-two-bay-chain-v32_base_middle",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-two-bay-chain-v32_foundation_middle",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-two-bay-chain-v32_base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-two-bay-chain-v32_foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "entrance-two-bay-chain-v32-load-frame",
+          "source_node_id": "gate_loads",
+          "target_node_id": "gate_frame",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "entrance-two-bay-chain-v32-frame-left",
+          "source_node_id": "gate_frame",
+          "target_node_id": "entrance-two-bay-chain-v32_base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "entrance-two-bay-chain-v32-frame-middle",
+          "source_node_id": "gate_frame",
+          "target_node_id": "entrance-two-bay-chain-v32_base_middle",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "entrance-two-bay-chain-v32-frame-right",
+          "source_node_id": "gate_frame",
+          "target_node_id": "entrance-two-bay-chain-v32_base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "entrance-two-bay-chain-v32-left-foundation",
+          "source_node_id": "entrance-two-bay-chain-v32_base_left",
+          "target_node_id": "entrance-two-bay-chain-v32_foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "entrance-two-bay-chain-v32-middle-foundation",
+          "source_node_id": "entrance-two-bay-chain-v32_base_middle",
+          "target_node_id": "entrance-two-bay-chain-v32_foundation_middle",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "entrance-two-bay-chain-v32-right-foundation",
+          "source_node_id": "entrance-two-bay-chain-v32_base_right",
+          "target_node_id": "entrance-two-bay-chain-v32_foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "entrance-frame",
+      "variant": "eccentric-lintel",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "gate_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "gate_frame",
+          "module": "planar_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-eccentric-lintel-chain-v32_base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-eccentric-lintel-chain-v32_foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-eccentric-lintel-chain-v32_base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-eccentric-lintel-chain-v32_foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "entrance-eccentric-lintel-chain-v32-load-frame",
+          "source_node_id": "gate_loads",
+          "target_node_id": "gate_frame",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "entrance-eccentric-lintel-chain-v32-frame-left",
+          "source_node_id": "gate_frame",
+          "target_node_id": "entrance-eccentric-lintel-chain-v32_base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "entrance-eccentric-lintel-chain-v32-frame-right",
+          "source_node_id": "gate_frame",
+          "target_node_id": "entrance-eccentric-lintel-chain-v32_base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "entrance-eccentric-lintel-chain-v32-left-foundation",
+          "source_node_id": "entrance-eccentric-lintel-chain-v32_base_left",
+          "target_node_id": "entrance-eccentric-lintel-chain-v32_foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "entrance-eccentric-lintel-chain-v32-right-foundation",
+          "source_node_id": "entrance-eccentric-lintel-chain-v32_base_right",
+          "target_node_id": "entrance-eccentric-lintel-chain-v32_foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "entrance-frame",
+      "variant": "unequal-columns",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "gate_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "gate_frame",
+          "module": "planar_frame",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-unequal-column-chain-v32_base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-unequal-column-chain-v32_foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-unequal-column-chain-v32_base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "entrance-unequal-column-chain-v32_foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "entrance-unequal-column-chain-v32-load-frame",
+          "source_node_id": "gate_loads",
+          "target_node_id": "gate_frame",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "entrance-unequal-column-chain-v32-frame-left",
+          "source_node_id": "gate_frame",
+          "target_node_id": "entrance-unequal-column-chain-v32_base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "entrance-unequal-column-chain-v32-frame-right",
+          "source_node_id": "gate_frame",
+          "target_node_id": "entrance-unequal-column-chain-v32_base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "entrance-unequal-column-chain-v32-left-foundation",
+          "source_node_id": "entrance-unequal-column-chain-v32_base_left",
+          "target_node_id": "entrance-unequal-column-chain-v32_foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "entrance-unequal-column-chain-v32-right-foundation",
+          "source_node_id": "entrance-unequal-column-chain-v32_base_right",
+          "target_node_id": "entrance-unequal-column-chain-v32_foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "boardwalk-platform",
+      "variant": "straight",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "deck_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "deck",
+          "module": "timber_deck_panel",
+          "applicability": "required"
+        },
+        {
+          "id": "secondary",
+          "module": "steel_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "primary",
+          "module": "steel_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "column_left",
+          "module": "steel_column",
+          "applicability": "required"
+        },
+        {
+          "id": "column_right",
+          "module": "steel_column",
+          "applicability": "required"
+        },
+        {
+          "id": "base_left",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "base_right",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "foundation_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "bw-0",
+          "source_node_id": "deck_loads",
+          "target_node_id": "deck",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "bw-1",
+          "source_node_id": "deck",
+          "target_node_id": "secondary",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bw-2",
+          "source_node_id": "secondary",
+          "target_node_id": "primary",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bw-3",
+          "source_node_id": "primary",
+          "target_node_id": "column_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bw-4",
+          "source_node_id": "primary",
+          "target_node_id": "column_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bw-5",
+          "source_node_id": "column_left",
+          "target_node_id": "base_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bw-6",
+          "source_node_id": "column_right",
+          "target_node_id": "base_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bw-7",
+          "source_node_id": "base_left",
+          "target_node_id": "foundation_left",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bw-8",
+          "source_node_id": "base_right",
+          "target_node_id": "foundation_right",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [
+        "木面板连接与长期变形",
+        "柱脚混凝土锚固破坏"
+      ],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "boardwalk-platform",
+      "variant": "viewing-platform",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "deck_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "deck",
+          "module": "two_way_slab",
+          "applicability": "required"
+        },
+        {
+          "id": "edge_south",
+          "module": "continuous_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "edge_north",
+          "module": "continuous_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "edge_west",
+          "module": "continuous_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "edge_east",
+          "module": "continuous_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "platform_base_south_west",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "platform_base_south_east",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "platform_base_north_west",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "platform_base_north_east",
+          "module": "steel_baseplate_anchor",
+          "applicability": "required"
+        },
+        {
+          "id": "platform_foundation_south_west",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "platform_foundation_south_east",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "platform_foundation_north_west",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "platform_foundation_north_east",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "platform-load-deck",
+          "source_node_id": "deck_loads",
+          "target_node_id": "deck",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "platform-deck-south",
+          "source_node_id": "deck",
+          "target_node_id": "edge_south",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": "显式45度分担区，按边梁真实长度分段积分；四边分担总和等于板总荷载。"
+        },
+        {
+          "id": "platform-deck-north",
+          "source_node_id": "deck",
+          "target_node_id": "edge_north",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": "显式45度分担区，按边梁真实长度分段积分；四边分担总和等于板总荷载。"
+        },
+        {
+          "id": "platform-deck-west",
+          "source_node_id": "deck",
+          "target_node_id": "edge_west",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": "显式45度分担区，按边梁真实长度分段积分；四边分担总和等于板总荷载。"
+        },
+        {
+          "id": "platform-deck-east",
+          "source_node_id": "deck",
+          "target_node_id": "edge_east",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": "显式45度分担区，按边梁真实长度分段积分；四边分担总和等于板总荷载。"
+        },
+        {
+          "id": "platform-south-south_west",
+          "source_node_id": "edge_south",
+          "target_node_id": "platform_base_south_west",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "platform-south-south_east",
+          "source_node_id": "edge_south",
+          "target_node_id": "platform_base_south_east",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "platform-north-north_west",
+          "source_node_id": "edge_north",
+          "target_node_id": "platform_base_north_west",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "platform-north-north_east",
+          "source_node_id": "edge_north",
+          "target_node_id": "platform_base_north_east",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "platform-west-south_west",
+          "source_node_id": "edge_west",
+          "target_node_id": "platform_base_south_west",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "platform-west-north_west",
+          "source_node_id": "edge_west",
+          "target_node_id": "platform_base_north_west",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "platform-east-south_east",
+          "source_node_id": "edge_east",
+          "target_node_id": "platform_base_south_east",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "platform-east-north_east",
+          "source_node_id": "edge_east",
+          "target_node_id": "platform_base_north_east",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "platform-south_west-foundation",
+          "source_node_id": "platform_base_south_west",
+          "target_node_id": "platform_foundation_south_west",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "platform-south_east-foundation",
+          "source_node_id": "platform_base_south_east",
+          "target_node_id": "platform_foundation_south_east",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "platform-north_west-foundation",
+          "source_node_id": "platform_base_north_west",
+          "target_node_id": "platform_foundation_north_west",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "platform-north_east-foundation",
+          "source_node_id": "platform_base_north_east",
+          "target_node_id": "platform_foundation_north_east",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "bench-planter",
+      "variant": "bench",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "seat_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "seat_slab",
+          "module": "concrete_slab",
+          "applicability": "required"
+        },
+        {
+          "id": "support_beam",
+          "module": "concrete_beam",
+          "applicability": "required"
+        },
+        {
+          "id": "bench_foundation",
+          "module": "strip_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "bn-1",
+          "source_node_id": "seat_loads",
+          "target_node_id": "seat_slab",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "bn-2",
+          "source_node_id": "seat_slab",
+          "target_node_id": "support_beam",
+          "transfer": "reaction_to_line",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": "reaction_conversion_spacing_m",
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bn-3",
+          "source_node_id": "support_beam",
+          "target_node_id": "bench_foundation",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "bench-planter",
+      "variant": "planter",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "planter_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "planter_wall",
+          "module": "rc_wall",
+          "applicability": "required"
+        },
+        {
+          "id": "planter_foundation",
+          "module": "strip_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "pt-1",
+          "source_node_id": "planter_loads",
+          "target_node_id": "planter_wall",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "pt-2",
+          "source_node_id": "planter_wall",
+          "target_node_id": "planter_foundation",
+          "transfer": "reaction_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "water-feature-pool",
+      "variant": "rect-above",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "pool_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "pool_structure",
+          "module": "pool_structure",
+          "applicability": "required"
+        },
+        {
+          "id": "antifloat_support",
+          "module": null,
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "pool-above-shallow-v32-loads-pool",
+          "source_node_id": "pool_loads",
+          "target_node_id": "pool_structure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "pool-above-shallow-v32-pool-support",
+          "source_node_id": "pool_structure",
+          "target_node_id": "antifloat_support",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "water-feature-pool",
+      "variant": "rect-buried",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "pool_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "pool_structure",
+          "module": "pool_structure",
+          "applicability": "required"
+        },
+        {
+          "id": "antifloat_support",
+          "module": null,
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "pool-buried-shallow-v32-loads-pool",
+          "source_node_id": "pool_loads",
+          "target_node_id": "pool_structure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "pool-buried-shallow-v32-pool-support",
+          "source_node_id": "pool_structure",
+          "target_node_id": "antifloat_support",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "water-feature-pool",
+      "variant": "rect-semi-buried",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "pool_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "pool_structure",
+          "module": "pool_structure",
+          "applicability": "required"
+        },
+        {
+          "id": "antifloat_support",
+          "module": null,
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "pool-semi-shallow-v32-loads-pool",
+          "source_node_id": "pool_loads",
+          "target_node_id": "pool_structure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "pool-semi-shallow-v32-pool-support",
+          "source_node_id": "pool_structure",
+          "target_node_id": "antifloat_support",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "water-feature-pool",
+      "variant": "rect-above-pile",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "pool_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "pool_structure",
+          "module": "pool_structure",
+          "applicability": "required"
+        },
+        {
+          "id": "antifloat_support",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "pile_cap",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "pool-above-pile-v32-loads-pool",
+          "source_node_id": "pool_loads",
+          "target_node_id": "pool_structure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "pool-above-pile-v32-pool-support",
+          "source_node_id": "pool_structure",
+          "target_node_id": "antifloat_support",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pool-above-pile-v32-support-piles",
+          "source_node_id": "antifloat_support",
+          "target_node_id": "pile_cap",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "water-feature-pool",
+      "variant": "rect-semi-buried-pile",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "pool_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "pool_structure",
+          "module": "pool_structure",
+          "applicability": "required"
+        },
+        {
+          "id": "antifloat_support",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "pile_cap",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "pool-semi-pile-v32-loads-pool",
+          "source_node_id": "pool_loads",
+          "target_node_id": "pool_structure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "pool-semi-pile-v32-pool-support",
+          "source_node_id": "pool_structure",
+          "target_node_id": "antifloat_support",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pool-semi-pile-v32-support-piles",
+          "source_node_id": "antifloat_support",
+          "target_node_id": "pile_cap",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "water-feature-pool",
+      "variant": "rect-buried-pile",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "pool_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "pool_structure",
+          "module": "pool_structure",
+          "applicability": "required"
+        },
+        {
+          "id": "antifloat_support",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "pile_cap",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "pool-buried-pile-v32-loads-pool",
+          "source_node_id": "pool_loads",
+          "target_node_id": "pool_structure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "pool-buried-pile-v32-pool-support",
+          "source_node_id": "pool_structure",
+          "target_node_id": "antifloat_support",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "pool-buried-pile-v32-support-piles",
+          "source_node_id": "antifloat_support",
+          "target_node_id": "pile_cap",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-bridge",
+      "variant": "single-straight",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "bridge_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "bridge_superstructure",
+          "module": "bridge_steel_timber",
+          "applicability": "required"
+        },
+        {
+          "id": "support_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "support_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "bridge-steel-timber-single-shallow-v32-loads-superstructure",
+          "source_node_id": "bridge_loads",
+          "target_node_id": "bridge_superstructure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "bridge-steel-timber-single-shallow-v32-support-left",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_left",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-steel-timber-single-shallow-v32-support-right",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_right",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-bridge",
+      "variant": "multi-span",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "bridge_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "bridge_superstructure",
+          "module": "bridge_steel_timber",
+          "applicability": "required"
+        },
+        {
+          "id": "support_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "support_middle",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "support_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "bridge-steel-timber-two-span-shallow-v32-loads-superstructure",
+          "source_node_id": "bridge_loads",
+          "target_node_id": "bridge_superstructure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "bridge-steel-timber-two-span-shallow-v32-support-left",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_left",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-steel-timber-two-span-shallow-v32-support-middle",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_middle",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-steel-timber-two-span-shallow-v32-support-right",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_right",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-bridge",
+      "variant": "single-steel-timber-pile",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "bridge_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "bridge_superstructure",
+          "module": "bridge_steel_timber",
+          "applicability": "required"
+        },
+        {
+          "id": "support_left",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        },
+        {
+          "id": "support_right",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "bridge-steel-timber-single-pile-v32-loads-superstructure",
+          "source_node_id": "bridge_loads",
+          "target_node_id": "bridge_superstructure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "bridge-steel-timber-single-pile-v32-support-left",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_left",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-steel-timber-single-pile-v32-support-right",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_right",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-bridge",
+      "variant": "multi-steel-timber-pile",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "bridge_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "bridge_superstructure",
+          "module": "bridge_steel_timber",
+          "applicability": "required"
+        },
+        {
+          "id": "support_left",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        },
+        {
+          "id": "support_middle",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        },
+        {
+          "id": "support_right",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "bridge-steel-timber-two-span-pile-v32-loads-superstructure",
+          "source_node_id": "bridge_loads",
+          "target_node_id": "bridge_superstructure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "bridge-steel-timber-two-span-pile-v32-support-left",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_left",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-steel-timber-two-span-pile-v32-support-middle",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_middle",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-steel-timber-two-span-pile-v32-support-right",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_right",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-bridge",
+      "variant": "single-rc-shallow",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "bridge_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "bridge_superstructure",
+          "module": "bridge_rc",
+          "applicability": "required"
+        },
+        {
+          "id": "support_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "support_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "bridge-rc-single-shallow-v32-loads-superstructure",
+          "source_node_id": "bridge_loads",
+          "target_node_id": "bridge_superstructure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "bridge-rc-single-shallow-v32-support-left",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_left",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-rc-single-shallow-v32-support-right",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_right",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-bridge",
+      "variant": "single-rc-pile",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "bridge_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "bridge_superstructure",
+          "module": "bridge_rc",
+          "applicability": "required"
+        },
+        {
+          "id": "support_left",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        },
+        {
+          "id": "support_right",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "bridge-rc-single-pile-v32-loads-superstructure",
+          "source_node_id": "bridge_loads",
+          "target_node_id": "bridge_superstructure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "bridge-rc-single-pile-v32-support-left",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_left",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-rc-single-pile-v32-support-right",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_right",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-bridge",
+      "variant": "multi-rc-shallow",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "bridge_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "bridge_superstructure",
+          "module": "bridge_rc",
+          "applicability": "required"
+        },
+        {
+          "id": "support_left",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "support_middle",
+          "module": "spread_footing",
+          "applicability": "required"
+        },
+        {
+          "id": "support_right",
+          "module": "spread_footing",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "bridge-rc-two-span-shallow-v32-loads-superstructure",
+          "source_node_id": "bridge_loads",
+          "target_node_id": "bridge_superstructure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "bridge-rc-two-span-shallow-v32-support-left",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_left",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-rc-two-span-shallow-v32-support-middle",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_middle",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-rc-two-span-shallow-v32-support-right",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_right",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "landscape-bridge",
+      "variant": "multi-rc-pile",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "bridge_loads",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "bridge_superstructure",
+          "module": "bridge_rc",
+          "applicability": "required"
+        },
+        {
+          "id": "support_left",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        },
+        {
+          "id": "support_middle",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        },
+        {
+          "id": "support_right",
+          "module": "pile_group_cap",
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "bridge-rc-two-span-pile-v32-loads-superstructure",
+          "source_node_id": "bridge_loads",
+          "target_node_id": "bridge_superstructure",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "bridge-rc-two-span-pile-v32-support-left",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_left",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "left",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-rc-two-span-pile-v32-support-middle",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_middle",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        },
+        {
+          "id": "bridge-rc-two-span-pile-v32-support-right",
+          "source_node_id": "bridge_superstructure",
+          "target_node_id": "support_right",
+          "transfer": "combination_package",
+          "output_unit": "kN",
+          "input_unit": "kN",
+          "support": "right",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "retaining-facility",
+      "variant": "cantilever-rc",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "soil_water_inputs",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "retaining_wall",
+          "module": "retaining_wall",
+          "applicability": "required"
+        },
+        {
+          "id": "soil_contact",
+          "module": null,
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "rt-1",
+          "source_node_id": "soil_water_inputs",
+          "target_node_id": "retaining_wall",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "rt-2",
+          "source_node_id": "retaining_wall",
+          "target_node_id": "soil_contact",
+          "transfer": "reaction_package",
+          "output_unit": "kN/m",
+          "input_unit": "kN/m",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    },
+    {
+      "family": "retaining-facility",
+      "variant": "gravity",
+      "availability": "public",
+      "nodes": [
+        {
+          "id": "soil_water_inputs",
+          "module": null,
+          "applicability": "required"
+        },
+        {
+          "id": "gravity_wall",
+          "module": "gravity_retaining_wall",
+          "applicability": "required"
+        },
+        {
+          "id": "soil_contact",
+          "module": null,
+          "applicability": "required"
+        }
+      ],
+      "connections": [
+        {
+          "id": "gr-1",
+          "source_node_id": "soil_water_inputs",
+          "target_node_id": "gravity_wall",
+          "transfer": "manual",
+          "output_unit": null,
+          "input_unit": null,
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": false,
+          "description": ""
+        },
+        {
+          "id": "gr-2",
+          "source_node_id": "gravity_wall",
+          "target_node_id": "soil_contact",
+          "transfer": "reaction_package",
+          "output_unit": "kN/m",
+          "input_unit": "kN/m",
+          "support": "base",
+          "conversion_input_key": null,
+          "requires_source_trace": true,
+          "description": ""
+        }
+      ],
+      "capability_gaps": [],
+      "external_full_chain_verified": false,
+      "signed_review": false
+    }
+  ]
+}

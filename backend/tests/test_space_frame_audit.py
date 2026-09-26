@@ -55,7 +55,7 @@ def test_released_member_stability_cannot_false_pass_near_critical_load():
                     nodal_loads=(SpaceNodalLoad("B",fx_kn=-5700,fy_kn=10),))
     with pytest.raises(CalculationInputError) as error:
         analyze_space_frame_stability(model)
-    assert error.value.code == "released_member_stability_unavailable"
+    assert error.value.code == "elastic_buckling_instability"
 
 
 @pytest.mark.parametrize("elements,reference", [(1,12.000),(2,9.944),(3,9.885),(4,9.875),(5,9.872),(6,9.871)])

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:MadCap="http://www.madcapsoftware.com/Schemas/MadCap.xsd" lang="en-gb" xml:lang="en-gb" data-mc-search-type="Stem" data-mc-help-system-file-name="index.xml" data-mc-path-to-help-system="../../../" data-mc-target-type="WebHelp2" data-mc-runtime-file-type="Topic" data-mc-preload-images="false" data-mc-in-preview-mode="false" data-mc-toc-path="Analysis|Functionality - Nonlinearity">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Support nonlinearity/Basic soil spring</title>
+        <link href="../../../Skins/Default/Stylesheets/Slideshow.css" rel="stylesheet" />
+        <link href="../../../Skins/Default/Stylesheets/TextEffects.css" rel="stylesheet" />
+        <link href="../../../Skins/Default/Stylesheets/Topic.css" rel="stylesheet" />
+        <link href="../../../Skins/Default/Stylesheets/Components/Styles.css" rel="stylesheet" />
+        <link href="../../../Skins/Default/Stylesheets/Components/Tablet.css" rel="stylesheet" />
+        <link href="../../../Skins/Default/Stylesheets/Components/Mobile.css" rel="stylesheet" />
+        <link href="../../../resources/tablestyles/alignbottom.css" rel="stylesheet" />
+        <link href="../../../resources/tablestyles/table.css" rel="stylesheet" />
+        <link href="../../../resources/stylesheets/help.css" rel="stylesheet" />
+        <script src="../../../resources/Scripts/jquery.min.js">
+        </script>
+        <script src="../../../resources/Scripts/require.min.js" defer="defer">
+        </script>
+        <script src="../../../resources/Scripts/require.config.js" defer="defer">
+        </script>
+        <script src="../../../resources/Scripts/foundation.min.js" defer="defer">
+        </script>
+        <script src="../../../resources/Scripts/plugins.min.js" defer="defer">
+        </script>
+        <script src="../../../resources/Scripts/MadCapAll.js" defer="defer">
+        </script>
+        <script src="file://s7.addthis.com/js/300/addthis_widget.js#pubid=ra-5449016f6b40c2ef">
+        </script>
+        <script src="../../../resources/scripts/ganalyticshelp.js">
+        </script>
+    </head>
+    <body>
+        <!-- Google Tag Manager (noscript) -->
+        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-BX52" height="0" width="0" style="display:none;visibility:hidden"></iframe>
+        </noscript>
+        <!-- End Google Tag Manager (noscript) -->
+        <p>
+            <img src="../../../images/se_logo_color_final.jpg" class="AsIsNoBorder" style="margin-left: 5px;" />
+        </p>
+        <table style="width: 100%;margin-left: auto;margin-right: 0;mc-table-style: url('../../../resources/tablestyles/alignbottom.css');" class="TableStyle-AlignBottom" cellspacing="0">
+            <col class="TableStyle-AlignBottom-Column-Column1" />
+            <col class="TableStyle-AlignBottom-Column-Column2" />
+            <tbody>
+                <tr class="TableStyle-AlignBottom-Body-Body1">
+                    <td class="TableStyle-AlignBottom-BodyE-Column1-Body1">
+                        <nav id="primary_nav_wrap">
+                            <ul>
+                                <li value="1"><a href="https://help.scia.net/22.0/en/index.htm" target="_parent">Home ▲&#160;&#160;&#160;</a>
+                                </li>
+                                <li value="2"><a href="#"><b>English</b> ▼&#160;&#160;&#160;</a>
+                                    <ul>
+                                        <li value="1"><a href="https://help.scia.net/19.0/cs/index.htm" target="_parent">Česky</a>
+                                        </li>
+                                        <li value="2"><a href="https://help.scia.net/19.0/de/index.htm" target="_parent">Deutsch</a>
+                                        </li>
+                                        <li value="3"><a href="https://help.scia.net/19.0/fr/index.htm" target="_parent">Français</a>
+                                        </li>
+                                        <li value="4"><a href="https://help.scia.net/19.0/nl/index.htm" target="_parent">Nederlands</a>
+                                        </li>
+                                        <li value="5"><a href="https://help.scia.net/19.0/ro/index.htm" target="_parent">Română</a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li value="3"><a href="#">SCIA Engineer 22 ▼</a>
+                                    <ul>
+                                        <li value="1"><a href="https://help.scia.net/21.0/en/index.htm" target="_parent">SCIA Engineer 21.x</a>
+                                        </li>
+                                        <li value="2"><a href="https://help.scia.net/20.0/en/index.htm" target="_parent">SCIA Engineer 20.0</a>
+                                        </li>
+                                        <li value="3"><a href="https://help.scia.net/19.0/en/index.htm" target="_parent">SCIA Engineer 19.x</a>
+                                        </li>
+                                        <li value="4"><a href="https://help.scia.net/18.0/en/index.htm" target="_parent">SCIA Engineer 18.x</a>
+                                        </li>
+                                        <li value="5"><a href="https://help.scia.net/17.0/en/index.htm" target="_parent">SCIA Engineer 17.x</a>
+                                        </li>
+                                        <li value="6"><a href="https://help.scia.net/16.0/en/index.htm" target="_parent">SCIA Engineer 16.x</a>
+                                        </li>
+                                        <li value="7"><a href="https://help.scia.net/15.0/en/index.htm" target="_parent">SCIA Engineer 15.x</a>
+                                        </li>
+                                        <li value="8"><a href="https://help.scia.net/14.1/en/index.htm" target="_parent">SCIA Engineer 14.1</a>
+                                        </li>
+                                        <li value="9"><a href="https://help.scia.net/14.0/en/index.htm" target="_parent">SCIA Engineer 14.0</a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </nav>
+                    </td>
+                    <td class="TableStyle-AlignBottom-BodyD-Column2-Body1">
+                        <table class="TableStyle-AlignBottom" style="margin-left: auto;margin-right: 0;mc-table-style: url('../../../resources/tablestyles/alignbottom.css');" cellspacing="0">
+                            <col class="TableStyle-AlignBottom-Column-Column1" />
+                            <tbody>
+                                <tr class="TableStyle-AlignBottom-Body-Body1">
+                                    <td class="TableStyle-AlignBottom-BodyA-Column1-Body1">
+                                        <div class="addthis_sharing_toolbox" style="text-align:right; margin-right:75px">
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                <tr class="TableStyle-AlignBottom-Body-Body1">
+                    <td class="TableStyle-AlignBottom-BodyA-Column1-Body1" colspan="2">
+                        <div class="nocontent">
+                            <div class="MCBreadcrumbsBox_0 breadcrumbs" role="navigation" aria-label="Breadcrumbs" data-mc-breadcrumbs-divider=" &gt; " data-mc-breadcrumbs-count="3" data-mc-toc="True"><span class="MCBreadcrumbsPrefix">Help &gt; </span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div role="main" id="mc-main-content">
+            <h1>Support nonlinearity/Basic soil spring</h1>
+            <h2>Definition, application</h2>
+            <p>Support nonlinearity is nonlinear functionality which can be apply on any type of supports. These features can simulate special nonlinear behaviour of supports. For taken into account it is necessary to perform nonlinear analysis.</p>
+            <h2>Where to find it</h2>
+            <p>In project data dialog in part 'Functionality' it is necessary to switch ON 'Support nonlinearity/Basic soil spring'. After that in support properties there are several new possibilities which can be set for any degree of freedom.</p>
+            <p><a class="MCPopupThumbnailLink MCPopupThumbnailPopup" href="../../_pictures/nonlinearity/support_01.png"><img class="MCPopupThumbnail img" data-mc-width="633" data-mc-height="494" src="../../_pictures/nonlinearity/support_01_thumb_0_100.png" tabindex="" /></a> <a class="MCPopupThumbnailLink MCPopupThumbnailPopup" href="../../_pictures/nonlinearity/support_02.png"><img class="MCPopupThumbnail img" data-mc-width="304" data-mc-height="425" src="../../_pictures/nonlinearity/support_02_thumb_0_100.png" tabindex="" /></a></p>
+            <h2>Possibilities</h2>
+            <table cellspacing="0" border="1" style="mc-table-style: url('../../../resources/tablestyles/table.css');margin-left: 0;margin-right: auto;" class="TableStyle-Table">
+                <col class="TableStyle-Table-Column-Column1" style="width: 251px;">
+                </col>
+                <col class="TableStyle-Table-Column-Column1" style="width: 424px;">
+                </col>
+                <tr class="TableStyle-Table-Body-Body1">
+                    <td class="TableStyle-Table-BodyE-Column1-Body1" style="font-weight: bold;background-color: #dcdcdc;">Support nonlinearity</td>
+                    <td class="TableStyle-Table-BodyD-Column1-Body1" style="font-weight: bold;background-color: #dcdcdc;">Description</td>
+                </tr>
+                <tr class="TableStyle-Table-Body-Body1">
+                    <td class="TableStyle-Table-BodyE-Column1-Body1"><a href="rigid_press_only.htm" class="MCXref xref">"Rigid compression-only support"</a>
+                    </td>
+                    <td class="TableStyle-Table-BodyD-Column1-Body1">This type of support gives a full support (fixing) when under compression</td>
+                </tr>
+                <tr class="TableStyle-Table-Body-Body1">
+                    <td class="TableStyle-Table-BodyE-Column1-Body1">Rigid tension only</td>
+                    <td class="TableStyle-Table-BodyD-Column1-Body1">This type of support gives a full support (fixing) when under tension</td>
+                </tr>
+                <tr class="TableStyle-Table-Body-Body1">
+                    <td class="TableStyle-Table-BodyE-Column1-Body1"><a href="flexible_press_only.htm" class="MCXref xref">"Flexible compression-only support"</a>
+                    </td>
+                    <td class="TableStyle-Table-BodyD-Column1-Body1">This type of support gives a partial support (behaving like a spring) when under compression</td>
+                </tr>
+                <tr class="TableStyle-Table-Body-Body1">
+                    <td class="TableStyle-Table-BodyE-Column1-Body1">Flexible tension only</td>
+                    <td class="TableStyle-Table-BodyD-Column1-Body1">This type of support gives a partial support (behaving like a spring) when under tension</td>
+                </tr>
+                <tr class="TableStyle-Table-Body-Body1">
+                    <td class="TableStyle-Table-BodyE-Column1-Body1"><a href="non-linear_functions.htm" class="MCXref xref">"Non-linear functions"</a>
+                    </td>
+                    <td class="TableStyle-Table-BodyD-Column1-Body1">Non-linear function defines change of stiffness given by the graph</td>
+                </tr>
+            </table>
+            <h2>Limitations</h2>
+            <p><a name="kanchor5519"></a>- For support - surface (el.foundation) with type 'individual' it is possible to set only 'Nonlinear'.</p>
+            <p><a name="kanchor5520"></a>- Support - surface (el. foundation) with type 'soil-in' is in nonlinear analysis automatically taken into account as 'press only'.</p>
+            <h2>Supported members</h2>
+            <p>Table of supports, for which it is possible to set nonlinearity in project.</p>
+            <table cellspacing="0" border="1" style="mc-table-style: url('../../../resources/tablestyles/table.css');margin-left: 0;margin-right: auto;" class="TableStyle-Table">
+                <col class="TableStyle-Table-Column-Column1" style="width: 251px;" />
+                <tr class="TableStyle-Table-Body-Body1">
+                    <td class="TableStyle-Table-BodyD-Column1-Body1" style="font-weight: bold;background-color: #dcdcdc;">Type of support</td>
+                </tr>
+                <tr class="TableStyle-Table-Body-Body1">
+                    <td class="TableStyle-Table-BodyD-Column1-Body1">
+                        <p><a href="../../../modelling/structural_elements_modelling/images/modeldata/point_supports.htm" name="kanchor5521">Support - in node</a>
+                        </p>
+                    </td>
+                </tr>
+                <tr class="TableStyle-Table-Body-Body1">
+                    <td class="TableStyle-Table-BodyD-Column1-Body1">
+                        <p><a href="../../../modelling/structural_elements_modelling/images/modeldata/point_supports.htm" name="kanchor5522">Support - point on beam</a>
+                        </p>
+                    </td>
+                </tr>
+                <tr class="TableStyle-Table-Body-Body1">
+                    <td class="TableStyle-Table-BodyD-Column1-Body1">
+                        <p><a href="../../../modelling/structural_elements_modelling/images/modeldata/line_supports.htm">Support - line on beam</a>
+                        </p>
+                    </td>
+                </tr>
+                <tr class="TableStyle-Table-Body-Body1">
+                    <td class="TableStyle-Table-BodyD-Column1-Body1">
+                        <p><a href="../../../modelling/structural_elements_modelling/images/modeldata/line_support_on_a_slab.htm">Support - line on 2D member edge</a>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+            <p><a class="MCPopupThumbnailLink MCPopupThumbnailPopup" href="../../_pictures/nonlinearity/support_03.png"><img class="MCPopupThumbnail img" data-mc-width="241" data-mc-height="306" src="../../_pictures/nonlinearity/support_03_thumb_0_100.png" tabindex="" /></a>
+
+&#160;</p>
+            <p>
+
+&#160;
+</p>
+        </div>
+    <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"f9423d047e4442928f5d6542e3c6a7f5","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

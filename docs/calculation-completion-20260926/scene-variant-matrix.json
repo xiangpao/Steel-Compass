@@ -1,0 +1,2712 @@
+[
+  {
+    "family": "pergola-pavilion",
+    "variant": "guided-grid",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "environment",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "roof_members",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "quick_mode"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "main_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "linear_frame_beta",
+          "vertical_displacement"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "flat-single",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "environment",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "roof_members",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "quick_mode"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "main_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "linear_frame_beta",
+          "vertical_displacement"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "mono-pitch",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "environment",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "roof_members",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "main_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "rear_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-mono-pitch-chain_base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-mono-pitch-chain_base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-mono-pitch-chain_rear_base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-mono-pitch-chain_rear_base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-mono-pitch-chain_foundation_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-mono-pitch-chain_foundation_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-mono-pitch-chain_rear_foundation_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-mono-pitch-chain_rear_foundation_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "dual-pitch",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "environment",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "roof_members",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "main_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "rear_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-dual-pitch-chain_base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-dual-pitch-chain_base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-dual-pitch-chain_rear_base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-dual-pitch-chain_rear_base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-dual-pitch-chain_foundation_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-dual-pitch-chain_foundation_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-dual-pitch-chain_rear_foundation_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-dual-pitch-chain_rear_foundation_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "multi-bay",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "environment",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "roof_members",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "main_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "rear_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_base_middle",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_base_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_rear_base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_rear_base_middle",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_rear_base_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_foundation_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_foundation_middle",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_foundation_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_rear_foundation_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_rear_foundation_middle",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pergola-two-bay-unequal-chain_rear_foundation_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "canopy",
+    "variant": "wall-cantilever",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "canopy_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "secondary_beam",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "quick_mode"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "wall_anchor",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "canopy",
+    "variant": "single-row",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "roof_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "荷载包中的最终采用值和来源已确认。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "secondary",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "quick_mode"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "column",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "second_order_review"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "base_connection",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "canopy",
+    "variant": "double-row",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "roof_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "secondary",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "quick_mode"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "primary",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "linear_frame_beta",
+          "vertical_displacement"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "single-post",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "wind_panel",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "post",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "post_anchor_concrete_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "base_plate",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "double-post",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "wind_panel",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "post",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "signage-double-post-chain-v32_base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "signage-double-post-chain-v32_base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "signage-double-post-chain-v32_foundation_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "signage-double-post-chain-v32_foundation_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "ground-mounted",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "wind_panel",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "post",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "signage-ground-mounted-chain-v32_base_base",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "signage-ground-mounted-chain-v32_foundation_base",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "eccentric-panel",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "wind_panel",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "post",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "post_anchor_concrete_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "base_plate",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "constrained-masonry",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "wall_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "masonry_infill",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "masonry_confinement_beta"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "construction_columns",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "column_interaction_beta"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "cap_beam",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "concrete_beta"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "ground_beam",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "concrete_beta"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "wall_foundation",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "strip_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "concrete-straight",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "wall_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "wall_system",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "site_wall_capability_limited"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation_interface",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "墙体模块输出同组合底部六分量反力和基础线荷载，供基础单项计算继续使用。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "steel-infill",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "wall_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "wall_system",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "site_wall_capability_limited"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation_interface",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "墙体模块输出同组合底部六分量反力和基础线荷载，供基础单项计算继续使用。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "plain-masonry",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "wall_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "wall_system",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "site_wall_capability_limited"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation_interface",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "墙体模块输出同组合底部六分量反力和基础线荷载，供基础单项计算继续使用。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      }
+    ]
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "single-span",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "gate_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "gate_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "linear_frame_beta",
+          "vertical_displacement"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "gate_base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "gate_base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "gate_foundation_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "gate_foundation_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "multi-span",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "gate_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "gate_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-two-bay-chain-v32_base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-two-bay-chain-v32_base_middle",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-two-bay-chain-v32_base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-two-bay-chain-v32_foundation_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-two-bay-chain-v32_foundation_middle",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-two-bay-chain-v32_foundation_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "eccentric-lintel",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "gate_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "gate_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-eccentric-lintel-chain-v32_base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-eccentric-lintel-chain-v32_base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-eccentric-lintel-chain-v32_foundation_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-eccentric-lintel-chain-v32_foundation_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "unequal-columns",
+    "workflow_status": "capability_unavailable",
+    "quick_outcome": null,
+    "nodes": [
+      {
+        "id": "gate_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "gate_frame",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-unequal-column-chain-v32_base_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-unequal-column-chain-v32_base_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked",
+          "baseplate_tension_plate_design_pending"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-unequal-column-chain-v32_foundation_left",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "entrance-unequal-column-chain-v32_foundation_right",
+        "status": "capability_unavailable",
+        "calculation_status": "incomplete",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope",
+          "foundation_net_bending_inputs_incomplete"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "boardwalk-platform",
+    "variant": "straight",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "deck_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "deck",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "timber_deck_beta"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "secondary",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "quick_mode"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "primary",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "quick_mode"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "column_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "second_order_review"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "column_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "second_order_review"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "base_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "base_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "foundation_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "boardwalk-platform",
+    "variant": "viewing-platform",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "deck_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "deck",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "edge_south",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "edge_north",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "edge_west",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "edge_east",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "nextgen_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "platform_base_south_west",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "platform_base_north_west",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "platform_base_south_east",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "platform_base_north_east",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "anchor_concrete_failure_modes_checked"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "platform_foundation_south_west",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "platform_foundation_north_west",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "platform_foundation_south_east",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "platform_foundation_north_east",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "bench-planter",
+    "variant": "bench",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "seat_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "seat_slab",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "concrete_beta"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_beam",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "concrete_beta"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "bench_foundation",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "strip_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "bench-planter",
+    "variant": "planter",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "planter_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "planter_wall",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "rc_wall_beta"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "planter_foundation",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "strip_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-above",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "pool_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "pool_structure",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "antifloat_support",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-buried",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "pool_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "pool_structure",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "antifloat_support",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-semi-buried",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "pool_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "pool_structure",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "antifloat_support",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-above-pile",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "pool_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "pool_structure",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "antifloat_support",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pile_cap",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-semi-buried-pile",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "pool_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "pool_structure",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "antifloat_support",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pile_cap",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-buried-pile",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "pool_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "pool_structure",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "antifloat_support",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "pile_cap",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-straight",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "bridge_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "bridge_superstructure",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-span",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "bridge_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "bridge_superstructure",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_middle",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-steel-timber-pile",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "bridge_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "bridge_superstructure",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-steel-timber-pile",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_failed",
+    "nodes": [
+      {
+        "id": "bridge_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "bridge_superstructure",
+        "status": "ready",
+        "calculation_status": "failed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_middle",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-rc-shallow",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "bridge_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "bridge_superstructure",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-rc-pile",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "bridge_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "bridge_superstructure",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-rc-shallow",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "bridge_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "bridge_superstructure",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_middle",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "foundation_geotechnical_scope"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-rc-pile",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "bridge_loads",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "bridge_superstructure",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_left",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_middle",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "support_right",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "retaining-facility",
+    "variant": "cantilever-rc",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "soil_water_inputs",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "retaining_wall",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "retaining_scope"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "soil_contact",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "墙身模块已完成基础稳定筛查；地勘承载力和水位仍需项目资料确认。",
+        "warning_codes": [],
+        "verification_status": "unverified"
+      }
+    ]
+  },
+  {
+    "family": "retaining-facility",
+    "variant": "gravity",
+    "workflow_status": "ready",
+    "quick_outcome": "screening_passed",
+    "nodes": [
+      {
+        "id": "soil_water_inputs",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "输入、边界和传力条件已录入。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      },
+      {
+        "id": "gravity_wall",
+        "status": "ready",
+        "calculation_status": "passed",
+        "has_calculation_result": true,
+        "message": null,
+        "warning_codes": [
+          "infrastructure_solver_unverified"
+        ],
+        "verification_status": "unverified"
+      },
+      {
+        "id": "soil_contact",
+        "status": "ready",
+        "calculation_status": null,
+        "has_calculation_result": false,
+        "message": "重力墙核心已输出基底压力、滑移、倾覆和同组合基础反力。",
+        "warning_codes": [],
+        "verification_status": "independently_verified"
+      }
+    ]
+  }
+]

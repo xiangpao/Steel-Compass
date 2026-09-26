@@ -1,5 +1,27 @@
 import { expect, test } from "@playwright/test";
 
+test("柱脚接触参数显式录入且不静默生成刚度", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/qa/pergola-workbench-v2");
+  await page.getByRole("button", { name: "基础", exact: true }).click();
+  await page.getByRole("button", { name: /^F-A 一般柱下阶形基础/ }).click();
+  await page.getByText("脱开接触与锚栓刚度", { exact: true }).click();
+  await expect(page.getByLabel("接触支承刚度（kN/m³）")).toHaveValue("");
+  await page.getByLabel("接触支承刚度（kN/m³）").fill("10000000");
+  await page.getByLabel("接触与锚栓刚度来源").fill("QA fixture / not engineering evidence");
+  await page.getByLabel("柱周焊缝构造").selectOption("true");
+  await page.getByRole("button", { name: "添加锚栓刚度记录" }).click();
+  await expect(page.getByLabel("轴向刚度（kN/m）")).toHaveValue("");
+  await page.getByLabel("X 坐标（m）").fill("-0.13");
+  await page.getByLabel("Y 坐标（m）").fill("0.13");
+  await page.getByLabel("轴向刚度（kN/m）").fill("100000");
+  await expect(page.getByRole("status").filter({ hasText: /需填写全部/ })).toBeVisible();
+  await page.screenshot({ path: "output/playwright/completion-contact-mobile.png" });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.getByRole("button", { name: "移除锚栓 1 的刚度记录" }).click();
+  await expect(page.getByLabel("轴向刚度（kN/m）")).toHaveCount(0);
+});
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.localStorage.removeItem("steel-compass:qa:pergola-workbench-v2"));
 });

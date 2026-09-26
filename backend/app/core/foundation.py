@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .contact import ContactError, solve_rectangular_contact
+
 from math import hypot, pi, sqrt
 
 from .catalogs import (
@@ -535,24 +537,42 @@ def calculate_spread_footing(
     ex = abs(moment_y) / effective_vertical
     ey = abs(moment_x) / effective_vertical
     average_pressure = max(service_vertical, 0) / area
-    # 结合长宽方向综合偏心距与 GB 50007-2011 规范
-    e_governing = max(ex, ey)
-    dim_governing = length if ex >= ey else width
-    orthogonal_dim = width if ex >= ey else length
-
-    if e_governing <= dim_governing / 6.0:
-        # 小偏心：梯形应力分布
-        qmax = average_pressure * (1 + 6 * ex / length + 6 * ey / width)
-        qmin = average_pressure * (1 - 6 * ex / length - 6 * ey / width)
-        detach_ratio = 0.0
-    else:
-        # 大偏心 (e > L/6)：按 GB 50007-2011 三角形压应力分布计算
-        compressed_length = max(3.0 * (dim_governing / 2.0 - e_governing), 1e-3)
-        qmax = (2.0 * max(service_vertical, 0)) / (3.0 * orthogonal_dim * max(dim_governing / 2.0 - e_governing, 1e-3))
-        qmin = 0.0
-        detach_ratio = max(0.0, min(1.0, (dim_governing - compressed_length) / dim_governing))
-
-    contact_ratio = 1.0 - detach_ratio
+    # Solve every real combination independently; pressure and structural maxima
+    # need not belong to the same combination. Foundation weights were added above.
+    contact_cases = []
+    contact_solutions = []
+    contact_unresolved = False
+    source_cases = [
+        (item.limit_state, item.combination_name, _reaction_vertical(item),
+         _reaction_component(item, "Mx"), _reaction_component(item, "My"), item)
+        for item in adjusted_reactions
+    ] if adjusted_reactions else [
+        ("SLS", "SLS-local", service_vertical, moment_x, moment_y, None),
+        ("ULS", "ULS-local", design_vertical, moment_x, moment_y, None),
+    ]
+    for limit_state, name, n, mx, my, original in source_cases:
+        try:
+            solution = solve_rectangular_contact(length, width, n, mx, my)
+        except ContactError as exc:
+            contact_unresolved = True
+            contact_solutions.append({"combination_name": name, "limit_state": limit_state,
+                "status": "no_equilibrium", "reason": str(exc), "verification_status": "unverified"})
+        else:
+            contact_cases.append((limit_state, name, n, solution, original))
+            contact_solutions.append({"combination_name": name, "combination_id": original.combination_id if original else None, "limit_state": limit_state,
+                                     "status": "solved", **solution.as_dict()})
+    sls_contact = [case for case in contact_cases if case[0] == "SLS"]
+    uls_contact = [case for case in contact_cases if case[0] == "ULS"]
+    pressure_case = max(sls_contact, key=lambda case: case[3].qmax_kpa) if sls_contact else None
+    detach_case = min(sls_contact, key=lambda case: case[3].area_m2) if sls_contact else None
+    if pressure_case:
+        service_vertical, moment_x, moment_y = pressure_case[3].resultants()
+        average_pressure = service_vertical / area
+        ex, ey = abs(moment_y)/service_vertical, abs(moment_x)/service_vertical
+    qmax = pressure_case[3].qmax_kpa if pressure_case else 0.0
+    qmin = pressure_case[3].qmin_kpa if pressure_case else 0.0
+    detach_ratio = max(0.0, 1-detach_case[3].area_m2/area) if detach_case else 1.0
+    contact_ratio = 1-detach_ratio
     horizontal = hypot(horizontal_x, horizontal_y)
     if sls_reactions:
         sliding_capacity = max(_reaction_vertical(horizontal_reaction), 0) * friction
@@ -586,23 +606,6 @@ def calculate_spread_footing(
             "invalid_effective_depth",
             "保护层与钢筋直径导致基础有效高度不大于 0",
         )
-    if design_reaction is not None:
-        design_n = max(_reaction_vertical(design_reaction), 1e-9)
-        design_ex = abs(_reaction_component(design_reaction, "My")) / design_n
-        design_ey = abs(_reaction_component(design_reaction, "Mx")) / design_n
-        q_design = max(
-            design_n
-            / area
-            * (1 + 6 * design_ex / length + 6 * design_ey / width),
-            0,
-        )
-    else:
-        load_ratio = max(design_vertical, 0) / max(service_vertical, 1e-9)
-        q_design = max(qmax, 0) * load_ratio
-    cantilever_x = (length - column_x / 1000) / 2
-    cantilever_y = (width - column_y / 1000) / 2
-    shear_x = max(q_design * width * (cantilever_x - d_x / 1000), 0)
-    shear_y = max(q_design * length * (cantilever_y - d_y / 1000), 0)
     shear_capacity_x = 0.7 * concrete["ft"] * width * 1000 * d_x / 1000
     shear_capacity_y = 0.7 * concrete["ft"] * length * 1000 * d_y / 1000
 
@@ -612,18 +615,6 @@ def calculate_spread_footing(
     punching_perimeter = 2 * (
         column_x + column_y + 2 * punching_depth
     )
-    punching_inside_area = min(
-        area,
-        (column_x / 1000 + punching_depth / 1000)
-        * (column_y / 1000 + punching_depth / 1000),
-    )
-    # For a centered critical perimeter under full linear contact, odd pressure
-    # terms integrate to zero. Subtract average pressure, never the peak corner.
-    punching_reaction = (max(uls_reactions, key=_reaction_vertical)
-                         if design_reaction is not None else None)
-    punching_vertical = (_reaction_vertical(punching_reaction)
-                         if punching_reaction is not None else design_vertical)
-    punching_demand = max(punching_vertical * (1 - punching_inside_area / area), 0)
     punching_capacity = (
         0.7 * concrete["ft"] * punching_perimeter * punching_depth / 1000
     )
@@ -649,8 +640,72 @@ def calculate_spread_footing(
         uplift_demand = upward_external + uplift
         uplift_resistance = permanent_weight + downward_external
 
-    moment_demand_x = q_design * width * cantilever_x**2 / 2
-    moment_demand_y = q_design * length * cantilever_y**2 / 2
+    # Integrate the actual pressure polygon at both sides of each section.
+    # The rectangular critical punching perimeter is centred on the column.
+    uniform_weight_supported = (
+        (concrete_volume is None or abs(concrete_volume-area*thickness/1000)<1e-8)
+        and (soil_cover_volume is None or abs(soil_cover_volume-area*soil_cover)<1e-8)
+    )
+    structural_demands = {}
+    structural_combinations = {}
+    for _, name, n, solution, original in uls_contact:
+        favorable = original is not None and (original.leading_action == "uplift" or "上拔控制" in (original.combination_name or ""))
+        permanent_factor = .9 if favorable else 1.3
+        downward_q = permanent_factor*(footing_weight+cover_weight)/area
+        if not uniform_weight_supported:
+            downward_q = 0.0  # unknown distribution: results remain provisional below
+
+        cx, cy = column_x / 2000, column_y / 2000
+        sx, sy = cx + d_x / 1000, cy + d_y / 1000
+        xlo, xhi, ylo, yhi = -length/2, length/2, -width/2, width/2
+        def net_integral(bounds):
+            x0,x1,y0,y1=bounds
+            x0,x1=max(x0,xlo),min(x1,xhi)
+            y0,y1=max(y0,ylo),min(y1,yhi)
+            if x1<=x0 or y1<=y0:
+                return (0.0,0.0,0.0)
+            ground=solution.integrate((x0,x1,y0,y1))
+            dead=downward_q*(x1-x0)*(y1-y0)
+            return ground[0]-dead,ground[1]-dead*(x0+x1)/2,ground[2]-dead*(y0+y1)/2
+        def force(bounds):
+            return net_integral(bounds)[0]
+        vx = max(abs(force((sx,xhi,ylo,yhi))), abs(force((xlo,-sx,ylo,yhi))))
+        vy = max(abs(force((xlo,xhi,sy,yhi))), abs(force((xlo,xhi,ylo,-sy))))
+        def bending_extremes(axis, face, edge):
+            values=[]
+            for sign in (-1,1):
+                def integral_at(distance):
+                    bounds=(distance,xhi,ylo,yhi) if axis==1 and sign==1 else (xlo,-distance,ylo,yhi) if axis==1 else (xlo,xhi,distance,yhi) if sign==1 else (xlo,xhi,ylo,-distance)
+                    return net_integral(bounds)
+                candidates=[face]
+                lo,hi=face,edge-(edge-face)*1e-7
+                flo,fhi=integral_at(lo)[0],integral_at(hi)[0]
+                if flo*fhi<0:
+                    for _ in range(60):
+                        middle=(lo+hi)/2
+                        fm=integral_at(middle)[0]
+                        if flo*fm<=0:
+                            hi=middle
+                        else:
+                            lo,flo=middle,fm
+                    candidates.append((lo+hi)/2)
+                for distance in candidates:
+                    result=integral_at(distance)
+                    values.append(sign*result[axis]-distance*result[0])
+            return max(max(values),0),max(-min(values),0)
+        bx,top_bx=bending_extremes(1,cx,xhi)
+        by,top_by=bending_extremes(2,cy,yhi)
+        px, py = cx+punching_depth/2000, cy+punching_depth/2000
+        vp = abs(n-downward_q*area-force((-px,px,-py,py)))
+        for key, value in {"vx":vx,"vy":vy,"bx":bx,"by":by,"top_bx":top_bx,"top_by":top_by,"punch":vp}.items():
+            if key not in structural_demands or value > structural_demands[key]:
+                structural_demands[key] = value
+                structural_combinations[key] = name
+    shear_x = structural_demands.get("vx", 0.0)
+    shear_y = structural_demands.get("vy", 0.0)
+    punching_demand = structural_demands.get("punch", 0.0)
+    moment_demand_x = structural_demands.get("bx", 0.0)
+    moment_demand_y = structural_demands.get("by", 0.0)
     as_required_x = moment_demand_x * 1e6 / max(0.9 * d_x * rebar["fy_mpa"], 1e-9)
     as_required_y = moment_demand_y * 1e6 / max(0.9 * d_y * rebar["fy_mpa"], 1e-9)
     as_min_x = 0.0015 * width * 1000 * thickness
@@ -660,6 +715,29 @@ def calculate_spread_footing(
     as_provided_x = _provided_rebar_area(bar_dia_x, spacing_x, width * 1000)
     as_provided_y = _provided_rebar_area(bar_dia_y, spacing_y, length * 1000)
 
+    top_requirements = {}
+    top_reinforcement_missing = False
+    for axis, effective_depth, transverse in (("x",d_x,width),("y",d_y,length)):
+        moment = structural_demands.get("top_b"+axis,0.0)
+        if moment <= 1e-8:
+            continue
+        required = max(moment*1e6/(.9*effective_depth*rebar["fy_mpa"]), .0015*transverse*1000*thickness)
+        dia_key,spacing_key=f"top_bar_dia_{axis}_mm",f"top_bar_spacing_{axis}_mm"
+        provided = None
+        if request.inputs.get(dia_key) is not None and request.inputs.get(spacing_key) is not None:
+            dia=mode_number(request,dia_key,quick_default=14,minimum=6,maximum=40)
+            spacing=mode_number(request,spacing_key,quick_default=150,minimum=50,maximum=400)
+            top_d=thickness-cover-dia/2
+            required=max(moment*1e6/(.9*top_d*rebar["fy_mpa"]), .0015*transverse*1000*thickness)
+            provided=_provided_rebar_area(dia,spacing,transverse*1000)
+        else:
+            top_reinforcement_missing=True
+        top_requirements[axis]={"moment_kn_m":moment,"required_area_mm2":required,
+            "provided_area_mm2":provided,"combination_name":structural_combinations.get("top_b"+axis),
+            "missing_inputs":[dia_key,spacing_key] if provided is None else []}
+    for record in contact_solutions:
+        record["distributed_weight_model"] = "uniform_footing_and_cover" if uniform_weight_supported else "unresolved_nonuniform_weight"
+    structural_scope_incomplete = top_reinforcement_missing or not uniform_weight_supported
     # 水浮力抗浮安全系数验算 (GB 50007 / GB 55003)
     # Effective permanent weight already excludes displaced water. Restore gross
     # resistance once when expressing the water-only safety factor.
@@ -750,6 +828,12 @@ def calculate_spread_footing(
             "GB/T 50010-2010 受弯与最小配筋",
         ),
     ]
+    for axis, top in top_requirements.items():
+        if top["provided_area_mm2"] is not None:
+            check=_check(f"{axis.upper()}向顶筋",top["required_area_mm2"],top["provided_area_mm2"],"mm2",
+                         "净向上/向下荷载压区积分；受弯与最小配筋方案筛查")
+            check.governing_combination=top["combination_name"]
+            checks.append(check)
     if sls_reactions and design_reaction is not None:
         combination_by_check = {
             "地基承载力": pressure_reaction.combination_name,
@@ -759,12 +843,27 @@ def calculate_spread_footing(
             "抗浮稳定": uplift_reaction.combination_name,
             "X向单向剪切": design_reaction.combination_name,
             "Y向单向剪切": design_reaction.combination_name,
-            "柱边冲切": punching_reaction.combination_name,
+            "柱边冲切": structural_combinations.get("punch"),
             "X向底筋": design_reaction.combination_name,
             "Y向底筋": design_reaction.combination_name,
         }
         for check in checks:
-            check.governing_combination = combination_by_check.get(check.name)
+            check.governing_combination = combination_by_check.get(check.name, check.governing_combination)
+    actual_combination_by_check = {
+        "地基承载力": pressure_case[1] if pressure_case else None,
+        "基底脱开区比例": detach_case[1] if detach_case else None,
+        "X向单向剪切": structural_combinations.get("vx"),
+        "Y向单向剪切": structural_combinations.get("vy"),
+        "柱边冲切": structural_combinations.get("punch"),
+        "X向底筋": structural_combinations.get("bx"),
+        "Y向底筋": structural_combinations.get("by"),
+    }
+    for check in checks:
+        if check.name in actual_combination_by_check:
+            check.governing_combination = actual_combination_by_check[check.name]
+    if contact_unresolved:
+        # Do not display zero/partial results as completed structural passes.
+        checks = [check for check in checks if check.name not in actual_combination_by_check]
     complete = (
         request.mode is CalculationMode.QUICK
         and not bool(request.inputs.get("explicit_design_profile"))
@@ -779,20 +878,17 @@ def calculate_spread_footing(
             message="基础计算不包含沉降、软弱下卧层、液化和复杂地基作用，必须结合勘察报告复核。",
         )
     ]
-    contact_unresolved = any(
-        _reaction_vertical(item) <= 0 or
-        6 * abs(_reaction_component(item, "My")) / length
-        + 6 * abs(_reaction_component(item, "Mx")) / width > _reaction_vertical(item)
-        for item in adjusted_reactions
-    ) if adjusted_reactions else (6 * ex / length + 6 * ey / width > 1)
     if contact_unresolved:
         warnings.append(
             CalculationWarning(
                 severity="critical",
                 code="partial_contact",
-                message="存在脱开或失压组合；当前线性压力与中心冲切模型不适用，需压区耦合专项计算，以下需求只供风险筛查。",
+                message="至少一个组合不存在有限压缩接触平衡或求解未收敛；该组合不得形成地基压力及基础配筋通过结论。",
             )
         )
+    if structural_scope_incomplete:
+        warnings.append(CalculationWarning(severity="critical",code="foundation_net_bending_inputs_incomplete",
+            message="净荷载已识别反向弯矩但缺顶筋，或非等厚基础自重分布尚未精确建模；不得形成基础结构通过结论。"))
     if not complete:
         warnings.append(
             CalculationWarning(
@@ -818,8 +914,8 @@ def calculate_spread_footing(
         project_name=request.project_name,
         module=request.module,
         mode=request.mode,
-        status="incomplete" if contact_unresolved else _foundation_status(checks, complete, request.mode),  # type: ignore[arg-type]
-        workflow_status="capability_unavailable" if contact_unresolved else "ready",
+        status="incomplete" if contact_unresolved or structural_scope_incomplete else _foundation_status(checks, complete, request.mode),  # type: ignore[arg-type]
+        workflow_status="capability_unavailable" if contact_unresolved or structural_scope_incomplete else "ready",
         result_class=result_class(request),  # type: ignore[arg-type]
         standards=STANDARDS["foundation"],
         input_summary=quantity_summary(
@@ -900,21 +996,13 @@ def calculate_spread_footing(
             )
             for combination in result_combinations
         ],
-        diagrams=[
-            DiagramSeries(
-                name="基底压力（长度方向控制截面）",
-                points=[
-                    DiagramPoint(
-                        x=Quantity(value=0, unit="m"),
-                        value=Quantity(value=max(qmin, 0), unit="kPa"),
-                    ),
-                    DiagramPoint(
-                        x=Quantity(value=length, unit="m"),
-                        value=Quantity(value=max(qmax, 0), unit="kPa"),
-                    ),
-                ],
-            )
-        ],
+        diagrams=[DiagramSeries(
+            name="基底压力（y=0中心截面，x从负边至正边）",
+            points=[DiagramPoint(
+                x=Quantity(value=length*index/20, unit="m"),
+                value=Quantity(value=max(pressure_case[3].pressure_plane(length*(index/20-.5),0),0), unit="kPa"),
+            ) for index in range(21)],
+        )] if pressure_case else [],
         steps=[
             CalculationStep(
                 name="基底平均压力",
@@ -925,10 +1013,10 @@ def calculate_spread_footing(
             ),
             CalculationStep(
                 name="偏心受压边缘压力",
-                equation="q_max/min = q_avg(1 ± 6e_x/L ± 6e_y/B)",
+                equation="q=max(a+b*2x/L+c*2y/B,0); integral(q,q*y,q*x)=(N,Mx,My)",
                 substitution=f"e_x={ex:.4f} m, e_y={ey:.4f} m",
                 result=Quantity(value=qmax, unit="kPa"),
-                reference="材料力学线性压力分布；仅适用于基底全接触",
+                reference="刚性矩形板均匀压缩单向支承；压区裁切积分及三分量平衡",
             ),
             CalculationStep(
                 name="冲切承载力",
@@ -939,17 +1027,19 @@ def calculate_spread_footing(
             ),
         ],
         checks=checks,
+        contact_solutions=[{**record,"top_reinforcement_requirements":top_requirements} for record in contact_solutions],
         governing_check=governing.name,
         warnings=warnings,
         assumptions=[
-            "基础按刚性矩形底板、线性基底压力进行首期筛查。",
+            "基础按刚性矩形板和均匀压缩单向线性支承筛查；脱开压区按三分量平衡求解，不考虑非均匀土层刚度或塑性重分布。",
             "不计被动土压力；基础与覆土自重自动计入。",
+            "等厚基础按实际压区反力减均布自重/覆土计算净荷载，搜索柱边及外伸段零剪力截面正负弯矩；非均匀自重分布不形成结构通过结论。",
             *(
                 [f"短柱自重 {pedestal_weight:.3f} kN 已计入；柱脚水平力按 {pedestal_height:.3f} m 力臂换算至基础底面，冲切周长采用短柱根部尺寸。"]
                 if pedestal_enabled
                 else ["未启用短柱；冲切周长采用直接支承构件尺寸。"]
             ),
-            f"基底接触压力比 qmin/qmax={contact_ratio:.3f}。",
+            f"基底接触面积比 Acontact/A={contact_ratio:.3f}。",
         ],
         applicability=["柱下方形/矩形独立基础", "中心、单向或双向偏心方案筛查"],
         catalog_versions={

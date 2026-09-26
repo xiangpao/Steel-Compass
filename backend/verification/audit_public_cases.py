@@ -35,8 +35,17 @@ def run():
             "scope":"elastic mechanics only; not Chinese code capacities, commercial export, or signed engineering approval","cases":rows}
 
 
-if __name__=="__main__":
+def main(argv=None):
+    import argparse
+    parser = argparse.ArgumentParser(description="Recompute published mechanics references without changing historical audit artifacts")
+    parser.add_argument("--output", required=True, type=Path)
+    args = parser.parse_args(argv)
     result=run()
-    path=Path(__file__).resolve().parents[2]/"docs/audit-20260919/public-cases.json"
-    path.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-    print({"metrics":len(result["cases"]),"all_within_registered_tolerance":all(r["passed"] for r in result["cases"])})
+    passed = bool(result["cases"]) and all(r["passed"] for r in result["cases"])
+    args.output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    print({"metrics":len(result["cases"]),"all_within_registered_tolerance":passed})
+    return 0 if passed else 1
+
+
+if __name__=="__main__":
+    raise SystemExit(main())

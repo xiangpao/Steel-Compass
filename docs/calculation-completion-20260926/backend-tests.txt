@@ -1,0 +1,87 @@
+........................................................................ [  8%]
+........................................................................ [ 16%]
+........................................................................ [ 25%]
+........................................................................ [ 33%]
+........................................................................ [ 42%]
+........................................................................ [ 50%]
+........................................................................ [ 59%]
+........................................................................ [ 67%]
+........................................................................ [ 75%]
+........................................................................ [ 84%]
+........................................................................ [ 92%]
+.............................................................            [100%]
+============================== warnings summary ===============================
+..\..\Steel-Compass\backend\.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\86137\Desktop\IP-Builder\03_Projects\Steel-Compass\backend\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.14.3-final-0 _______________
+
+Name                                          Stmts   Miss  Cover
+-----------------------------------------------------------------
+app\auth.py                                      58      9    84%
+app\core\advanced.py                            211     11    95%
+app\core\baseplate.py                           191     14    93%
+app\core\bridge.py                              271      8    97%
+app\core\bridge_rc.py                           267     11    96%
+app\core\concrete.py                            139     17    88%
+app\core\connections.py                         278     18    94%
+app\core\contact.py                             138     10    93%
+app\core\continuous_beam.py                     187      5    97%
+app\core\design_profiles.py                     868     61    93%
+app\core\engine.py                               80      9    89%
+app\core\foundation.py                          457     33    93%
+app\core\foundation_candidate_validation.py      17      1    94%
+app\core\frame.py                               255     14    95%
+app\core\geometry_topology.py                   118     11    91%
+app\core\gravity_retaining.py                   202     10    95%
+app\core\hydrostatics.py                         38      5    87%
+app\core\infrastructure.py                      127      1    99%
+app\core\load_environment.py                    276     15    95%
+app\core\load_environment_api.py                 89      3    97%
+app\core\loads.py                               162     13    92%
+app\core\nextgen.py                             138      1    99%
+app\core\parametric_frame.py                    368     19    95%
+app\core\pergola_analysis.py                     57      1    98%
+app\core\pergola_loads.py                        94      8    91%
+app\core\pile_group.py                          288     18    94%
+app\core\planar_truss.py                        171     12    93%
+app\core\pool_structure.py                      282     11    96%
+app\core\scene_catalog.py                       216      3    99%
+app\core\scene_column_base.py                    93     22    76%
+app\core\scene_foundation.py                    197     25    87%
+app\core\scene_graph.py                         568     76    87%
+app\core\scene_member_checks.py                 183     27    85%
+app\core\scene_pedestal.py                      117      7    94%
+app\core\scene_schemas.py                       214     13    94%
+app\core\scene_space_frame.py                   234     31    87%
+app\core\scene_steel_connection.py              201     31    85%
+app\core\scene_typed_adapters.py                303     36    88%
+app\core\schemas.py                             681      5    99%
+app\core\sections.py                             74      1    99%
+app\core\seismic.py                              53      7    87%
+app\core\site_profile.py                         94      8    91%
+app\core\site_wall_api.py                        50      1    98%
+app\core\site_walls.py                          220      8    96%
+app\core\space_frame.py                         631     25    96%
+app\core\standards.py                            11      2    82%
+app\core\steel.py                               145      7    95%
+app\core\structural_solvers.py                  516     46    91%
+app\core\timber.py                               65      9    86%
+app\core\timber_connection.py                    68      5    93%
+app\core\two_way_slab.py                        114     18    84%
+app\core\validation.py                           33     10    70%
+app\core\wall_anchor.py                         162      7    96%
+app\main.py                                      59      2    97%
+app\report.py                                   398     42    89%
+app\routers\auth_routes.py                       54     10    81%
+app\routers\calculation_routes.py                70      1    99%
+app\routers\project_routes.py                   237     51    78%
+app\routers\scene_routes.py                     544    115    79%
+-----------------------------------------------------------------
+TOTAL                                         12870   1000    92%
+
+14 files skipped due to complete coverage.
+853 passed, 1 warning in 63.69s (0:01:03)

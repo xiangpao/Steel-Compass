@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html  lang="en" dir="ltr" prefix="og: https://ogp.me/ns#" data-theme="modus-modern-light" data-mode="light" class="light">
+  <head>
+    <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
+    <link rel="preload" as="style" href="//fonts.googleapis.com/css?family=Open+Sans:400,300,600,700,800,700italic,800italic,600italic,400italic,300italic&display=swap">
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:400,300,600,700,800,700italic,800italic,600italic,400italic,300italic&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@trimble-oss/modus-icons@1.16.0/dist/modus-solid/fonts/modus-icons.min.css" rel="stylesheet">
+    <!-- Favicons and touch icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/themes/contrib/trimble2017/images/favicons/apple-touch-icon.png?v=bORyEr80JO">
+    <link rel="icon" type="image/png" sizes="32x32" href="/themes/contrib/trimble2017/images/favicons/favicon-32x32.png?v=bORyEr80JO">
+    <link rel="icon" type="image/png" sizes="16x16" href="/themes/contrib/trimble2017/images/favicons/favicon-16x16.png?v=bORyEr80JO">
+    <link rel="manifest" href="/themes/contrib/trimble2017/images/favicons/site.webmanifest?v=bORyEr80JO">
+    <link rel="mask-icon" href="/themes/contrib/trimble2017/images/favicons/safari-pinned-tab.svg?v=bORyEr80JO" color="#5bbad5">
+    <link rel="shortcut icon" href="/themes/contrib/trimble2017/images/favicons/favicon.ico?v=bORyEr80JO">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-config" content="/themes/contrib/trimble2017/images/favicons/browserconfig.xml?v=bORyEr80JO">
+    <meta name="theme-color" content="#ffffff">
+    <!-- end favicons -->
+    <meta charset="utf-8" />
+<script>window.dataLayer = window.dataLayer || []; window.dataLayer.push({"drupalLanguage":"en","drupalCountry":"FI","siteName":"Trimble User Assistance","entityCreated":"1737451500","entityLangcode":"en","entityStatus":"1","entityUid":"2445","entityUuid":"983d9cb2-3541-4b09-ae9a-cfa01d2099a3","entityVid":"314277","entityType":"node","entityBundle":"product_guide","entityId":"190036","entityTitle":"Column base plate design to AISC 360","entityTaxonomy":{"content_area":{"62737":"Analysis and design"},"environment":{"62051":"USA"},"information_type":{"62773":"Background"},"product":{"62065":"Tekla Structural Designer"},"software_version":{"73639":"2025"}},"userUid":0,"full_product_info":["TSD-2025"]});</script>
+<meta name="description" content="Column base plate design to AISC 360 Column Bases: only simple column bases are supported in the current release. Unless explicitly stated all calculations will adopt either a load and resistance" />
+<link rel="canonical" href="https://support.tekla.com/doc/tekla-structural-designer/2026/ref_baseplatesaisc360" />
+<meta property="og:url" content="https://support.tekla.com/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" />
+<meta property="og:title" content="Column base plate design to AISC 360" />
+<meta property="og:description" content="Column base plate design to AISC 360 Column Bases: only simple column bases are supported in the current release. Unless explicitly stated all calculations will adopt either a load and resistance" />
+<meta name="Generator" content="Drupal 10 (https://www.drupal.org)" />
+<meta name="MobileOptimized" content="width" />
+<meta name="HandheldFriendly" content="true" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>UL.menu--main li {display:none} UL.menu--main li.tekla-structural-designer {display:block}</style>
+<style>.stacktable__open-table-in-modal:before{content:"Table: Tap to View";}</style>
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0];var j=d.createElement(s);var dl=l!='dataLayer'?'&l='+l:'';j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl+'';j.async=true;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PK5XT28');</script>
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0];var j=d.createElement(s);var dl=l!='dataLayer'?'&l='+l:'';j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl+'';j.async=true;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-TL382GP');</script>
+
+    <title>Column base plate design to AISC 360 | Trimble User Assistance</title>
+    <link rel="stylesheet" media="all" href="/sites/default/files/css/css_rRW_SJNsB6ZmhEDS8jFN8oVcZ51rw9u2lwrVI5jg-do.css?delta=0&amp;language=en&amp;theme=trimble2017_tua&amp;include=eJx9kEFuxCAMRS8Eoe2mx0GGuAwTgxF2OpPbD40idZGmG7D9rO-vH7mji1waV6wqk_ZcAqHXGxa0tvC8ig2rKlcT_99VSJayqMGnUq6Lm_vagKajNWlVrAF7coE4LmK_Mz6MKMRFYei43_IunhtWvzc-Vz98ABnZRLG4AIJGSyrqI9chqtCyK5vdda3oNu4lc9j7eHv_dIk4AP2FvK5wgb0g9HjzDdIwt9fmgeGLe3HHP8EdnqfhnpFkxRNBGlFVnWZUyDQi5JToeq2gyDh-yblp5ion_vO8AJSat7Q" />
+<link rel="stylesheet" media="all" href="https://search.cloud.tekla.com/static/css/vendor.chunk.css" />
+<link rel="stylesheet" media="all" href="https://search.cloud.tekla.com/static/css/main.chunk.css" />
+<link rel="stylesheet" media="all" href="/sites/default/files/css/css_AvSkb-bwYQp7-4A1TbyKSJeG95N1MUGacc7YMVCYn88.css?delta=3&amp;language=en&amp;theme=trimble2017_tua&amp;include=eJx9kEFuxCAMRS8Eoe2mx0GGuAwTgxF2OpPbD40idZGmG7D9rO-vH7mji1waV6wqk_ZcAqHXGxa0tvC8ig2rKlcT_99VSJayqMGnUq6Lm_vagKajNWlVrAF7coE4LmK_Mz6MKMRFYei43_IunhtWvzc-Vz98ABnZRLG4AIJGSyrqI9chqtCyK5vdda3oNu4lc9j7eHv_dIk4AP2FvK5wgb0g9HjzDdIwt9fmgeGLe3HHP8EdnqfhnpFkxRNBGlFVnWZUyDQi5JToeq2gyDh-yblp5ion_vO8AJSat7Q" />
+<link rel="stylesheet" media="all" href="/sites/default/files/css/css_kGpGPK-l-P1K74Ylan93Yw0P_Ju_LxpAZKS8KpvA6so.css?delta=4&amp;language=en&amp;theme=trimble2017_tua&amp;include=eJx9kEFuxCAMRS8Eoe2mx0GGuAwTgxF2OpPbD40idZGmG7D9rO-vH7mji1waV6wqk_ZcAqHXGxa0tvC8ig2rKlcT_99VSJayqMGnUq6Lm_vagKajNWlVrAF7coE4LmK_Mz6MKMRFYei43_IunhtWvzc-Vz98ABnZRLG4AIJGSyrqI9chqtCyK5vdda3oNu4lc9j7eHv_dIk4AP2FvK5wgb0g9HjzDdIwt9fmgeGLe3HHP8EdnqfhnpFkxRNBGlFVnWZUyDQi5JToeq2gyDh-yblp5ion_vO8AJSat7Q" />
+
+    
+  </head>
+  <body class="user-logged-out path-node page-node-type-product-guide has-glyphicons">
+    <div class="body-inner">
+      <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PK5XT28" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript><noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TL382GP" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+      <a href="#main-content" class="visually-hidden focusable skip-link">
+        Skip to main content
+      </a>
+        <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+              <div class="promotion-banner-container">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-sm-12"></div>
+        </div>
+      </div>
+    </div>
+    <header class="header navbar navbar-default" id="navbar" role="banner">
+      <div class="navbar-header">
+        <div class="navbar-header__super-navigation">
+          <div class="navbar-header__super-navigation--left">
+            <div id="tekla-navigation" data-language="en"></div>
+
+            
+              <div class="region region-super-navigation-left">
+          <a class="logo navbar-btn pull-left" href="/" title="Home" rel="home">
+      <img src="/themes/custom/trimble2017_tua/logo2.svg?v=bORyEr80JO" alt="Home" />
+    </a>
+      <section id="block-trimble2017-tua-honeypot" class="block block-block-content block-block-content59c70f17-d47d-4e34-96b6-a0448afd9f9d clearfix">
+  
+    
+
+      
+            <div class="field field--name-body field--type-text-with-summary field--label-hidden field--item"><a aria-hidden="true" class="hide" href="/notallowed" rel="nofollow">not-allowed-link</a></div>
+      
+  </section>
+
+
+  </div>
+
+          </div>
+          <div class="navbar-header__super-navigation--right">
+              <div class="region region-super-navigation-right">
+    <section id="block-trimblesearch-header" class="block block-trimble-search-page block-trimble-search-block clearfix">
+  
+    
+
+      <div class="tekla-search-field-container">
+  <div id="tekla-search-field" class="tekla-search-field" data-language="en" data-product="Tekla Structural Designer" data-version="2026" data-service="tua"></div>
+</div>
+
+  </section>
+
+  <ul class="menu nav navbar-nav language-links">
+  <li class="expanded dropdown">
+    <a href="#" class="dropdown-opener" data-toggle="dropdown" aria-expanded="false">English</a><ul class="links dropdown-menu"><li hreflang="de" data-drupal-link-system-path="node/190036" class="de"><a href="/de/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="de" data-drupal-link-system-path="node/190036">Deutsch</a></li><li hreflang="es" data-drupal-link-system-path="node/190036" class="es"><a href="/es/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="es" data-drupal-link-system-path="node/190036">Español</a></li><li hreflang="fr" data-drupal-link-system-path="node/190036" class="fr"><a href="/fr/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="fr" data-drupal-link-system-path="node/190036">Français</a></li><li hreflang="it" data-drupal-link-system-path="node/190036" class="it"><a href="/it/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="it" data-drupal-link-system-path="node/190036">Italiano</a></li><li hreflang="nl" data-drupal-link-system-path="node/190036" class="nl"><a href="/nl/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="nl" data-drupal-link-system-path="node/190036">Nederlands</a></li><li hreflang="pl" data-drupal-link-system-path="node/190036" class="pl"><a href="/pl/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="pl" data-drupal-link-system-path="node/190036">Polski</a></li><li hreflang="pt-pt" data-drupal-link-system-path="node/190036" class="pt-pt"><a href="/pt-pt/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="pt-pt" data-drupal-link-system-path="node/190036">Português</a></li><li hreflang="fi" data-drupal-link-system-path="node/190036" class="fi"><a href="/fi/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="fi" data-drupal-link-system-path="node/190036">Suomi</a></li><li hreflang="sv" data-drupal-link-system-path="node/190036" class="sv"><a href="/sv/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="sv" data-drupal-link-system-path="node/190036">Svenska</a></li><li hreflang="cs" data-drupal-link-system-path="node/190036" class="cs"><a href="/cs/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="cs" data-drupal-link-system-path="node/190036">Čeština</a></li><li hreflang="ru" data-drupal-link-system-path="node/190036" class="ru"><a href="/ru/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="ru" data-drupal-link-system-path="node/190036">Русский</a></li><li hreflang="ja" data-drupal-link-system-path="node/190036" class="ja"><a href="/ja/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="ja" data-drupal-link-system-path="node/190036">日本語</a></li><li hreflang="zh-hans" data-drupal-link-system-path="node/190036" class="zh-hans"><a href="/zh-hans/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="zh-hans" data-drupal-link-system-path="node/190036">简体中文</a></li><li hreflang="ko" data-drupal-link-system-path="node/190036" class="ko"><a href="/ko/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="ko" data-drupal-link-system-path="node/190036">한국어</a></li></ul>
+  </li>
+</ul>
+  
+        <ul class="menu nav navbar-nav user-account-menu__username-link">
+                        
+                        <li>
+        <a href="/atc/login?redirect=/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="user-account-menu__username-link" rel="nofollow" data-drupal-link-query="{&quot;redirect&quot;:&quot;\/doc\/tekla-structural-designer\/2025\/ref_baseplatesaisc360&quot;}" data-drupal-link-system-path="atc/login">Sign in</a>
+                  </li>
+                          </ul>
+              
+
+
+
+  </div>
+
+            <div class="mobile-button--super-navigation">
+              <button type="button" class="toggle" aria-label="Show menu"></button>
+            </div>
+          </div>
+        </div>
+        <div class="navbar-header__mobile-super-navigation">
+            <div class="region region-super-navigation-right">
+    <section id="block-trimblesearch-header" class="block block-trimble-search-page block-trimble-search-block clearfix">
+  
+    
+
+      <div class="tekla-search-field-container">
+  <div id="tekla-search-field" class="tekla-search-field" data-language="en" data-product="Tekla Structural Designer" data-version="2026" data-service="tua"></div>
+</div>
+
+  </section>
+
+  <ul class="menu nav navbar-nav language-links">
+  <li class="expanded dropdown">
+    <a href="#" class="dropdown-opener" data-toggle="dropdown" aria-expanded="false">English</a><ul class="links dropdown-menu"><li hreflang="de" data-drupal-link-system-path="node/190036" class="de"><a href="/de/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="de" data-drupal-link-system-path="node/190036">Deutsch</a></li><li hreflang="es" data-drupal-link-system-path="node/190036" class="es"><a href="/es/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="es" data-drupal-link-system-path="node/190036">Español</a></li><li hreflang="fr" data-drupal-link-system-path="node/190036" class="fr"><a href="/fr/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="fr" data-drupal-link-system-path="node/190036">Français</a></li><li hreflang="it" data-drupal-link-system-path="node/190036" class="it"><a href="/it/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="it" data-drupal-link-system-path="node/190036">Italiano</a></li><li hreflang="nl" data-drupal-link-system-path="node/190036" class="nl"><a href="/nl/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="nl" data-drupal-link-system-path="node/190036">Nederlands</a></li><li hreflang="pl" data-drupal-link-system-path="node/190036" class="pl"><a href="/pl/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="pl" data-drupal-link-system-path="node/190036">Polski</a></li><li hreflang="pt-pt" data-drupal-link-system-path="node/190036" class="pt-pt"><a href="/pt-pt/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="pt-pt" data-drupal-link-system-path="node/190036">Português</a></li><li hreflang="fi" data-drupal-link-system-path="node/190036" class="fi"><a href="/fi/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="fi" data-drupal-link-system-path="node/190036">Suomi</a></li><li hreflang="sv" data-drupal-link-system-path="node/190036" class="sv"><a href="/sv/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="sv" data-drupal-link-system-path="node/190036">Svenska</a></li><li hreflang="cs" data-drupal-link-system-path="node/190036" class="cs"><a href="/cs/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="cs" data-drupal-link-system-path="node/190036">Čeština</a></li><li hreflang="ru" data-drupal-link-system-path="node/190036" class="ru"><a href="/ru/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="ru" data-drupal-link-system-path="node/190036">Русский</a></li><li hreflang="ja" data-drupal-link-system-path="node/190036" class="ja"><a href="/ja/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="ja" data-drupal-link-system-path="node/190036">日本語</a></li><li hreflang="zh-hans" data-drupal-link-system-path="node/190036" class="zh-hans"><a href="/zh-hans/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="zh-hans" data-drupal-link-system-path="node/190036">简体中文</a></li><li hreflang="ko" data-drupal-link-system-path="node/190036" class="ko"><a href="/ko/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="language-link" hreflang="ko" data-drupal-link-system-path="node/190036">한국어</a></li></ul>
+  </li>
+</ul>
+  
+        <ul class="menu nav navbar-nav user-account-menu__username-link">
+                        
+                        <li>
+        <a href="/atc/login?redirect=/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" class="user-account-menu__username-link" rel="nofollow" data-drupal-link-query="{&quot;redirect&quot;:&quot;\/doc\/tekla-structural-designer\/2025\/ref_baseplatesaisc360&quot;}" data-drupal-link-system-path="atc/login">Sign in</a>
+                  </li>
+                          </ul>
+              
+
+
+
+  </div>
+
+        </div>
+                <div class="navbar-header__mobile-navigation">
+            <div class="region region-main-navigation-mobile">
+    <nav role="navigation" aria-labelledby="block-trimble2017-tua-main-menu-menu" id="block-trimble2017-tua-main-menu">
+            
+  <h2 class="visually-hidden" id="block-trimble2017-tua-main-menu-menu">Main navigation</h2>
+  
+
+        
+      <ul class="menu menu--main nav navbar-nav">
+                      <li class="first last">
+                                        <a href="/" data-drupal-link-system-path="&lt;front&gt;">Home</a>
+              </li>
+        </ul>
+  
+
+  </nav>
+
+  </div>
+
+        </div>
+              </div>
+          </header>
+  
+<div class="hero-container">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-sm-12"></div>
+    </div>
+  </div>
+</div>
+
+
+<div class="preface"></div>
+
+<div class="precontent">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="precontent__col col-sm-4"></div>
+      <div class="precontent__col col-sm-4"></div>
+      <div class="precontent__col col-sm-4"></div>
+    </div>
+  </div>
+</div>
+
+
+  <div class="main-container-wrap">
+    <div role="main" class="main-container container js-quickedit-main-content">
+      <div class="row row__main-container">
+
+                                      <div class="content-header col-sm-12" role="heading">  <div class="region region-content-header">
+        <div class="breadcrumb-wrapper">
+    <ol class="breadcrumb">
+      <li ><a href="/">Home</a></li><li ><a href="/tekla-structural-designer">Tekla Structural Designer</a></li><li ><a href="/doc/tekla-structural-designer/2025/ref_designcodes">Design code specific information</a></li><li ><a href="/doc/tekla-structural-designer/2025/section_us_codes">US codes</a></li><li ><a href="/doc/tekla-structural-designer/2025/ref_steeldesigntoaisc360asdandlrfd">Steel design to AISC 360 ASD and LRFD</a></li><li  class="active">Column base plate design to AISC 360</li>    </ol>
+  </div>
+
+
+  </div>
+</div>
+                  
+                                      <aside class="sidebar-first col-sm-4" role="complementary">  <div class="region region-sidebar-first">
+    <section id="block-teklaproductselectversion" class="block block-tekla-product-select block-tekla-product-select-version clearfix">
+  
+    
+
+      <div class="tekla-product-select-logos-wrapper">
+  <form class="tekla-product-select-version-form" id="product_select_version_form" data-drupal-selector="tekla-product-select-version-form" action="/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" method="post" accept-charset="UTF-8">
+  <input data-drupal-selector="edit-product-select" type="hidden" name="product_select" value="62065" /><div class="form-item js-form-item form-type-select js-form-type-select form-item-product-select-version js-form-item-product-select-version form-group">
+      <label class="product-version-label control-label" for="edit-product-select-version">Select product version:</label>
+  
+  
+  <div class="input-group"><div class="select-wrapper"><select class="version-select-element form-select form-control" data-drupal-selector="edit-product-select-version" data-disable-refocus="true" id="edit-product-select-version" name="product_select_version"><option
+            value="73720" selected="selected">2026</option><option
+            value="73639">2025</option><option
+            value="73498">2024</option><option
+            value="73366">2023</option></select></div><span class="input-group-addon"><span class="icon glyphicon glyphicon-refresh ajax-progress ajax-progress-throbber" aria-hidden="true"></span></span></div>
+
+  
+  
+  </div>
+<div class='hidden'>
+
+
+  
+
+  
+
+
+
+
+  
+  
+  
+<modus-wc-button data-component-id="trimble_theme:modus-button" onclick="document.getElementById(&quot;edit\u002Dsubmit&quot;).click(); return false;" color="secondary" size="md" type="button" variant="filled">
+  Apply</modus-wc-button>
+
+
+<input data-drupal-selector="edit-submit" class="button js-form-submit form-submit btn-info" type="submit" id="edit-submit" name="op" value="Apply" style="display: none;" />
+</div><input data-drupal-selector="edit-tekla-product-select-version-form" type="hidden" name="form_id" value="tekla_product_select_version_form" />
+</form>
+
+</div>
+
+  </section>
+
+<section id="block-productguidetree" class="block block-trimble-product-guide-manager block-product-guide-tree clearfix">
+  
+    
+
+      <h3>Product guides</h3><ul><li leaf-id="189159" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/tekla_structural_designer_product_guides">Tekla Structural Designer 2025 Product Guides</a></li><li leaf-id="189160" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/rel_cover">Tekla Structural Designer 2025 release notes</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189174" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ins_lic_tsd_installation_and_licensing_workflow">Installation and licensing workflow</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189182" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/bas_introducingtsd">Get familiar with Tekla Structural Designer</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189260" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/mod_modelingandeditinglandingpage">Create models</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189391" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/loa_loading_guide_landing_page">Apply loading</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189461" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ana_analysisguide">Analyze models</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189563" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/des_designlandingpage">Design models</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189611" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/rev_review_models">Review models</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189686" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/rep_createreportsanddrawings">Reports and drawings</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189723" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/bim_bimintegration">BIM integration</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189749" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/man_managemodels">Manage Tekla Structural Designer</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189792" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/eng_engineershandbooks">Engineers handbooks</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189958" class=" expanded has-children" aria-expanded="true"><a href="/doc/tekla-structural-designer/2025/ref_designcodes">Design code specific information</a><button type="button" class="has-children expanded loaded accordion-trigger">Expand</button><ul><li leaf-id="189959" class=" expanded has-children" aria-expanded="true"><a href="/doc/tekla-structural-designer/2025/section_us_codes">US codes</a><button type="button" class="has-children expanded loaded accordion-trigger">Expand</button><ul><li leaf-id="189960" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/asce7_loading">Loading (ASCE 7)</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189993" class=" expanded has-children" aria-expanded="true"><a href="/doc/tekla-structural-designer/2025/ref_steeldesigntoaisc360asdandlrfd">Steel design to AISC 360 ASD and LRFD</a><button type="button" class="has-children expanded loaded accordion-trigger">Expand</button><ul><li leaf-id="189994" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ref_generalaisc360">General</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="189998" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ref_steelbeamdesigntoaisc360">Steel beam design to AISC 360</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="190013" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ref_compositebeamdesigntoaisc360">Composite beam design to AISC 360</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="190027" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ref_steelcolumndesigntoaisc360">Steel column design to AISC 360</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="190036" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ref_baseplatesaisc360">Column base plate design to AISC 360</a></li><li leaf-id="190037" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ref_steelbracedesigntoaisc360">Steel brace design to AISC 360</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="190043" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ref_trussmemberdesigntoaisc360">Truss member design to AISC 360</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="190046" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ref_steelsingledoubleangleandteesectiondesigntoaisc360">Steel single, double angle and tee section design to AISC 360</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="190054" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ref_referencessteeldesignaisc360">References (AISC 360)</a></li></ul></li><li leaf-id="190055" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ref_steelseismicdesignaisc341">Steel seismic design to AISC 341</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="190063" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/ref_concretedesignaci318">Concrete design to ACI 318</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="190143" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/vib_dg11handbook">Vibration of floors to DG11</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li></ul></li><li leaf-id="190152" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/section_eurocodes">Eurocodes</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="190316" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/section_british_standards">British Standards</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="190394" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/section_australian_standards">Australian Standards</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li><li leaf-id="190448" class=" has-children" aria-expanded="false"><a href="/doc/tekla-structural-designer/2025/section_indian_standards">Indian Standards</a><button type="button" class="has-children collapsed accordion-trigger">Expand</button></li></ul></li></ul>
+  </section>
+
+
+  </div>
+</aside>
+                  
+                        <section class="main-content col-sm-8">
+
+                                              <div class="highlighted">  <div class="region region-highlighted">
+    <div data-drupal-messages-fallback class="hidden"></div>
+
+  </div>
+</div>
+                      
+                    
+                    
+                                <a id="main-content"></a>
+              <div class="region region-content">
+        <h1 class="page-header">Column base plate design to AISC 360</h1>
+
+  
+
+<div class="node node--type-product-guide node--view-mode-full product-guide is-promoted ds-1col clearfix">
+
+  
+
+      
+                                                                                                                                      
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+  
+  
+  
+  
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+  <div class="tag-list">
+                                                                                                                                    
+
+  
+
+  
+<modus-wc-badge data-component-id="trimble_theme:modus-badge" color="high-contrast" variant="outlined">
+  Modified: 1 Apr 2026</modus-wc-badge>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+
+  
+
+  
+<modus-wc-badge data-component-id="trimble_theme:modus-badge" color="high-contrast" variant="outlined">
+  Tekla Structural Designer 2025</modus-wc-badge>
+                                                    </div>
+  
+  
+            <div class="field field--name-body field--type-text-with-summary field--label-hidden field--item"><article role="article" aria-labelledby="GUID-E18A96A2-192D-4D32-8B55-1FBCAA9D25AA__GUID-E0D84975-9630-4AA2-81D8-60D3321A601E">
+	<article class="nested0" aria-labelledby="GUID-E18A96A2-192D-4D32-8B55-1FBCAA9D25AA__GUID-E0D84975-9630-4AA2-81D8-60D3321A601E" id="GUID-E18A96A2-192D-4D32-8B55-1FBCAA9D25AA">
+		<h1 class="title topictitle1" id="GUID-E18A96A2-192D-4D32-8B55-1FBCAA9D25AA__GUID-E0D84975-9630-4AA2-81D8-60D3321A601E">Column base plate design to AISC
+			360</h1>
+		
+		<div class="body">
+			<p dir="ltr" class="p" id="GUID-E18A96A2-192D-4D32-8B55-1FBCAA9D25AA__GUID-302FEB5A-8F70-4B5F-9E71-BE273A1C0763">Column Bases: only simple
+				column bases are supported in the current release.</p>
+			<p dir="ltr" class="p" id="GUID-E18A96A2-192D-4D32-8B55-1FBCAA9D25AA__GUID-F2AA3345-0C78-4837-9514-D3FE1ABD25AD">Unless explicitly stated all
+				calculations will adopt either a load and resistance factor design (LRFD) or an
+				allowable strength design (ASD) as consistent with the design parameters for column
+				base connections as specified in the AISC Specification (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 2</a>) and its associated
+				'Commentary', the AISC Steel Design Guide 1: Base Connection Design for Steel
+				Structures (3rd Edition) (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 4</a>), and the ACI 318
+				Building Code Requirements (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 1</a>).</p>
+			<p dir="ltr" class="p" id="GUID-E18A96A2-192D-4D32-8B55-1FBCAA9D25AA__GUID-43772263-E0DB-446F-AC07-6B0F5CF0ACDA">The following advice is
+				written principally from the point of view of operating column base plate design
+				from within <span class="ph">Tekla Structural Designer</span>. </p>
+		</div>
+	<nav role="navigation" class="related-links"></nav></article>
+	<article class="topic concept nested0" aria-labelledby="GUID-0C401B34-440F-4AA9-8F38-E5B1EC83C5DE__GUID-A2A8331A-52A7-4677-9944-A37F4376544D" id="GUID-0C401B34-440F-4AA9-8F38-E5B1EC83C5DE">
+		<h1 class="title topictitle1 collapse" id="GUID-0C401B34-440F-4AA9-8F38-E5B1EC83C5DE__GUID-A2A8331A-52A7-4677-9944-A37F4376544D">Practical
+			applications</h1>
+		<div class="body conbody">
+			<p dir="ltr" class="p" id="GUID-0C401B34-440F-4AA9-8F38-E5B1EC83C5DE__GUID-D94223BC-5E86-4FAC-B249-82F77CB7B392">In the current release of <span class="ph">Tekla Structural Designer</span> only simple column base plate design checks are supported, following primarily
+				the design procedures given in AISC Design Guide 1: Base Connection Design for Steel
+				Structures (3rd Edition) (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 4</a>).</p>
+			<p dir="ltr" class="p" id="GUID-0C401B34-440F-4AA9-8F38-E5B1EC83C5DE__GUID-AB5DB6A1-3869-4D20-A51C-F94CE3860BF0"><span class="ph">Tekla Structural Designer</span> will check the base plate size and thickness, with the latter check displaying a
+				bearing stress calculation. Shear and tension resistance of the rods, concrete and
+				the welds are also checked. Base plate bending and/or shear lug bending is also
+				checked. When welded plate washers are used then the thickness of the plate washer
+				is checked.</p>
+			<p dir="ltr" class="p" id="GUID-0C401B34-440F-4AA9-8F38-E5B1EC83C5DE__GUID-DAD6F7DF-605D-4A5F-A5AF-7098A3B8AAD1">The concrete foundation design is
+				checked <em class="ph i">separately</em> in accordance with ACI 318 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 1</a>).</p>
+			<p dir="ltr" class="p" id="GUID-0C401B34-440F-4AA9-8F38-E5B1EC83C5DE__GUID-D385D5D8-A59A-4A96-868A-7A72AD718F60">Graphics are used to display
+				the base plate in its current state. You can therefore graphically see the base that
+				you are defining and the results that the design process has achieved. This allows
+				you to see the effects of any modifications that you make instantly on the screen.
+				Reinforcement in the foundation is not represented in the graphics.</p>
+		</div>
+	</article>
+	<article class="topic concept nested0" aria-labelledby="GUID-7BA60C78-3D49-40F3-9D09-76D9D3B6AAE4__GUID-A6F9E1AF-7B79-42A5-97D3-76444980B547" id="GUID-7BA60C78-3D49-40F3-9D09-76D9D3B6AAE4">
+		<h1 class="title topictitle1 collapse" id="GUID-7BA60C78-3D49-40F3-9D09-76D9D3B6AAE4__GUID-A6F9E1AF-7B79-42A5-97D3-76444980B547">Limitations</h1>
+		<div class="body conbody">
+			<p dir="ltr" class="p" id="GUID-7BA60C78-3D49-40F3-9D09-76D9D3B6AAE4__GUID-085E3B99-DF96-4733-9031-76A485C90973">For the current release of
+				<span class="ph">Tekla Structural Designer</span> the following limitations apply:</p>
+			<ul class="ul" id="GUID-7BA60C78-3D49-40F3-9D09-76D9D3B6AAE4__ul_npg_ndd_v4b">
+				<li dir="ltr" class="li">Column sections - Only the following column sections will have their
+					base plate design checked:<ul class="ul" id="GUID-7BA60C78-3D49-40F3-9D09-76D9D3B6AAE4__ul_opg_ndd_v4b">
+					<li dir="ltr" class="li">I section columns (W, M, S &amp; HP shapes)</li>
+					<li dir="ltr" class="li">HSS</li>
+					<li dir="ltr" class="li">Pipe sections</li>
+					</ul></li>
+				<li dir="ltr" class="li">Anchor rod layout - Anchor rod layouts are restricted as follows:<ul class="ul" id="GUID-7BA60C78-3D49-40F3-9D09-76D9D3B6AAE4__ul_ppg_ndd_v4b">
+					<li dir="ltr" class="li">The rod layout must be symmetric about both axes</li>
+					<li class="li">See the section on Base Plate Bending Strength for rod layout restrictions
+						related to columns in uplift</li>
+					<li class="li">When welded plate washers are used only 2 rows of rods are allowed.</li>
+					</ul></li>
+				<li dir="ltr" class="li">Base plate position - The column base plate can only be concentrically
+					placed about the major axes of the steel column, so that there is no
+					eccentricity in the line of action of the vertical load with respect to the
+					baseplate. In addition, the base plate can only be positioned symmetrically on
+					the concrete base.</li>
+				<li dir="ltr" class="li">Concrete pedestal - No concrete pedestal will be defined.</li>
+				<li dir="ltr" class="li">Welds<ul class="ul" id="GUID-7BA60C78-3D49-40F3-9D09-76D9D3B6AAE4__ul_yvg_1lm_mqb">
+					<li class="li">Partial length welds are permitted only on the webs of I section columns. </li>
+					<li class="li">For gravity loading the column is assumed to be prepared for direct contact
+						in bearing.</li>
+					<li class="li">Shear lug welds are not considered in the current release.</li>
+					<li class="li">When welded plate washers are used no weld data is input or assumed and no
+						checks are made for the welds to the plate washers.</li>
+					</ul> </li>
+			</ul>
+		</div>
+	</article>
+	<article class="topic concept nested0" aria-labelledby="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-669C1DEE-11ED-4BC0-B6C1-EF14C4608E70" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F">
+		<h1 class="title topictitle1 collapse" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-669C1DEE-11ED-4BC0-B6C1-EF14C4608E70">Theory and
+			assumptions</h1>
+		<div class="body conbody">
+			<section class="section" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__section_vgx_5dd_v4b">
+				<div class="p" dir="ltr" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-7DC9F9AB-C9FE-4671-BF31-E34FC8CD39BB">This section describes the theory
+					used in the development of column base plate design checks and the major
+					assumptions that have been made, particularly with respect to interpretation of
+					the AISC Specification (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 2</a>) and the AISC Steel
+					Design Guide 1 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 4</a>). A basic knowledge
+					of the design methods for column bases is assumed. <div class="note note note_note" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-8F5506C2-5965-4874-B0CB-7F4B3EEC91C2"><span class="note__title notetitle">Note:</span> Column base plates designed to
+					the AISC Specifications 360-05, -10,  -16 and -22 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 2</a>) should all produce
+					the same results as each other.</div></div>
+			</section>
+			<section class="section" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__section_b4x_5dd_v4b"><h2 class="title sectiontitle">Checks Performed</h2>
+				
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-743D39E5-7611-4C37-90F8-D0D41E59873F">The following table
+					summarizes the main checks performed:</p>
+				<div class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-C89F5142-C61A-4EDD-82A3-61BB54628DE3">
+					<div class="note note note_note" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-5DE0DA21-2897-4833-A5D1-86AE25E576BC"><span class="note__title notetitle">Note:</span> Some checks are carried out depending on the shear transfer option
+						selected.</div>
+				</div>
+				<table class="table" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b"><caption></caption><colgroup><col><col></colgroup><thead class="thead">
+							<tr class="row">
+								<th dir="ltr" class="entry nocellnorowborder" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__1">Applied Load</th>
+								<th dir="ltr" class="entry nocellnorowborder" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__2">Calculations </th>
+							</tr>
+						</thead><tbody class="tbody">
+							<tr class="row">
+								<td dir="ltr" class="entry nocellnorowborder" headers="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__1 ">Positive vertical load</td>
+								<td class="entry nocellnorowborder" headers="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__2 "><strong class="ph b">Base plate</strong><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-1D1B7AC1-302D-4D13-84E1-3BE12B272691">
+									<li class="li">Bearing strength of concrete foundation.</li>
+									<li class="li">Base plate thickness. </li>
+									</ul></td>
+							</tr>
+							<tr class="row">
+								<td class="entry nocellnorowborder" headers="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__1 ">(Major) shear load</td>
+								<td class="entry nocellnorowborder" headers="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__2 ">
+									<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-E1ADCA32-B917-43D9-96AF-FD70E191E4A0"><strong class="ph b">Base plate</strong></p>
+									<ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-13553451-FDD2-4BD7-B4F3-AF5786CBC14A">
+										<li class="li"> Welded plate washer thickness</li>
+									</ul>
+									<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-FE6B4E83-B07C-49DA-BAFF-A89E76C36E9E"><strong class="ph b">Shear</strong></p>
+									<ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_l1v_bht_fpb">
+										<li dir="ltr" class="li">Friction Strength</li>
+										<li dir="ltr" class="li">Shear strength of rods</li>
+										<li dir="ltr" class="li">Concrete anchorage strength for shear forces
+											on rods</li>
+										<li dir="ltr" class="li">Concrete pry-out strength of anchor rod in
+											shear</li>
+										<li dir="ltr" class="li">Concrete bearing strength of shear lug</li>
+										<li dir="ltr" class="li">Concrete breakout strength of shear lug</li>
+										<li dir="ltr" class="li">Shear lug bending strength</li>
+									</ul>
+									<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-A80032B7-CF2F-47B4-8471-E01C017BC316"><strong class="ph b">Rods and Anchorage</strong></p>
+									<ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-7AAF9642-D198-4698-AA26-1ABBD7E9B77A">
+										<li class="li"> Rods (in tension)</li>
+										<li class="li">Rods (in tension + shear)</li>
+									</ul>
+									<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-D7579908-18B0-4276-941A-57337DB9CB0F"><strong class="ph b">Weld</strong></p>
+									<ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_n1v_bht_fpb">
+										<li dir="ltr" class="li">
+											<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-47033A25-B34C-4458-BBBE-6F9DB94FD4D8">Weld
+												shear strength</p>
+										</li>
+									</ul>
+								</td>
+							</tr>
+							<tr class="row">
+								<td class="entry nocellnorowborder" headers="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__1 ">Positive vertical + (major) shear load</td>
+								<td class="entry nocellnorowborder" headers="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__2 "><strong class="ph b">Base Plate</strong><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_n2s_pht_fpb">
+									<li dir="ltr" class="li">Bearing strength of concrete foundation</li>
+									<li dir="ltr" class="li">Base plate thickness</li>
+									<li class="li">Welded plate washer thickness</li>
+									</ul><p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-830923A8-5583-4E5E-B243-43E59931CF52"><strong class="ph b">Shear</strong></p><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_p2s_pht_fpb">
+									<li dir="ltr" class="li">Friction Strength</li>
+									<li dir="ltr" class="li">Shear strength of rods</li>
+									<li dir="ltr" class="li">Concrete anchorage strength for shear forces on
+										rods</li>
+									<li dir="ltr" class="li">Concrete pry-out strength of anchor rod in
+										shear</li>
+									<li dir="ltr" class="li">Concrete bearing strength of shear lug</li>
+									<li dir="ltr" class="li">Concrete breakout strength of shear lug</li>
+									<li dir="ltr" class="li">Shear lug bending strength</li>
+									</ul><p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-538E6DE7-3DDC-4BD6-84B2-D10330F7B6CD"><strong class="ph b">Rods and Anchorage</strong></p><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-E482A5A3-50F0-49FB-9C94-F0FF83E00074">
+									<li class="li"> Rods (in tension)</li>
+									<li class="li">Rods (in tension + shear)</li>
+									</ul><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-BE3673C8-EFC2-4D70-A5C5-5F6125DD2BD9"><strong class="ph b">Weld</strong></p><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_q2s_pht_fpb">
+									<li dir="ltr" class="li">Weld shear strength</li>
+									</ul></td>
+							</tr>
+							<tr class="row">
+								<td class="entry nocellnorowborder" headers="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__1 ">Negative vertical load (Uplift)</td>
+								<td class="entry nocellnorowborder" headers="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__2 ">
+									<ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_ivb_1bp_5pb">
+										<li dir="ltr" class="li"><strong class="ph b">Base Plate</strong><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_jvb_1bp_5pb">
+											<li dir="ltr" class="li">Base plate bending strength</li>
+											</ul></li>
+										<li dir="ltr" class="li"><strong class="ph b">Rods and Anchorage</strong><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_kvb_1bp_5pb">
+											<li class="li">Shear lug dimensional checks</li>
+											<li dir="ltr" class="li">Rods (in tension)</li>
+											<li dir="ltr" class="li">Concrete breakout (in tension)</li>
+											<li dir="ltr" class="li">Concrete pull out (in tension)</li>
+											</ul></li>
+										<li dir="ltr" class="li"><strong class="ph b">Weld</strong><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_lvb_1bp_5pb">
+											<li dir="ltr" class="li">Weld tension strength</li>
+											</ul></li>
+									</ul>
+								</td>
+							</tr>
+							<tr class="row">
+								<td class="entry nocellnorowborder" headers="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__1 ">Negative vertical (uplift) + (major) shear load</td>
+								<td class="entry nocellnorowborder" headers="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__table_c4x_5dd_v4b__entry__2 ">
+									<ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_b2g_gbp_5pb">
+										<li dir="ltr" class="li"><strong class="ph b">Base Plate</strong><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_c2g_gbp_5pb">
+											<li dir="ltr" class="li">Base plate bending strength</li>
+											<li class="li">Welded plate washer thickness</li>
+											</ul></li>
+										<li dir="ltr" class="li"><strong class="ph b">Shear</strong><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_d2g_gbp_5pb">
+											<li dir="ltr" class="li">Friction Strength</li>
+											<li dir="ltr" class="li">Shear strength of rods</li>
+											<li dir="ltr" class="li">Concrete anchorage strength for shear
+												forces on rods</li>
+											<li dir="ltr" class="li">Concrete pry-out strength of anchor rod in
+												shear</li>
+											<li dir="ltr" class="li">Concrete bearing strength of shear
+												lug</li>
+											<li dir="ltr" class="li">Concrete breakout strength of shear
+												lug</li>
+											<li dir="ltr" class="li">Shear lug bending strength</li>
+											</ul></li>
+										<li dir="ltr" class="li"><strong class="ph b">Rods and Anchorage</strong><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_e2g_gbp_5pb">
+											<li class="li">Shear lug dimensional checks</li>
+											<li dir="ltr" class="li">Rods (in tension)</li>
+											<li dir="ltr" class="li">Concrete breakout (in tension)</li>
+											<li dir="ltr" class="li">Concrete pull out (in tension)</li>
+											<li dir="ltr" class="li">Rods (in tension + shear)</li>
+											<li dir="ltr" class="li">Concrete (in tension + shear)</li>
+											</ul></li>
+										<li dir="ltr" class="li"><strong class="ph b">Weld</strong><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_f2g_gbp_5pb">
+											<li dir="ltr" class="li">Weld shear strength</li>
+											<li dir="ltr" class="li">Weld strength with combined shear and
+												tension</li>
+											</ul></li>
+									</ul>
+								</td>
+							</tr>
+						</tbody></table>
+			</section>
+			<section class="section" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__section_whm_gcp_5pb"><h2 class="title sectiontitle">Base plate</h2>
+				
+				<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-A959F4AE-874C-4176-AFDB-8807C0325916">There are potentially 4 base plate checks:</p>
+				<div class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-476746D4-DEA8-4FDF-B291-3281D95289CC">
+					<ol class="ol" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ol_yvz_gww_5pb">
+						<li dir="ltr" class="li">
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-67FDD675-25FF-42EB-A44B-664A2A23803F">Bearing strength of concrete foundation</p>
+						</li>
+						<li dir="ltr" class="li">
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-CB2230DF-BD01-4F3C-9BEA-BF19C079C6D4">Base plate thickness</p>
+						</li>
+						<li dir="ltr" class="li">
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-E2A8A332-2935-4E5A-BAD1-AD3D2FD4CC09">Base Plate Bending Strength</p>
+						</li>
+						<li class="li">
+							<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-75A930A5-5875-4FDB-817C-0F356BEC8639"> Welded plate washer thickness</p>
+						</li>
+					</ol>
+					<ol class="ol" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ol_egs_jww_5pb">
+						<li class="li">
+							<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-C7444571-D423-43D7-A73F-BE2787558503"><strong class="ph b">Bearing strength of
+								concrete foundation</strong></p>
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-E02E1016-E291-406A-AD38-FA787A15C356">This check
+								is only performed under positive vertical load (i.e. axial
+								compression).</p>
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-988F2EF9-9A92-48F8-B7E0-7A8D13A34497">In the calculation of the nominal
+								bearing strength of the concrete, P<sub class="ph sub">p</sub>, the Area
+								A<sub class="ph sub">2</sub> is as defined in the AISC Design Guide 1, (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 4</a>) i.e.
+								"the maximum area of the portion of the supporting surface that is
+								geometrically similar to and concentric with the loaded area" with a
+								maximum value of 4*A<sub class="ph sub">1</sub>, where A<sub class="ph sub">1</sub> is the area of
+								the base plate.</p>
+						</li>
+						<li class="li">
+							<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-83D83B7B-05D9-411F-A1F0-A9DD13A5E733"><strong class="ph b">Base plate
+								thickness</strong></p>
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-3FDEBF79-735D-4A70-9617-EF6DDEEB75CE">This check
+								is only performed under positive vertical load (i.e. axial
+								compression).</p>
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-83B6DBA0-BC5E-4B72-95FD-DD96CF67AC11">The check
+								requires t<sub class="ph sub">p</sub> ≥ t<sub class="ph sub">min</sub> where t<sub class="ph sub">p</sub> = the
+								base plate thickness, and t<sub class="ph sub">min</sub> = the minimum thickness,
+								according to LRFD or ASD as appropriate.</p>
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-81FFA862-204E-4D2D-9E02-66BE715850C9">The required
+								bearing stress, f<sub class="ph sub">pu</sub> (LRFD) or f<sub class="ph sub">pa</sub> (ASD), is
+								reported within the calculations for t<sub class="ph sub">min</sub>.</p>
+						</li>
+						<li class="li">
+							<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-9CE0285C-6C7F-4DEB-BF26-89A78486CEAB"><strong class="ph b">Base Plate Bending
+								Strength</strong></p>
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-D1C9E035-3835-4C10-8FDA-FF5783C053F1">This check
+								is performed under negative vertical load (i.e. axial tension /
+								uplift), with the bending strength determined according to LRFD or
+								ASD, as appropriate.</p>
+							<ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_nkb_tcp_5pb">
+								<li class="li"><p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-324081D8-C225-481C-8DBF-30C2D12367D4"><strong class="ph b">I section columns (W, M, S &amp; HP
+									shapes)</strong></p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-C97BE820-15AC-4F97-A229-D35FD3D84B00">The plate bending
+									model assumes a 45 degree dispersion from the end points of the
+									column flanges (see diagram below) to a straight yield line
+									across the width of the plate. The effective bending width is
+									limited to the lesser of the actual plate width or the column
+									flange width plus the difference between plate length and column
+									section depth.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-11FBDEB1-C6A2-4828-93FF-FD796D4F4CBD">Rods ‘outside’
+									the flanges are those between the ends of the plate and lines
+									through the mid thickness of the column flanges (including the
+									mid thickness lines). Rods ‘inside’ the flanges are those
+									between lines through the mid thickness of the column flanges
+									(excluding the mid thickness lines).</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-EE5CA304-92F0-4204-97E9-B0377C6B093E">No rods should be
+									positioned within the shaded areas shown in the diagram below,
+									between the two 45 degree dispersal lines emanating from each
+									flange tip.</p><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_ffx_nbp_5pb">
+									<li dir="ltr" class="li">
+										<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-91005DC0-4800-4193-B40F-DF5B7F463610">For rods outside the flanges, all rods should be
+											contained within an area bounded by the plate edges, the
+											flange and lines drawn at 45 degrees from the outside
+											corners of the flange to the plate edge. If this is not
+											the case, a Warning status is issued.</p>
+									</li>
+									<li dir="ltr" class="li">
+										<div class="p" dir="ltr" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-2AAC7C7F-A27C-432D-B7E4-58EAD425D5BD">For rods inside the flanges, all rods should be
+											contained within an area bounded by the plate edge, the
+											flanges, the web and lines drawn at 45 deg from the
+											inside corners of the flange to the plate edge. If this
+											is not the case, a Warning status is issued.<br><img class="image imageleft" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__image_avk_p4p_5pb" src="/dist/suf/product-guides/tekla-structural-designer/en/2025/GUID-4939B313-E347-417A-9693-C55CF09BBE51-publishing.png"></div>
+										<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-CF0B02E2-777F-4F02-8588-5AA34F57A41E"><em class="ph i">Plan view on base plate with I section column and 45
+											degree dispersal lines</em></p>
+									</li>
+									</ul>The number of effective rods contributing to the bending
+									depends on the rod layout. Where 4 rows of rods are used and all
+									4 rows lie inside the flanges, then all rods in the outer 2 rows
+									count but only the 4 rods adjacent to the web count from the
+									inner 2 rows (see diagram below). In all other layouts all of
+									the rods count as effective.<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-17C59BA3-4905-4FB2-BC68-674F7B0AF645">The nominal
+									tension force on each effective rod is the total uplift force
+									divided by the total number of effective rods.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-643A8B51-D155-4102-BA3B-6F9C6970E729">For rods outside
+									the flanges the full nominal tension force on each rod is used
+									when deriving the required bending strength.</p><div class="p" dir="ltr" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-EDF275AA-7B97-4A10-AF5F-0C642E6A0925">For rods inside
+									the flanges, when there are only 2 rows inside the flanges then
+									for the 4 rods adjacent to the web the nominal tension force is
+									proportioned between the flange and the web, in the ratio
+									d<sub class="ph sub">w</sub>/(d<sub class="ph sub">w</sub>+d<sub class="ph sub">f</sub>) to the flange and
+									d<sub class="ph sub">f</sub>/(d<sub class="ph sub">w</sub>+d<sub class="ph sub">f</sub>) to the web, where
+									d<sub class="ph sub">w</sub> is the distance from center of rod to centerline
+									of web, and d<sub class="ph sub">f</sub> is the distance from center of rod to
+									centerline of flange; while all other rods in the row use the
+									full nominal tension force. The proportioned tension force to
+									the web does not contribute to plate bending but is taken into
+									account for the required web weld tension strength. When there
+									are 4 rows of rods inside the flanges, the outer 2 rows adopt
+									the tension forces as described above for 2 rows only inside the
+									flanges; while the other 4 effective rods (adjacent to the web)
+									from the inner 2 rows assume the full nominal tension force to
+									the web and so do not contribute to plate bending but are taken
+									into account for the required web weld tension strength.<br><img class="image imageleft" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__image_evy_n4p_5pb" src="/dist/suf/product-guides/tekla-structural-designer/en/2025/GUID-BA4EE031-9B99-4703-8673-947536C84164-publishing.png"></div><div class="p" dir="ltr" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-06C648A5-811F-40B9-B1E1-88C29E540531"><em class="ph i">Distribution
+									of rod nominal tension force, Tn (rods in red are non-effective
+									for tension)</em><div class="note note note_note" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-8ECCD799-7616-40EA-93A7-1C3E110D1FD2"><span class="note__title notetitle">Note:</span> Bending around
+									lines parallel to the web is not considered and there is no
+									local strength check on the web in the current release of the
+									software.</div></div></li>
+								<li class="li">
+									<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-9BAD4FDF-9A3A-4979-AB4D-A609BC43A312"><strong class="ph b">HSS and
+										pipe section columns</strong></p>
+									<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-13C424A1-C162-47DE-A263-59B698E0CF6F">The
+										plate bending model assumes a 45 degree dispersion from the
+										corner points of the column section (see diagram below) to
+										straight yield lines across the width and length of the
+										plate.</p>
+									<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-50BCAD7F-14D3-46A3-8177-28D62924B72D">Note, for circular HSS and pipe column sections an
+										equivalent square section profile is assumed based on a side
+										length equal to three quarters of the outside diameter of
+										the HSS or pipe (which gives an approximately equal
+										perimeter length).</p>
+									<div class="p" dir="ltr" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-6555A571-DFF8-45B1-8A8E-24172BA7E509">The general rule adopted for
+										valid rod layouts is that no more than one line of rods is
+										permitted in each zone, opposite and parallel to each face
+										of the HSS section. For rod layouts which do not follow this
+										rule a Beyond Scope status is issued.<br><img class="image imageleft" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__image_ik2_r4p_5pb" src="/dist/suf/product-guides/tekla-structural-designer/en/2025/GUID-FA6A972C-97CD-46F8-AD93-1EF69E4243B0-publishing.png"></div>
+									<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-21631C34-5BD2-4A23-A797-B81582BAFBA2"><em class="ph i">Plan view on base plate with HSS section column
+										and 45 degree dispersal lines</em></p>
+									<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-1639B58E-DB7D-486D-891F-F4F11A8071A4">In all valid HSS rod layouts all of the rods count
+										as effective towards plate bending.</p>
+									<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-6677FA4B-843B-44DC-B5E1-EA3074BC2EAD">The
+										nominal tension force on each effective rod is the total
+										uplift force divided by the total number of effective
+										rods.</p>
+								</li>
+							</ul>
+						</li>
+						<li class="li">
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-028AE98D-55C2-47AC-A495-77FF5CF0C51D"><strong class="ph b">Welded plate washer thickness</strong></p>
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-AE0816EA-19D9-47A9-A07E-7AE4A6C3C72D">This check is performed when (major) shear is present, and
+								use welded plate washers is checked on in the base plate properties,
+								and the shear transfer method is either ‘Shear on rods alone’ or
+								‘Friction and shear on rods’.</p>
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-73CB7F91-1ADC-4986-8DD2-7F4D9D8293B6">The minimum required plate washer
+								thickness is determined according to LRFD or ASD, as appropriate,
+								using the provisions of AISC 360 Section J3.10 (360-05, -10, or -16)
+								or J3.11 (360-22).</p>
+						</li>
+					</ol>
+				</div>
+			</section>
+			<section class="section" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__section_apv_nbp_5pb"><h2 class="title sectiontitle">Shear</h2>
+				
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-6925936C-A005-4B5E-83C8-13DE6712B0DF">There are five options to choose
+					from for (major) shear transfer:</p>
+				<div class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-70B9DF87-9F5A-47C3-A35C-5E51618EAF9B">
+					<ol class="ol" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ol_pgr_43t_fpb">
+						<li dir="ltr" class="li">
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-BC4674D1-013F-4237-B700-2DBDD4DED04A">Friction
+								alone</p>
+						</li>
+						<li dir="ltr" class="li">
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-B1617F53-47BA-4239-BE6B-FAD8BFAC2EA6">Shear on
+								rods alone</p>
+						</li>
+						<li dir="ltr" class="li">
+							<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-00933D3E-C986-4916-AB35-E7C8AFC6EE54">Friction and
+								shear on rods</p>
+						</li>
+						<li class="li">
+							<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-BF60BF06-28FA-448C-BA84-64432C47F42D">Bearing on shear lug</p>
+						</li>
+						<li class="li">
+							<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-0AE11E27-FD8B-4E4B-BC04-8F2710974166">Friction and bearing on shear lug</p>
+						</li>
+					</ol>
+				</div>
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-E2071735-EFA0-49F8-9A7B-D29F01BEA4A9">When welded plate washers are used then only options 2 and 3 are valid
+					for shear transfer.</p>
+				<div class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-B7126387-5E46-46D3-BC68-BDA71ACD1D9A">
+					<ol class="ol" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ol_ppb_xrt_fpb">
+						<li class="li"><strong class="ph b">Friction Alone</strong><ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_djk_bst_fpb">
+							<li class="li">
+								<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-D28C0A60-382C-4F42-B492-A50384F76445"><strong class="ph b">Friction
+									Strength</strong></p>
+								<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-954D12C2-BA87-4C18-92FD-9F9F7BD2521E">This shear strength check is
+									calculated in accordance with ACI 318 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 1</a>)
+									and considers the full (major) shear force. Since ACI 318 only
+									takes account of LRFD requirements then this check is not
+									performed for ASD load combinations.</p>
+								<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-5562A66F-3A84-4F5F-9264-507B67463273">The default for μ, the
+									coefficient of friction between the base plate and concrete, is
+									taken as 0.4 per ACI 349-01 (section RB.6.1.4), 349-06 and -13
+									(section RD.6.1.4) (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref.
+									8</a>).</p>
+							</li>
+							</ul></li>
+						<li class="li"><strong class="ph b">Shear on Rods Alone</strong><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-CAC4FFF0-575E-4649-8E3F-AD259C65A309">Checks for Shear on Rods Alone are divided into 3 separate parts and
+							consider the full (major) shear force, except as noted below:</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-5E3179E6-821E-4CE1-83BA-9AFD4BC2158F">a. Shear
+							strength of rods.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-11A791A0-6F71-4F60-8A02-7BCBA0E1401E">b. Concrete anchorage
+							strength for shear forces on rods.</p><p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-DB8BD13F-6266-4CE8-AD6D-9234A07ACE86">c. Concrete pry-out
+							strength of anchor rod in shear.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-4BD4EFE8-AFF6-4A9C-A235-5C8638073104">The anchor rod strength
+							is calculated in accordance with AISC 360 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 2</a>) and AISC
+							Design Guide 1 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 4</a>) for both
+							LRFD and ASD load combinations.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-93A80924-1102-45F2-93F4-8C15591EF167">The concrete strength
+							checks are calculated in accordance with ACI 318 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 1</a>). Since ACI
+							318 only takes account of LRFD requirements then these checks are not
+							performed for ASD load combinations.</p><ol class="ol" type="a" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ol_ef2_kst_fpb">
+							<li class="li"><strong class="ph b">Shear Strength of Rods</strong><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-B0256E2D-9860-4E86-BB06-BC4BE73C1614">AISC Design Guide 1 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 4</a>)
+								recommends taking a cautious approach when using anchor rods to
+								transfer horizontal shear loads. Unless special provisions are made
+								to equalize the load to all anchor rods, such as using field welded
+								setting plates or field welded plate washers, Design Guide 1
+								recommends using only the rods closest to the edge in the direction
+								of the force to resist the shear.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-C734BC69-FD49-4529-BEA7-77A2D304D347">The option ‘Use
+								welded plate washers’ can be selected in the base plate properties,
+								when it will be assumed that each rod has the same welded plate
+								washer applied, and the shear load is distributed equally to each
+								rod.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-4E70F942-A40A-4971-B7D8-50B1FE60AB47">The default option is <em class="ph i">not</em> to use welded plate washers, in
+								which case a Warning is displayed in the results viewer:</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-21FD8BF7-4DE4-4299-81AB-114BBA78A83E"><em class="ph i">To
+								transfer the shear equally to all anchor rods special provisions
+								need to be made such as the use of field welded setting plates or
+								field welded washers. The recommendation given in DG#1 to use the
+								total number of rods closest to the edge in the direction of the
+								shear force has been adopted.</em></p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-4E6219F0-10A5-4502-AAF3-1601908775A6">The nominal shear
+								strength, F<sub class="ph sub">nv</sub>, from AISC 360-10, -16 and -22 is
+								0.45F<sub class="ph sub">u</sub> and is back-fitted to AISC 360-05, and is also
+								factored by 0.8 if a grout layer is used (per ACI 318-08 and -11
+								Appendix D and Chapter 17 of ACI 318-14, -19, and -19(22)).</p></li>
+							<li class="li"><strong class="ph b">Concrete Anchorage Strength for Shear Forces on Rods</strong><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-CCCB3542-21A1-40B2-9208-AABEDFD79399">This check is carried
+								out in accordance with the provisions of ACI 318-11 Appendix D and
+								Chapter 17 of ACI 318-14, -19 and -19(22), which all have similar
+								provisions, and back-fitted to ACI 318-08 (which has slightly
+								different provision).</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-0057D29A-EAD1-4D6C-AA61-9EEE35BAD41F">For the purposes of
+								resisting shear forces, an anchor rod may act as an individual or as
+								part of an anchor rod group which is defined in ACI 318 as "a number
+								of anchors spaced at less than 3*c<sub class="ph sub">a1</sub> from one or more
+								adjacent anchors when subject to shear".</p><p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-7A19645F-5F6E-4D36-AD11-398D3D4760D1">When welded plate
+								washers are not used, all of the rods in the front row are
+								considered effective in resisting shear and, further, that these
+								rods act as a group if spaced at less than 3*c’<sub class="ph sub">a1</sub> where
+								c’<sub class="ph sub">a1</sub> is the limiting value of <sub class="ph sub">ca1</sub> defined in
+								ACI 318. This returns a conservative result.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-AFE166A5-AB0B-49E0-86DE-CB0C1946EBF6">When welded plate
+								washers are used, depending on the distance between the 2 rows of
+								anchor rods, 2 checks are performed (half the shear force on the
+								front row of rods and the full shear force on the back row) or just
+								1 check (the full shear force on the front row of rods).</p><p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-B1DFE2E6-8054-4838-B812-8B2ECAFC5DD8">Only shear
+								perpendicular to the concrete edge is considered in the current
+								release.</p><div class="p" dir="ltr" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-C3101D1D-0B73-43A1-95ED-997BAD43D558">The concrete edge
+								distances, c<sub class="ph sub">a1</sub> and c<sub class="ph sub">a2</sub>, relative to the shear
+								perpendicular to an edge are shown in ACI 318-14 Figure R17.5.2.1d,
+								part of which is reproduced below. These distances are referred to
+								in the design calculations as "Distance (parallel to shear) to
+								concrete edge, <sub class="ph sub">ca1</sub>" and "Distance (perpendicular to
+								shear) to concrete edge, c<sub class="ph sub">a2</sub>".<br><img class="image imageleft" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__image_dxg_smm_mqb" src="/dist/suf/product-guides/tekla-structural-designer/en/2025/GUID-2F01EF1B-C346-4128-9315-E561383557DA-publishing.png"></div><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-C57E25E1-4B1A-45B1-AE40-8D18FB889404"><em class="ph i">Plan view on
+								concrete foundation with edge distances c<sub class="ph sub">a1</sub> and
+								c<sub class="ph sub">a2</sub> from an anchor.</em></p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-22BB129B-3197-47C7-911E-313212FD76E8">In the calculation of
+								the nominal concrete breakout strength, V<sub class="ph sub">cbg</sub>, the
+								modification factor for eccentricity of shear load,
+								Ψ<sub class="ph sub">ec,V</sub>, and the modification factor for cracked concrete,
+								Ψ<sub class="ph sub">c,V</sub> are both set to 1.0</p></li>
+							<li class="li"><strong class="ph b">Concrete Pry-out Strength of Anchor Rod in Shear</strong><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-25B7F5F4-D89C-4DBF-A8F4-1BDDB0DDD6D6">This check is carried
+								out in accordance with the provisions of ACI 318-08 and -11 section
+								D.6.3, ACI 318-14 section 17.5.3, and ACI 318-19 section
+								17.7.3</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-23876276-72AC-4B20-9C07-40869606BDD9">Calculation of
+								V<sub class="ph sub">cp</sub>, the nominal concrete pry-out strength for rods in
+								shear, involves calculation of N’<sub class="ph sub">cbg</sub>, the nominal
+								concrete breakout strength for rods in shear, which is determined in
+								accordance with the provisions of ACI 318-08 and -11 section D.6.2,
+								ACI 318-14 section 17.5.2, and ACI 318-19 section 17.7.2</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-CE3EB561-3E0C-4C0D-B362-A99D466D12D1">In the
+								calculation of N’<sub class="ph sub">cbg</sub>, the nominal concrete breakout
+								strength, a limiting value of rod embedded depth, h<sub class="ph sub">ef</sub>, is
+								used and labeled as h’<sub class="ph sub">ef</sub>. The limiting value is
+								determined in accordance with the provisions of ACI 318-08 and -11
+								section D.5.2.3, ACI 318-14 section 17.4.2.3, and ACI 318-19 section
+								17.6.2.1.2</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-F39662B5-0648-42DD-BD82-3C9E4D0C0576">Also in the
+								calculation of N’<sub class="ph sub">cbg</sub>, the nominal concrete breakout
+								strength, a “total number of effective rods'' is referred to.
+								Typically this will be equal to the total number of rods in the
+								layout of rods, but for I section columns with 4 rows of rods, where
+								all 4 rows are positioned inside the flanges of the column section,
+								the internal 2 rows of rods are taken as having a total of 2 rods in
+								each row - the 2 rods adjacent to either side of the column web. For
+								example, in a rod layout of 4 rows of 4 rods in each row, with all 4
+								rows positioned inside the flanges of an I section column, the total
+								number of effective rods = 2 * 4 + 2 * 2 = 12 (rather than the 16
+								rods in the total layout).</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-08942738-E9CE-4DC0-9CDB-86DAB8D40178">Also in the
+								calculation of N’<sub class="ph sub">cbg</sub>, the nominal concrete breakout
+								strength, the modification factor eccentricity of shear load,
+								Ψ<sub class="ph sub">ec,N</sub>, and the modification factor for cracked concrete,
+								Ψ<sub class="ph sub">c,N</sub> are both set to 1.0</p></li>
+							</ol></li>
+						<li class="li"><strong class="ph b">Friction and Shear on Rods</strong><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-FA7CAA41-3894-47FC-BF03-DD2A57281968">When Friction and Shear
+							on Rods is selected as the (major) shear transfer option, then the three
+							Shear on Rods checks consider a net shear force i.e. the remaining
+							(major) shear force not taken by frictional resistance alone.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-04B5FBB3-11A4-4DCA-AA4E-A0E542373DAB">Checks for
+							Friction and Shear on Rods are divided into the same 3 separate parts as
+							for Shear on Rods Alone (as detailed above), with the addition of a
+							Friction calculation (as detailed above), at the start of each of the
+							three Shear on Rods parts, that derives the net (major) shear
+							force.</p></li>
+						<li class="li"><strong class="ph b">Bearing on Shear Lug</strong><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-03925C97-7976-425F-A6C6-A29B4C018BFE">Checks for Bearing on Shear Lug are divided into 3 separate parts and
+							consider the full (major) shear force:</p><ol class="ol" type="a" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ol_l3w_1nm_mqb">
+							<li dir="ltr" class="li">
+								<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-5271F963-B8CA-40D2-BD30-773382BB1352">Concrete
+									bearing strength of shear lug.</p>
+							</li>
+							<li dir="ltr" class="li">
+								<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-48B26D9F-943C-48D2-9187-C19CB2AB9DBD">Concrete
+									breakout strength of shear lug.</p>
+							</li>
+							<li dir="ltr" class="li">
+								<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-D4483C60-8924-4708-8F65-D79EFBEF2B41">Shear
+									lug bending strength.</p>
+							</li>
+							</ol><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-BD1DBE74-B5B4-46C0-A658-65EBFFCC8BEB">All 3
+							separate parts vary in design approach according to the ACI 318 design
+							code year selected in the model, with demarcation between pre-2019 (i.e.
+							2008, 2011 or 2014) and 2019 or -19(22).</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-6136406E-414F-457A-B0B8-BD421B1DCDDF">When ACI 318 pre-2019 is
+							selected, the concrete strength checks are calculated in accordance with
+							guidance from AISC Design Guide 1 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 4</a>) and Gomez
+							et al (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 9</a>), otherwise
+							in accordance with ACI 318-19 or -19(22) (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 1</a>). Since
+							concrete design only takes account of LRFD requirements then these
+							concrete strength checks are not performed for ASD load
+							combinations.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-9C5D40CB-6F58-4C46-989B-3574E98936CE">The shear lug bending
+							strength is calculated in accordance with AISC 360 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 2</a>) and AISC
+							Design Guide 1 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 4</a>) for both
+							LRFD and ASD load combinations. The choice of ACI 318 design code year
+							determines only the lever arm distance for bending.</p><ol class="ol" type="a" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ol_f5l_4qm_mqb">
+							<li class="li"><strong class="ph b">Concrete Bearing Strength of Shear Lug</strong><p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-04D0AE40-6661-408D-8AEE-4347BA546C81">When ACI 318 pre-2019 is selected this
+								check is carried out under ACI 349 Appendix Section D.4.6.2. The
+								nominal concrete bearing strength is based on an embedded depth of
+								shear lug equal to actual depth of lug less the grout pad
+								thickness.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-B6E7B7EA-3A62-4CB9-A6E7-BC51A077C5B9">When ACI 318 2019 or
+								-19(22) is selected, this check is carried out in accordance with
+								the provisions of Section 17.11.2, and the nominal concrete bearing
+								strength is based on an <em class="ph i">effective</em> embedded depth of shear lug
+								equal to the lesser of the embedded depth of lug and twice the lug
+								thickness. The 318-19 or -19(22) design method also includes a
+								bearing factor, Ψ<sub class="ph sub">brg,sL</sub>, which varies between 1.0 and 2.0
+								for applied axial compression, and between zero and 1.0 for applied
+								axial tension.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-62E3F76E-20D4-4AD8-87EF-FB3D5CAADB9B">For all ACI 318 code
+								years, if the embedded depth of the shear lug is less than 2 inches
+								(or 50 mm in metric design) then a Warning is displayed in the
+								results viewer.</p></li>
+							<li class="li"><strong class="ph b">Concrete Breakout Strength of Shear Lug</strong><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-7EA4DAEB-9124-4398-BAD5-D7BAED7758FC">When ACI 318 pre-2019
+								is selected this check is carried out to recommendations by Gomez et
+								al (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 9</a>) whose
+								research report was presented to AISC in 2009. The research report
+								recommends the nominal concrete breakout strength of shear lug is
+								based on the minimum of that found from a 35 degree fracture failure
+								plane with a design equation adapted from a Concrete Capacity Design
+								(CCD) method given by Fuchs et al (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 10</a>), and
+								that found from a 45 degree tension failure plane, per ACI 349
+								Appendix Section D.11.2.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-53CBA831-EBC1-411E-8AC5-8580C0FBC779">Note that the
+								effective area of the 35 degree failure plane is factored in Gomez
+								et al by 0.7 to account for disturbance of symmetric stress
+								distribution when close to a corner, but this factor is more refined
+								in Fuchs et al (Ψ<sub class="ph sub">5</sub> in Equation 13c). The more refined
+								factor is adopted in <span class="ph">Tekla Structural Designer</span>.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-04D58623-2D87-4FE5-9403-C39CD5597F02">When ACI 318 2019 or -19(22) is selected, this check is carried out
+								in accordance with the provisions of Section 17.11.3, and the
+								nominal concrete breakout strength of shear lug is based on an
+								<em class="ph i">effective</em> area of shear lug and a 35 degree fracture failure
+								plane. Note in the calculation of the nominal concrete breakout
+								strength of shear lug, V<sub class="ph sub">cb,sL</sub>, the modification factor
+								for cracked concrete, Ψ<sub class="ph sub">c,V</sub> is set to 1.0 and only shear
+								perpendicular to the concrete edge is considered in the current
+								release.</p><div class="p" dir="ltr" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-2D55098C-B243-4AD4-88C1-27FB75C32FD9">The concrete edge
+								distance, c<sub class="ph sub">a1</sub>, relative to the shear perpendicular to an
+								edge is shown in ACI 318-19 or -19(22) Figure R11.3.1, part of which
+								is reproduced below. This distance is referred to in the design
+								calculations as "Distance (parallel to shear) to concrete edge,
+								c<sub class="ph sub">a1</sub>" and its perpendicular equivalent, measured from the
+								end face of the lug to the adjacent concrete edge, is referred to as
+								"Distance (perpendicular to shear) to concrete edge,
+								c<sub class="ph sub">a2</sub>".<br><img class="image imageleft" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__image_p1q_xpm_mqb" src="/dist/suf/product-guides/tekla-structural-designer/en/2025/GUID-FC8531A5-AE0D-402C-84EF-C25C7118E552-publishing.png"></div><p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-E19708F6-B91C-485C-AF1D-52761F582FE8"><em class="ph i">Plan view on
+								concrete foundation with edge distance c<sub class="ph sub">a1</sub> from a shear
+								lug</em></p></li>
+							<li class="li"><strong class="ph b">Shear Lug Bending Strength</strong><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-D4F50D38-416D-4559-8A56-E69348ADB08D">When ACI 318 pre-2019
+								is selected the lever arm for bending of the lug is taken as half
+								the embedded depth of the lug plus the grout pad thickness.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-639E0BEC-6300-43E6-B74F-759CF543BA3B">When ACI
+								318 2019 or -19(22) is selected the lever arm for bending of the lug
+								is taken as half the <em class="ph i">effective</em> embedded depth of the lug plus
+								the grout pad thickness.</p><p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-F8147930-83B6-44EC-BD45-3F936D3921E5">For all ACI 318 code years, following
+								the guidance of AISC DG1, if the thickness of the shear lug is
+								greater than the thickness of the base plate then a Warning is
+								displayed in the results viewer.</p></li>
+							</ol></li>
+						<li class="li"><strong class="ph b">Friction and bearing on shear lug</strong><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-6694E1D9-0458-4915-9911-E32172FE2B72">When Friction and Bearing
+							on Shear Lug is selected as the (major) shear transfer option, then the
+							three Bearing on Shear Lug checks consider a net shear force i.e. the
+							remaining (major) shear force not taken by frictional resistance
+							alone.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-63C54E28-CFF6-4E97-B924-9F99901FED17">Checks for Friction and Bearing on Shear Lug are divided into the same
+							3 separate parts as for Bearing on Shear Lug (see above), with the
+							addition of a Friction calculation at the start of each of the three
+							Bearing on Shear Lug parts, that derives the net (major) shear
+							force.</p></li>
+					</ol>
+				</div>
+			</section>
+			<section class="section" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__section_nsb_kgp_5pb"><h2 class="title sectiontitle">Rods and Anchorage</h2>
+				
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-0A655457-D72D-44D8-B345-F3DAFB10857B">Checks for Rods and Anchorage are
+					divided into 6 separate parts and, where combined with shear, consider the full
+					(major) shear force:</p>
+				<ol class="ol" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ol_osb_kgp_5pb">
+					<li class="li">Shear lug dimensional checks</li>
+					<li dir="ltr" class="li">Rods in tension</li>
+					<li dir="ltr" class="li">Concrete breakout (in tension)</li>
+					<li dir="ltr" class="li">Concrete pull out (in tension)</li>
+					<li dir="ltr" class="li">Rods (in tension + shear)</li>
+					<li dir="ltr" class="li">Concrete (in tension + shear)</li>
+				</ol>
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-2588D018-6992-4331-A88D-5B118CEA5719">The anchor rod strength checks are
+					calculated in accordance with AISC 360 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 2</a>) and AISC Design
+					Guide 1 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 4</a>) for both LRFD and
+					ASD load combinations.</p>
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-F077F4F7-C189-40C9-90E4-B8628873253E">The concrete strength checks are
+					calculated in accordance with ACI 318 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 1</a>). Since ACI 318
+					only takes account of LRFD requirements then these checks are not performed for
+					ASD load combinations.</p>
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-9FFFD017-01D7-401F-83F1-1C835534D3FD">The shear lug dimensional checks are
+					calculated in accordance with ACI 318 but only when a shear lug is present
+					<em class="ph i">and</em> the ACI 318 code year selected is 2019 or 2022. Since the presence of
+					a shear lug can influence anchor rod tension, the dimensional checks are
+					performed for both LRFD and ASD load combinations.</p>
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-3266BE13-2E3B-410F-AF75-D3055EC983F7">In the current release of the software, no reinforcement is assumed in
+					the concrete foundation.</p>
+				<ol class="ol" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ol_rqy_wtw_5pb">
+					<li class="li"><strong class="ph b">Shear Lug Dimensional Checks</strong><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-E7E03A53-4F71-4E3A-A8F8-DFF28B4E56DC">This pair of dimensional
+						checks is performed whenever negative vertical load (i.e. axial tension /
+						uplift) and a shear lug are both present and the ACI 318 code year selected
+						is 2019.</p><p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-02C4AB66-22C6-4C1F-8D94-A551412C4890">The checks are calculated using the provisions of
+						ACI 318-19 Section 17.11.1.1.8</p></li>
+					<li class="li">
+						<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-38AD15E0-E776-4CAB-B3DB-B0826CA7FC63"><strong class="ph b">Rods in Tension</strong></p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-E8F40B26-F1BC-4FF8-BC31-40B72BBCB253">This check is performed whenever
+							negative vertical load (i.e. axial tension / uplift) is present, or when
+							(major) shear is present and welded plate washers are used.</p>
+						<div class="p" dir="ltr" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-A2BA2027-C42A-4095-B5AE-1F07BEE86B7D">
+							<div class="note note note_note" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-03B84900-1EE0-438B-B419-65A822DC92A6"><span class="note__title notetitle">Note:</span> If a shear lug is also present and the
+								ACI 318 code year selected is 2019 or 2022 then there will be a
+								calculation to determine additional tension load due to forces on
+								the lug, per the requirement of ACI 318-19 or 19(22) Section
+								17.11.1.1.9 (Refer also to Section 3.5 of Cook and Michler  (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref.
+								11</a>).)</div>
+							<div class="note note note_note" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-FD404F29-D02E-482D-BBF1-6EA569818B7C"><span class="note__title notetitle">Note:</span> If welded plate washers are used and (major) shear is present then
+								there will be a calculation to determine additional tension from
+								local bending of the anchor rods. As a local effect, this additional
+								tension is only considered when checking the rods (for tension and
+								combined tension and shear).</div>
+						</div>
+						<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-BB31EBA9-7593-411F-ABFD-7D0407A76135">Anchor rod tension strength is calculated using the provisions of AISC
+							360 Section J3.6 (360-05, -10, or -16) or J3.7 (360-22).</p>
+					</li>
+					<li class="li">
+						<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-8526B36C-0687-41D9-B7BA-B8A148888DB9"><strong class="ph b">Concrete Breakout (in
+							Tension)</strong></p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-3889979B-1C9D-4302-80D5-CE0EF32B0206">This check is
+							performed whenever negative vertical load (i.e. axial tension / uplift)
+							is present.</p>
+						<div class="p" dir="ltr" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-646C66AF-6346-4D92-AA5B-E69EE15CF421">
+							<div class="note note note_note" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-0FA6AF6F-37B4-4F6A-8D7F-CF28A2C8CFFC"><span class="note__title notetitle">Note:</span> If a shear lug is also present and the
+								ACI 318 code year selected is 2019 or 2022 then there will be a
+								calculation to determine additional tension load due to forces on
+								the lug, per the requirement of ACI 318-19 or 19(22) Section
+								17.11.1.1.9 (Refer also to Section 3.5 of Cook and Michler (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref.
+								11</a>).)</div>
+						</div>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-36A6F081-2B4D-4DB3-A96B-7CAFFD98E2E3">This check is carried out in
+							accordance with the provisions of ACI 318-08 and -11 Appendix D and
+							Chapter 17 of ACI 318-14, -19, and 19(22).</p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-621E951E-85FA-494B-B9E6-AD04480B8351">In the
+							calculation of the nominal concrete breakout strength, N<sub class="ph sub">cbg</sub>,
+							the modification factor for eccentricity of shear load,
+							Ψ<sub class="ph sub">ec,N</sub>, and the modification factor for cracked concrete,
+							Ψ<sub class="ph sub">c,N</sub> are both set to 1.0</p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-9429203D-126F-42D2-BCC0-B28DC8E80BC9">When the column is subject to
+							uplift conditions, to avoid problems associated with side face breakout,
+							Design Guide 1 (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 4</a>) recommends
+							that the minimum concrete side cover to an anchor rod,
+							c<sub class="ph sub">j,min</sub>, should be ≥ MAX [6*rod diameter, h<sub class="ph sub">ef</sub>/2.5],
+							where h<sub class="ph sub">ef</sub> = the anchor rod embedded depth. If this is not the
+							case then a Warning message is displayed in the check indicating that
+							additional hand calculations may be required.</p>
+					</li>
+					<li class="li">
+						<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-56B0686A-0B44-444D-8969-F66311139EB8"><strong class="ph b">Concrete Pull Out (in
+							Tension)</strong></p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-D837BD19-2EAC-4777-AC68-F75FC8B38663">This check is
+							performed whenever negative vertical load (i.e. axial tension / uplift)
+							is present.</p>
+						<div class="p" dir="ltr" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-287580BD-3918-45E9-ABA5-C05F7B245C62">
+							<div class="note note note_note" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-EEF7B455-374F-4517-8F69-7DAB5543C5BD"><span class="note__title notetitle">Note:</span> If a shear lug is also present and the
+								ACI 318 code year selected is 2019 or 2022 then there will be a
+								calculation to determine additional tension load due to forces on
+								the lug, per the requirement of ACI 318-19 or 19(22) Section
+								17.11.1.1.9 (Refer also to Section 3.5 of Cook and Michler (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref.
+								11</a>).)</div>
+						</div>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-78F6FECC-02AE-4EC2-A20D-A5C2F7828063">This check is carried out in
+							accordance with the provisions of ACI 318-08 and -11 Appendix D and
+							Chapter 17 of ACI 318-14, -19, and 19(22).</p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-4F890DAA-2661-403A-844D-139DBF47DE33">In the
+							calculation of the nominal concrete pull out strength of an anchor rod
+							in tension, N<sub class="ph sub">pn</sub>, the modification factor for cracked
+							concrete, Ψ<sub class="ph sub">c,P</sub> is set to 1.0.</p>
+					</li>
+					<li class="li">
+						<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-C0235DD5-21E8-4E27-8098-68C38FCDE3BC"><strong class="ph b">Rods (in Tension +
+							Shear)</strong></p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-142EBA82-92D8-4099-9DAF-ACC4948CF31D">This check is only performed under
+							negative vertical load (i.e. axial tension / uplift) with (major) shear,
+							or when (major) shear is present and welded plate washers are used. In
+							both cases the shear transfer option must also be either Shear on Rods
+							Alone or Friction and Shear on Rods.</p>
+						<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-163A96F8-D51E-47A7-B658-11F73F3D2EEE">Anchor rod strength in combined shear and tension is calculated using the
+							provisions of AISC 360 Section J3.7 (360-05, -10, or -16) or J3.8
+							(360-22).</p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-D0936689-F2FE-4209-8C18-059597C610A6">The nominal
+							shear strength, F<sub class="ph sub">nv</sub>, from AISC 360-10 and -16 is
+							0.45F<sub class="ph sub">u</sub> and is back-fitted to AISC 360-05, and is also
+							factored by 0.8 if a grout layer is used (per ACI 318-08 and -11
+							Appendix D and Chapter 17 of ACI 318-14 and -19).</p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-5318B027-012A-4742-A14F-2DB4242810B5">As in the Shear Strength of Rods
+							check, only 2 of the anchor rods are assumed to be resisting the shear
+							unless use welded plate washers is checked on in the base plate
+							properties.</p>
+					</li>
+					<li class="li">
+						<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-9F8D1DEC-E88C-416E-9BF2-FD50B1644AC0"><strong class="ph b">Concrete (in Tension +
+							Shear)</strong></p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-EFE377FF-1D61-4AF4-BA35-4B5CF3626294">This check is
+							only performed under negative vertical load (i.e. axial tension /
+							uplift) with (major) shear, and also only when the shear transfer option
+							selected is either Shear on Rods Alone or Friction and Shear on
+							Rods.</p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-0C3FBDEB-52AC-456D-9548-A24AB3F96752">This check is
+							carried out in accordance with the provisions of ACI 318-08 and -11
+							Appendix D and Chapter 17 of ACI 318-14 and -19.</p>
+					</li>
+				</ol>
+			</section>
+			<section class="section" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__section_tvr_bdp_5pb"><h2 class="title sectiontitle">Welds</h2>
+				
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-01FDECCE-5776-433D-8A1F-26DC727027BE">The weld strengths are calculated in
+					accordance with AISC 360  (<a class="xref" href="/topic/en/62065/73639/GUID-12017EE9-F5A9-4019-9BBE-7BB09BEB7BBD">Ref. 2</a>) for both LRFD and
+					ASD load combinations.</p>
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-EEB4DF8D-722B-4F1D-A361-63CAACD04573">The welds are checked for the following design conditions: shear;
+					tension; combined shear and tension. For gravity loading the column is assumed
+					to be prepared for direct contact in bearing.</p>
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-16C61335-24FE-4324-8E96-A6C78F5B10F3">Shear lug weld is not considered in the current release.</p>
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-CDC90E0C-6F13-4B92-8B2D-C4683F5D647C">For base plates with
+					thickness ≤ 3/4 in (19 mm), the default weld leg length is 1/4 in (6mm) and for
+					all other base plate thicknesses the default weld leg length is 5/16 in (8 mm).
+					These defaults can be adjusted in the database [<a class="xref" href="/topic/en/62065/73639/GUID-03CCBF58-120F-4B2B-A176-4FCDE165A3A2?anchor=GUID-736A52E9-FF55-4C22-AC5A-70511E4F7DFA">Materials &gt;
+					Welds &gt; Defaults</a>].</p>
+				<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-EF1EBDEA-CF81-4F0D-9606-62BB19B9F3D3">AISC 360-10 and -16
+					stipulates that when the length of the weld exceeds 300 times the leg size, w,
+					the effective length shall be taken as 180w (section J.2b.(d).(3)), and this is
+					similarly applied when AISC 360-05 has been selected for steel design.</p>
+				<ul class="ul" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__ul_yf3_nkt_fpb">
+					<li class="li">
+						<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-475EB576-C552-4C33-BC6C-947AFC5B019D"><strong class="ph b">Weld Shear Strength</strong></p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-A3CBC4EC-4032-4EC2-8152-3D4C270B9E29">This check is performed whenever (major) shear load is
+							present.</p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-417B9F2D-0F6C-4C70-8C3F-C1E89A4EE920">Weld shear strength is calculated using the provisions of AISC
+							360 Section J2</p>
+					</li>
+					<li class="li">
+						<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-242372F8-1F03-43A9-94F0-4D20B951E9EE"><strong class="ph b">Weld Tension Strength</strong></p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-10C8B702-5914-445A-8F2F-D630A4E1B01F">This check is performed whenever negative vertical load (i.e.
+							axial tension / uplift) is present.</p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-29A3C648-D87B-4951-A8F2-9E4902150E37">Weld tension strength is calculated using the provisions of
+							AISC 360 Section J2</p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-E5CD2BB6-4991-4390-97D4-A4F5158307AE">Tension forces are derived as above in the section on Base
+							Plate Bending Strength.</p>
+					</li>
+					<li class="li">
+						<p class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-CD5E5E92-FB48-4BC8-8AD8-9EE7A1869859"><strong class="ph b">Weld Strength with Combined Shear and Tension</strong></p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-40411765-D7A7-4386-9704-995B008BC352">This check is only performed under negative vertical load (i.e.
+							axial tension / uplift) with (major) shear.</p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-9F6469FE-4B7E-4B6E-92E6-44919D41432D">Weld tension strength is calculated using the provisions of
+							AISC 360 Section J2</p>
+						<p dir="ltr" class="p" id="GUID-844A2777-FE61-4FE5-ADB3-84232288CE7F__GUID-4C3605DB-4C83-430B-B1CA-413241EAFE9F">Tension forces are derived as above in the section on Base
+							Plate Bending Strength.</p>
+					</li>
+				</ul>
+			</section>
+		</div>
+	</article>
+	<article class="topic concept nested0" aria-labelledby="GUID-1B9952EB-C4EB-4829-A19A-81AA9A86E68C__GUID-FABB9422-1E7E-41B7-98DC-9370910967C1" id="GUID-1B9952EB-C4EB-4829-A19A-81AA9A86E68C">
+		<h1 class="title topictitle1 collapse" id="GUID-1B9952EB-C4EB-4829-A19A-81AA9A86E68C__GUID-FABB9422-1E7E-41B7-98DC-9370910967C1">Analysis</h1>
+		<div class="body conbody">
+			<section class="section" id="GUID-1B9952EB-C4EB-4829-A19A-81AA9A86E68C__section_omh_hcd_v4b">
+				<p dir="ltr" class="p" id="GUID-1B9952EB-C4EB-4829-A19A-81AA9A86E68C__GUID-2A9DEEF8-32B7-4333-952C-752844FA3759">Connection forces are
+					established from a global analysis of the building as a whole. Column base
+					plates in <span class="ph">Tekla Structural Designer</span> have a limited set of design forces for which they can be designed.
+					Non-design forces are identified and, where their value is greater than a given
+					limit, they are displayed to you in the results along with a Warning status. The
+					given limits are defined on the Design Forces page of the Design Settings dialog
+					available from the Design tab on the ribbon.</p>
+				<p dir="ltr" class="p" id="GUID-1B9952EB-C4EB-4829-A19A-81AA9A86E68C__GUID-5E39BBF1-4DBC-44A1-994A-727C3D5985A5">The forces from the
+					global analysis are treated in the following manner:</p>
+				<ul class="ul" id="GUID-1B9952EB-C4EB-4829-A19A-81AA9A86E68C__ul_hj4_g2d_v4b">
+					<li dir="ltr" class="li">Simple column bases are designed for the positive or negative axial force at the
+						base of the column and the shear (foundation reaction) in the plane of the
+						column web (column section minor axis). Bases are orientated to the column’s
+						major and minor axes and hence there is no requirement to resolve the force
+						when the column is rotated. Columns can only be sloped in the plane of the
+						web and the bottom stack axial force and shear are resolved into vertical
+						and horizontal forces in the base.</li>
+				</ul>
+				<p class="p" id="GUID-1B9952EB-C4EB-4829-A19A-81AA9A86E68C__GUID-104C56C3-9906-4FB7-B2AA-9E1DF4BE27F5">Where the global analysis includes
+					second-order (P-Delta) effects the Ultimate Limit State design forces will
+					include these effects also. However, for column bases the design forces for soil
+					bearing pressure calculations are taken from an elastic global analysis of the
+					unfactored loadcases without second-order effects. All seismic combinations
+					appear in the results. However, those deriving from ELF are considered for
+					design while those from RSA result in Beyond Scope status.</p>
+			</section>
+		</div>
+	</article>
+	<article class="topic concept nested0" aria-labelledby="GUID-4281BDAE-B16B-46ED-9B61-F2F6BAA17CC2__GUID-3BE7E5AA-64EB-4641-BCC0-63B3C789171B" id="GUID-4281BDAE-B16B-46ED-9B61-F2F6BAA17CC2">
+		<h1 class="title topictitle1 collapse" id="GUID-4281BDAE-B16B-46ED-9B61-F2F6BAA17CC2__GUID-3BE7E5AA-64EB-4641-BCC0-63B3C789171B">Sign
+			Conventions</h1>
+		<div class="body conbody">
+			<p dir="ltr" class="p" id="GUID-4281BDAE-B16B-46ED-9B61-F2F6BAA17CC2__GUID-A9714904-25BF-45BD-A021-EABF395226EB">The following sign
+				conventions apply.</p>
+			<p dir="ltr" class="p" id="GUID-4281BDAE-B16B-46ED-9B61-F2F6BAA17CC2__GUID-210EE0F8-EB49-42D4-8A0C-ACE80E928DA2">Convention looking at the
+				column with face A on the right:</p>
+			<div class="p" id="GUID-4281BDAE-B16B-46ED-9B61-F2F6BAA17CC2__GUID-0EEF396D-CE96-4E9D-A522-E210FCD80AFD">
+				<ul class="ul" id="GUID-4281BDAE-B16B-46ED-9B61-F2F6BAA17CC2__ul_dtk_jcd_v4b">
+					<li dir="ltr" class="li">Positive shear from face C to A,</li>
+					<li dir="ltr" class="li">Positive axial into the base.</li>
+				</ul>
+			</div>
+			<div class="note note note_note" id="GUID-4281BDAE-B16B-46ED-9B61-F2F6BAA17CC2__GUID-F0091CF6-C13E-44A1-A260-76C645A1C882"><span class="note__title notetitle">Note:</span> To identify faces A and C  for an individual
+				column, see <a class="xref" href="/topic/en/62065/73639/GUID-6271F9EB-B958-4095-86D8-023483B067F2?anchor=GUID-8A369B6C-4CD0-493F-A526-8623980D32F1">Steel member orientation</a>. </div>
+		</div>
+	</article>
+</article></div>
+      
+
+</div>
+
+
+<section id="block-quick-feedback" class="block block-webform block-webform-block clearfix">
+  
+    
+
+      <span id="webform-submission-quick-feedback-node-190036-form-ajax-content"></span><div id="webform-submission-quick-feedback-node-190036-form-ajax" class="webform-ajax-form-wrapper" data-effect="fade" data-progress-type="throbber"><form class="webform-submission-form webform-submission-add-form webform-submission-quick-feedback-form webform-submission-quick-feedback-add-form webform-submission-quick-feedback-node-190036-form webform-submission-quick-feedback-node-190036-add-form js-webform-details-toggle webform-details-toggle" data-drupal-selector="webform-submission-quick-feedback-node-190036-add-form" action="/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" method="post" id="webform-submission-quick-feedback-node-190036-add-form" accept-charset="UTF-8">
+  
+  <fieldset data-drupal-selector="edit-was-this-helpful" class="radios--wrapper fieldgroup form-composite webform-composite-visible-title required js-webform-type-radios webform-type-radios js-form-item form-item js-form-wrapper form-wrapper" data-msg-required="Was this helpful? field is required." id="edit-was-this-helpful--wrapper">
+      <legend id="edit-was-this-helpful--wrapper-legend">
+    <span class="fieldset-legend js-form-required form-required">Was this helpful?</span>
+  </legend>
+  <div class="fieldset-wrapper">
+                <div id="edit-was-this-helpful" class="js-webform-radios webform-options-display-two-columns"><div class="form-item js-form-item form-type-radio js-form-type-radio form-item-was-this-helpful js-form-item-was-this-helpful radio">
+  
+  
+  
+
+      <label for="edit-was-this-helpful-yes" class="control-label option"><span class="radio-button-input"><input data-drupal-selector="edit-was-this-helpful-yes" class="form-radio" type="radio" id="edit-was-this-helpful-yes" name="was_this_helpful" value="yes" /><span class="radio-button-control"></span></span>Yes</label>
+  
+  
+  </div>
+<div class="form-item js-form-item form-type-radio js-form-type-radio form-item-was-this-helpful js-form-item-was-this-helpful radio">
+  
+  
+  
+
+      <label for="edit-was-this-helpful-no" class="control-label option"><span class="radio-button-input"><input data-drupal-selector="edit-was-this-helpful-no" class="form-radio" type="radio" id="edit-was-this-helpful-no" name="was_this_helpful" value="no" /><span class="radio-button-control"></span></span>No</label>
+  
+  
+  </div>
+</div>
+
+          </div>
+</fieldset>
+<div class="js-webform-states-hidden form-item js-form-item form-type-textarea js-form-type-textarea form-item-what-is-missing js-form-item-what-is-missing form-group">
+      <label for="edit-what-is-missing" class="control-label">How could we improve the content?</label>
+  
+  
+  <div class="form-textarea-wrapper">
+  <textarea data-drupal-selector="edit-what-is-missing" class="form-textarea form-control resize-vertical" data-msg-required="How could we improve the content? field is required." data-drupal-states="{&quot;visible&quot;:{&quot;.webform-submission-quick-feedback-node-190036-add-form :input[name=\u0022was_this_helpful\u0022]&quot;:{&quot;value&quot;:&quot;no&quot;}},&quot;required&quot;:{&quot;.webform-submission-quick-feedback-node-190036-add-form :input[name=\u0022was_this_helpful\u0022]&quot;:{&quot;value&quot;:&quot;no&quot;}}}" id="edit-what-is-missing" name="what_is_missing" rows="5" cols="60" placeholder="The feedback you give here is not visible to other users. We use your comments to improve the content."></textarea>
+</div>
+
+
+  
+  
+  </div>
+<div data-drupal-selector="edit-actions" class="form-actions webform-actions form-group js-form-wrapper form-wrapper" id="edit-actions">
+
+
+  
+
+  
+
+
+
+
+  
+  
+  
+<modus-wc-button data-component-id="trimble_theme:modus-button" onclick="document.getElementById(&quot;edit\u002Dactions\u002Dsubmit&quot;).click(); return false;" color="secondary" size="md" type="button" variant="filled">
+  Submit</modus-wc-button>
+
+
+<input class="webform-button--submit btn-default button button--primary js-form-submit form-submit" data-drupal-selector="edit-actions-submit" data-disable-refocus="true" type="submit" id="edit-actions-submit" name="op" value="Submit" style="display: none;" />
+
+</div>
+<input data-drupal-selector="edit-page-url" type="hidden" name="page_url" value="https://support.tekla.com/doc/tekla-structural-designer/2025/ref_baseplatesaisc360" /><input data-drupal-selector="edit-content-owner" type="hidden" name="content_owner" value="tekla.documentation@trimble.com" /><input autocomplete="off" data-drupal-selector="form-o48u-che9jdxl0v0k9ztnrhr4lkqjdghlyaybzuthyc" type="hidden" name="form_build_id" value="form-o48U_che9JdXL0V0K9zTNrhR4LkqJDGhlyaybzUTHyc" /><input data-drupal-selector="edit-webform-submission-quick-feedback-node-190036-add-form" type="hidden" name="form_id" value="webform_submission_quick_feedback_node_190036_add_form" /><div class="url-textfield form-group js-form-wrapper form-wrapper" style="display: none !important;"><div class="form-item js-form-item form-type-textfield js-form-type-textfield form-item-url js-form-item-url form-group">
+      <label for="edit-url" class="control-label">Leave this field blank</label>
+  
+  
+  <input autocomplete="off" data-drupal-selector="edit-url" class="form-text form-control" data-msg-maxlength="Leave this field blank field has a maximum length of 128." type="text" id="edit-url" name="url" value="" size="20" maxlength="128" />
+
+  
+  
+  </div>
+</div>
+
+
+  
+</form>
+</div>
+  </section>
+
+<section id="block-previousproductguideinthetree" class="block block-trimble-product-guide-manager block-product-guide-previous clearfix">
+  
+    
+
+      <a href="/doc/tekla-structural-designer/2025/ref_seismicdesignrulescolumnsaisc360">Previous</a>
+  </section>
+
+<section id="block-nextproductguideinthetree" class="block block-trimble-product-guide-manager block-product-guide-next clearfix">
+  
+    
+
+      <a href="/doc/tekla-structural-designer/2025/ref_steelbracedesigntoaisc360">Next</a>
+  </section>
+
+
+  </div>
+
+                  </section>
+
+                      </div>
+    </div>
+  </div>
+
+<div class="postcontent">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="precontent__col col-sm-4"></div>
+      <div class="precontent__col col-sm-4"></div>
+      <div class="precontent__col col-sm-4"></div>
+    </div>
+  </div>
+</div>
+
+<div class="postscript">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-sm-12"></div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer" role="contentinfo">
+  <div id="trimble-common-footer" data-language="en" />
+</footer>
+
+  </div>
+
+      
+    </div>
+    <script type="application/json" data-drupal-selector="drupal-settings-json">{"path":{"baseUrl":"\/","pathPrefix":"","currentPath":"node\/190036","currentPathIsAdmin":false,"isFront":false,"currentLanguage":"en"},"pluralDelimiter":"\u0003","suppressDeprecationErrors":true,"ajaxPageState":{"libraries":"eJyNUlF23CAMvBCYtj89Dk_YKtYaEEWyE98-2Oum3ab70g-M0AyekVBgVtEG1VWuvGEz4T2jzEmpmjERFhWa0G-QaAIlLv72c8W2u3Eb7tFwYWhGbuhGzpXLcW_QRjkk9DpjRmszT6vYAFP8X-qqyuUzrkK0iUTvPCqKrUD6Ze4Ht2y6O0iwY3MBZ9iImxh81URlcVNba6dfRxNXxRKwRRcSj4vYjfDFzBTn1Jf6OleXgYoRhXFR6Ebc7_AmngrpU5ArFn8eOs_3KiEZ2UUxuwCCRnPM6kfuRRSFSi7v9vRhRffuL5qr-G9fvn53MXGA9E-ott7BUW1c--vJA6S4JLC93rNPtsBmR-aFUOxx60-u1xWeqPhLwZ8KPkOB2Pt7ofZB317o8JjtyhTPmXr_qSC0cfa1s909Ni8Yjjd01z7ADV4_JM_pEOoz-DeCqQ9J0WFCBUoyCGyfk5RjTM9pGUW6w6c416Mo-YAfnzfmiFhf","theme":"trimble2017_tua","theme_token":null},"ajaxTrustedUrl":{"form_action_p_pvdeGsVG5zNF_XLGPTvYSKCf43t8qZYSwcfZl2uzM":true,"\/doc\/tekla-structural-designer\/2025\/ref_baseplatesaisc360?ajax_form=1":true},"clientside_validation_jquery":{"validate_all_ajax_forms":2,"force_validate_on_blur":false,"messages":{"required":"This field is required.","remote":"Please fix this field.","email":"Please enter a valid email address.","url":"Please enter a valid URL.","date":"Please enter a valid date.","dateISO":"Please enter a valid date (ISO).","number":"Please enter a valid number.","digits":"Please enter only digits.","equalTo":"Please enter the same value again.","maxlength":"Please enter no more than {0} characters.","minlength":"Please enter at least {0} characters.","rangelength":"Please enter a value between {0} and {1} characters long.","range":"Please enter a value between {0} and {1}.","max":"Please enter a value less than or equal to {0}.","min":"Please enter a value greater than or equal to {0}.","step":"Please enter a multiple of {0}."}},"dataLayer":{"defaultLang":"en","languages":{"en":{"id":"en","name":"English","direction":"ltr","weight":0},"de":{"id":"de","name":"Deutsch","direction":"ltr","weight":1},"es":{"id":"es","name":"Espa\u00f1ol","direction":"ltr","weight":2},"fr":{"id":"fr","name":"Fran\u00e7ais","direction":"ltr","weight":3},"it":{"id":"it","name":"Italiano","direction":"ltr","weight":4},"nl":{"id":"nl","name":"Nederlands","direction":"ltr","weight":5},"pl":{"id":"pl","name":"Polski","direction":"ltr","weight":6},"pt-pt":{"id":"pt-pt","name":"Portugu\u00eas","direction":"ltr","weight":7},"fi":{"id":"fi","name":"Suomi","direction":"ltr","weight":8},"sv":{"id":"sv","name":"Svenska","direction":"ltr","weight":9},"cs":{"id":"cs","name":"\u010ce\u0161tina","direction":"ltr","weight":10},"ru":{"id":"ru","name":"\u0420\u0443\u0441\u0441\u043a\u0438\u0439","direction":"ltr","weight":11},"ja":{"id":"ja","name":"\u65e5\u672c\u8a9e","direction":"ltr","weight":12},"zh-hans":{"id":"zh-hans","name":"\u7b80\u4f53\u4e2d\u6587","direction":"ltr","weight":13},"ko":{"id":"ko","name":"\ud55c\uad6d\uc5b4","direction":"ltr","weight":14}}},"stacktable":{"query":"table","responsive_method":"on_demand"},"trimble_tua_search":{"current_index":"tua_prod-en"},"data":{"extlink":{"extTarget":false,"extTargetAppendNewWindowLabel":"(opens in a new window)","extTargetNoOverride":false,"extNofollow":false,"extTitleNoOverride":false,"extNoreferrer":false,"extFollowNoOverride":false,"extClass":"0","extLabel":"(link is external)","extImgClass":false,"extSubdomains":false,"extExclude":"","extInclude":"","extCssExclude":"","extCssInclude":"","extCssExplicit":"","extAlert":false,"extAlertText":"This link will take you to an external web site. We are not responsible for their content.","extHideIcons":false,"mailtoClass":"0","telClass":"0","mailtoLabel":"(link sends email)","telLabel":"(link is a phone number)","extUseFontAwesome":false,"extIconPlacement":"append","extPreventOrphan":false,"extFaLinkClasses":"fa fa-external-link","extFaMailtoClasses":"fa fa-envelope-o","extAdditionalLinkClasses":"","extAdditionalMailtoClasses":"","extAdditionalTelClasses":"","extFaTelClasses":"fa fa-phone","whitelistedDomains":[],"extExcludeNoreferrer":""}},"bootstrap":{"forms_has_error_value_toggle":1,"trimble_bootstrap_table_query":"","modal_animation":1,"modal_backdrop":"true","modal_focus_input":1,"modal_keyboard":1,"modal_select_text":1,"modal_show":1,"modal_size":"","popover_enabled":1,"popover_animation":1,"popover_auto_close":1,"popover_container":"body","popover_content":"","popover_delay":"0","popover_html":0,"popover_placement":"right","popover_selector":"","popover_title":"","popover_trigger":"click","tooltip_enabled":1,"tooltip_animation":1,"tooltip_container":"body","tooltip_delay":"0","tooltip_html":0,"tooltip_placement":"auto left","tooltip_selector":"","tooltip_trigger":"hover"},"webform":{"xss":{"allowedTags":["a","abbr","acronym","address","article","aside","b","bdi","bdo","big","blockquote","br","caption","cite","code","col","colgroup","command","dd","del","details","dfn","div","dl","dt","em","figcaption","figure","footer","h1","h2","h3","h4","h5","h6","header","hgroup","hr","i","img","ins","kbd","li","mark","menu","meter","nav","ol","output","p","pre","progress","q","rp","rt","ruby","s","samp","section","small","span","strong","sub","summary","sup","table","tbody","td","tfoot","th","thead","time","tr","tt","u","ul","var","wbr","label","fieldset","legend","font"]}},"ajax":{"edit-actions-submit":{"callback":"::submitAjaxForm","event":"click","effect":"fade","speed":500,"progress":{"type":"throbber","message":""},"disable-refocus":true,"url":"\/doc\/tekla-structural-designer\/2025\/ref_baseplatesaisc360?ajax_form=1","httpMethod":"POST","dialogType":"ajax","submit":{"_triggering_element_name":"op","_triggering_element_value":"Submit"}},"edit-product-select-version":{"callback":[{},"selectVersionAjaxCallback"],"disable-refocus":true,"event":"change","wrapper":"product-select-element","url":"\/doc\/tekla-structural-designer\/2025\/ref_baseplatesaisc360?ajax_form=1","httpMethod":"POST","dialogType":"ajax","submit":{"_triggering_element_name":"product_select_version"}}},"tekla_product_select":{"current_product_id":"62065","current_product_not_version_specific_version_id":"72194","default_product_version_id":"73720","current_product_version_ids":["73639"],"wrong_version_message":"This page was written for a different version than you have currently selected. Please use the search or select another version."},"user":{"uid":0,"permissionsHash":"8c366d38667abf396d94dac24feb6d681f7e888eeb4b572f7ca3940829986136"}}</script>
+<script src="/sites/default/files/js/js_GW-4Korb4kaU29NBzmwvzYWKZb9jf8Oc9G6jVyBTzsQ.js?scope=footer&amp;delta=0&amp;language=en&amp;theme=trimble2017_tua&amp;include=eJyFUUFywyAM_BCYtpc-h5GxShRjRJHsxr8vTty0nkymFxDa1a4kemYVrVBc4cILVtPfM8qclIoJiTCr0IB-gUQDKHH2588Z6-rC0t2ibsfQBK7oAk-F81bXaaWpT-j1hBNaqxBtItEbj7JizZB-VD64TqbJQIIVq-vxBAtxFYMXTZRHN9S5NPr-NKIQRoWm737Ds3jKpGZ3fnt5fXcxcQ_Jiq6tLh6gUnmYg9o4txnlACmOCWwzuzZpMyw2MI-EYreqv1yvMzxx8buDvzr4CTLENtyO2oO_3dHumG3OFK-bv4sKQg0nXxrb3WLzhf22QLffHZzh8pDE1P4hazegAiXpBBb8l6QcY3pOm1Ck9fEU57K1Lg_4dnwDX8_4-A"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.17.0/dist/jquery.validate.min.js"></script>
+<script src="/sites/default/files/js/js_gyWXeyXVU1SNRdfe96SftFzSMeisMTTUl9t2qX1fyTU.js?scope=footer&amp;delta=2&amp;language=en&amp;theme=trimble2017_tua&amp;include=eJyFUUFywyAM_BCYtpc-h5GxShRjRJHsxr8vTty0nkymFxDa1a4kemYVrVBc4cILVtPfM8qclIoJiTCr0IB-gUQDKHH2588Z6-rC0t2ibsfQBK7oAk-F81bXaaWpT-j1hBNaqxBtItEbj7JizZB-VD64TqbJQIIVq-vxBAtxFYMXTZRHN9S5NPr-NKIQRoWm737Ds3jKpGZ3fnt5fXcxcQ_Jiq6tLh6gUnmYg9o4txnlACmOCWwzuzZpMyw2MI-EYreqv1yvMzxx8buDvzr4CTLENtyO2oO_3dHumG3OFK-bv4sKQg0nXxrb3WLzhf22QLffHZzh8pDE1P4hazegAiXpBBb8l6QcY3pOm1Ck9fEU57K1Lg_4dnwDX8_4-A"></script>
+<script src="/themes/contrib/trimble_theme/build/js/modus.script.js?tlva38"></script>
+<script src="/sites/default/files/js/js_ZjlrKaFSIfGlhCfZfLTLPAh3U4Imr3WX5mxzSGZGV0A.js?scope=footer&amp;delta=4&amp;language=en&amp;theme=trimble2017_tua&amp;include=eJyFUUFywyAM_BCYtpc-h5GxShRjRJHsxr8vTty0nkymFxDa1a4kemYVrVBc4cILVtPfM8qclIoJiTCr0IB-gUQDKHH2588Z6-rC0t2ibsfQBK7oAk-F81bXaaWpT-j1hBNaqxBtItEbj7JizZB-VD64TqbJQIIVq-vxBAtxFYMXTZRHN9S5NPr-NKIQRoWm737Ds3jKpGZ3fnt5fXcxcQ_Jiq6tLh6gUnmYg9o4txnlACmOCWwzuzZpMyw2MI-EYreqv1yvMzxx8buDvzr4CTLENtyO2oO_3dHumG3OFK-bv4sKQg0nXxrb3WLzhf22QLffHZzh8pDE1P4hazegAiXpBBb8l6QcY3pOm1Ck9fEU57K1Lg_4dnwDX8_4-A"></script>
+<script src="https://nav.prod.tekla.com/main.js" defer></script>
+<script src="https://cookies.prod.tekla.com/main.js" defer></script>
+<script src="/sites/default/files/js/js_3V-gnGrd75-1TGJERfOTyMf7kF_Zm9SbCi80ltqEHjc.js?scope=footer&amp;delta=7&amp;language=en&amp;theme=trimble2017_tua&amp;include=eJyFUUFywyAM_BCYtpc-h5GxShRjRJHsxr8vTty0nkymFxDa1a4kemYVrVBc4cILVtPfM8qclIoJiTCr0IB-gUQDKHH2588Z6-rC0t2ibsfQBK7oAk-F81bXaaWpT-j1hBNaqxBtItEbj7JizZB-VD64TqbJQIIVq-vxBAtxFYMXTZRHN9S5NPr-NKIQRoWm737Ds3jKpGZ3fnt5fXcxcQ_Jiq6tLh6gUnmYg9o4txnlACmOCWwzuzZpMyw2MI-EYreqv1yvMzxx8buDvzr4CTLENtyO2oO_3dHumG3OFK-bv4sKQg0nXxrb3WLzhf22QLffHZzh8pDE1P4hazegAiXpBBb8l6QcY3pOm1Ck9fEU57K1Lg_4dnwDX8_4-A"></script>
+<script src="https://search.cloud.tekla.com/static/js/runtime-main.js"></script>
+<script src="https://search.cloud.tekla.com/static/js/vendor.chunk.js"></script>
+<script src="https://search.cloud.tekla.com/static/js/main.chunk.js"></script>
+<script src="/sites/default/files/js/js_hFwtgl0O6Q6n_D9UCOh-o71UlAQJboyUh2lTdKsD2Wo.js?scope=footer&amp;delta=11&amp;language=en&amp;theme=trimble2017_tua&amp;include=eJyFUUFywyAM_BCYtpc-h5GxShRjRJHsxr8vTty0nkymFxDa1a4kemYVrVBc4cILVtPfM8qclIoJiTCr0IB-gUQDKHH2588Z6-rC0t2ibsfQBK7oAk-F81bXaaWpT-j1hBNaqxBtItEbj7JizZB-VD64TqbJQIIVq-vxBAtxFYMXTZRHN9S5NPr-NKIQRoWm737Ds3jKpGZ3fnt5fXcxcQ_Jiq6tLh6gUnmYg9o4txnlACmOCWwzuzZpMyw2MI-EYreqv1yvMzxx8buDvzr4CTLENtyO2oO_3dHumG3OFK-bv4sKQg0nXxrb3WLzhf22QLffHZzh8pDE1P4hazegAiXpBBb8l6QcY3pOm1Ck9fEU57K1Lg_4dnwDX8_4-A"></script>
+
+  </body>
+</html>

@@ -455,6 +455,7 @@ def calculate_planar_frame(
             UniformMemberLoad(
                 item.member,
                 _convert(item.local_y, LINE_N_PER_MM, field="uniform_loads.local_y"),
+                q_local_x=_convert(item.local_x, LINE_N_PER_MM, field="uniform_loads.local_x") if item.local_x else 0.,
             )
             for item in data.uniform_loads
         ),

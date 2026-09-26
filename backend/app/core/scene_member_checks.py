@@ -1,11 +1,26 @@
 from __future__ import annotations
 
-from math import pi, sqrt
+from math import isfinite, pi, sqrt
 
 from .design_profiles import CustomSectionDefinition, SceneGeometryProfile
 
 
-STEEL_MEMBER_CHECK_VERSION = "GB50017-member-checks-2026.2-unverified"
+STEEL_MEMBER_CHECK_VERSION = "GB50017-member-checks-2026.3-unverified"
+
+
+def _complete_envelope(envelope: object) -> bool:
+    if not isinstance(envelope, dict) or envelope.get("status") != "complete":
+        return False
+    if envelope.get("method") != "initial-stress-equilibrium-polynomial-extrema-v1":
+        return False
+    keys = ("maximum_moment_y_kn_m", "maximum_moment_z_kn_m", "maximum_shear_y_kn",
+            "maximum_shear_z_kn", "maximum_chord_deflection_mm", "mesh_convergence_relative")
+    try:
+        return (all(isfinite(float(envelope[key])) and float(envelope[key]) >= 0 for key in keys)
+                and float(envelope["mesh_convergence_relative"]) <= .005
+                and float(envelope["constitutive_relative_residual"]) <= .02)
+    except (KeyError, TypeError, ValueError):
+        return False
 
 
 def _design_strength(grade: str, thickness_mm: float) -> float | None:
@@ -87,10 +102,12 @@ def calculate_scene_member_checks(
             continue
         second_order_axial_cases = [
             case_id for case_id, result in case_results.items()
-            if result.get("analysis_basis") == "second_order" and any(
+            if result.get("analysis_basis") == "second_order" and (any(
                 abs(float(result["member_end_forces"][member.id][end]["n_kn"])) > 1e-8
                 for end in ("start", "end")
-            )
+            ) or ((result.get("member_end_forces") or {})[member.id].get("along_member") or {}).get("status") == "incomplete"
+              or member.id in (result.get("stability_scope") or {}).get("excluded_truss_member_ids", []))
+            and not _complete_envelope((result.get("member_end_forces") or {})[member.id].get("along_member"))
         ]
         if second_order_axial_cases:
             # M0 - V*x - q*x²/2 below is a first-order diagram. It omits the
@@ -164,7 +181,13 @@ def calculate_scene_member_checks(
             qz = float(uniform.get("qz_kn_m", 0.0))
             start_forces = member_forces["start"]
             length_m = length_mm / 1000
-            for station in range(1, 20):
+            envelope = member_forces.get("along_member")
+            if _complete_envelope(envelope):
+                my = max(my, float(envelope["maximum_moment_y_kn_m"]))
+                mz = max(mz, float(envelope["maximum_moment_z_kn_m"]))
+                vy = max(vy, float(envelope["maximum_shear_y_kn"]))
+                vz = max(vz, float(envelope["maximum_shear_z_kn"]))
+            for station in ([] if _complete_envelope(envelope) else range(1, 20)):
                 x = length_m * station / 20
                 internal_my = (
                     float(start_forces["my_kn_m"])
@@ -178,7 +201,10 @@ def calculate_scene_member_checks(
                 )
                 my = max(my, abs(internal_my))
                 mz = max(mz, abs(internal_mz))
-            compression = max(-float(item["n_kn"]) for item in ends) > 0
+            # Nodal end actions have opposite cut-face signs: start N>0 and
+            # end N<0 both denote compression. Opposite signs alone do not
+            # imply that a tensile member needs a compression reduction.
+            compression = max(float(ends[0]["n_kn"]), -float(ends[1]["n_kn"])) > 0
             axial_denominator = buckling_capacity if compression else axial_capacity
             interaction = (
                 n / max(axial_denominator, 1e-9)
@@ -223,6 +249,10 @@ def calculate_scene_member_checks(
             member_forces = (result.get("member_end_forces") or {}).get(member.id)  # type: ignore[union-attr]
             if not member_forces:
                 continue
+            envelope = member_forces.get("along_member")
+            if _complete_envelope(envelope):
+                maximum_relative_mm = max(maximum_relative_mm, float(envelope["maximum_chord_deflection_mm"]))
+                continue
             uniform = member_forces.get("uniform_load_local", {})
             qy = abs(float(uniform.get("qy_kn_m", 0.0)))
             qz = abs(float(uniform.get("qz_kn_m", 0.0)))
@@ -257,7 +287,7 @@ def calculate_scene_member_checks(
             "utilization": None if second_order_axial_cases else round(maximum, 5),
             "controlling_case": controlling_case,
             "case_checks": case_checks,
-            **({"reason": "二阶杆端力已计算；含轴力杆件的沿杆弯矩及变形包络尚未完成独立验证",
+            **({"reason": "二阶杆端力已计算；沿杆包络缺少完整恢复或细分收敛证据",
                 "blocked_case_ids": second_order_axial_cases,
                 "case_checks_basis": "end-actions-and-first-order-interpolation-diagnostic-only"}
                if second_order_axial_cases else {}),

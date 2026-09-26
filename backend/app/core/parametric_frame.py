@@ -88,6 +88,7 @@ class UniformMemberLoad:
     member: str
     q_local_y: float
     unit: str = "N/mm"
+    q_local_x: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -324,6 +325,7 @@ def _samples(
     local_end_forces: np.ndarray,
     q_local_y: float,
     count: int,
+    q_local_x: float = 0.0,
 ) -> tuple[tuple[MemberSample, ...], MemberExtrema]:
     length = member.length_mm
     x_values = np.linspace(0.0, length, count)
@@ -331,6 +333,7 @@ def _samples(
     for x in x_values:
         ratio = x / length
         axial_displacement = (1.0 - ratio) * local_displacements[0] + ratio * local_displacements[3]
+        axial_displacement += q_local_x*x*(length-x)/(2*member.elastic_modulus_mpa*member.area_mm2)
         transverse_displacement = (
             local_displacements[1]
             + local_displacements[2] * x
@@ -341,7 +344,7 @@ def _samples(
             )
             / (member.elastic_modulus_mpa * member.inertia_mm4)
         )
-        axial = -local_end_forces[0]
+        axial = -local_end_forces[0] - q_local_x*x
         shear = local_end_forces[1] + q_local_y * x
         moment = -local_end_forces[2] + local_end_forces[1] * x + q_local_y * x**2 / 2.0
         global_ux = member.c * axial_displacement - member.s * transverse_displacement
@@ -409,6 +412,7 @@ def solve_parametric_frame(
 
     member_by_id = {member.definition.id: member for member in members}
     q_by_member = {member.definition.id: 0.0 for member in members}
+    qx_by_member = {member.definition.id: 0.0 for member in members}
     for load in model.uniform_loads:
         if load.member not in member_by_id:
             raise CalculationInputError(
@@ -422,6 +426,7 @@ def solve_parametric_frame(
             _LINE_LOAD_TO_N_PER_MM,
             field_name=f"uniform_loads[{load.member}]",
         )
+        qx_by_member[load.member] += _convert(load.q_local_x,load.unit,_LINE_LOAD_TO_N_PER_MM,field_name=f"uniform_loads[{load.member}].local_x")
 
     equivalent_local_by_member: dict[str, np.ndarray] = {}
     for member in members:
@@ -429,9 +434,10 @@ def solve_parametric_frame(
         dofs = np.asarray(member.dofs)
         stiffness[np.ix_(dofs, dofs)] += k_global
         q = q_by_member[member.definition.id]
+        qx = qx_by_member[member.definition.id]
         length = member.length_mm
         equivalent_local = np.array(
-            [0.0, q * length / 2.0, q * length**2 / 12.0, 0.0, q * length / 2.0, -q * length**2 / 12.0],
+            [qx*length/2, q * length / 2.0, q * length**2 / 12.0, qx*length/2, q * length / 2.0, -q * length**2 / 12.0],
             dtype=float,
         )
         applied_loads[dofs] += member.transform.T @ equivalent_local
@@ -538,6 +544,7 @@ def solve_parametric_frame(
             local_end_forces,
             q_by_member[member.definition.id],
             samples_per_member,
+            qx_by_member[member.definition.id],
         )
         member_results[member.definition.id] = MemberResponse(
             member=member.definition.id,

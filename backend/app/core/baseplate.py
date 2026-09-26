@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from math import hypot, pi, sqrt
+from math import hypot, isfinite, pi, sqrt
 
+from .contact import (ContactError, solve_rectangular_contact,
+                      anchor_shear_distribution, rectangular_weld_peak_line_force)
 from .common import DISCLAIMER, STANDARDS, mode_number, mode_text, quantity_summary
 from .errors import CalculationInputError
 from .loads import axial_load_envelope
@@ -195,7 +197,25 @@ def calculate_steel_baseplate_anchor(
         (plate_width - column_width) / 2,
     )
     plate_area = plate_length * plate_width
-    lever_arm = max(anchor_spacing / 1000, 1e-6)
+
+    # Explicit positions are the actual group geometry, also for detailing and
+    # concrete splitting. A legacy default must not override smaller distances.
+    raw_springs = request.inputs.get("anchor_springs")
+    if isinstance(raw_springs, list) and raw_springs:
+        try:
+            points = [(float(a["x_m"]) * 1000, float(a["y_m"]) * 1000) for a in raw_springs]
+            if len(points) != anchor_count or not all(isfinite(v) for p in points for v in p):
+                raise ValueError("invalid positions")
+            actual_spacing = min(hypot(x-u, y-v) for i, (x,y) in enumerate(points) for u,v in points[i+1:])
+            plate_edge = min(min(plate_length/2-abs(x), plate_width/2-abs(y)) for x,y in points)
+            if min(actual_spacing, plate_edge) <= 0:
+                raise ValueError("duplicate or out of plate positions")
+        except (TypeError, ValueError, KeyError) as exc:
+            raise CalculationInputError("invalid_anchor_layout", "锚栓坐标须有限、互不重复且位于底板内。") from exc
+        anchor_spacing = actual_spacing
+        # Explicit concrete edge distance may be smaller than the plate edge.
+        # Until foundation edge coordinates are supplied, use the smaller bound.
+        anchor_edge = min(anchor_edge, plate_edge)
 
     governing_values: dict[str, float] | None = None
     governing_utilization = -1.0
@@ -229,6 +249,26 @@ def calculate_steel_baseplate_anchor(
     )
 
     partial_contact = False
+    contact_unresolved = False
+    plate_tension_pending = False
+    torsion_pending = False
+    continuous_weld = request.inputs.get("continuous_perimeter_weld") is True
+    contact_solutions = []
+    contact_stiffness = request.inputs.get("contact_stiffness_kn_m3")
+    anchor_springs = request.inputs.get("anchor_springs")
+    contact_source = request.inputs.get("contact_model_source")
+    explicit_contact = any(value is not None for value in (contact_stiffness, anchor_springs, contact_source))
+    if explicit_contact:
+        if (not isinstance(contact_source, str) or not contact_source.strip()
+                or not isinstance(anchor_springs, list) or len(anchor_springs) != anchor_count
+                or contact_stiffness is None):
+            raise CalculationInputError("missing_contact_model_inputs",
+                "接触耦合须明确支承刚度、每根锚栓坐标/轴向刚度及模型来源；锚栓数量须一致。")
+        try:
+            contact_stiffness = float(contact_stiffness)
+            anchor_springs = [{key:float(a[key]) for key in ("x_m", "y_m", "stiffness_kn_m")} for a in anchor_springs]
+        except (ValueError, TypeError, KeyError) as exc:
+            raise CalculationInputError("invalid_contact_model_inputs", "接触或锚栓弹簧输入格式无效。") from exc
     demands_by_check: dict[str, tuple[float, str | None]] = {}
     for item in design:
         axial = _component(item, "N")
@@ -237,29 +277,67 @@ def calculate_steel_baseplate_anchor(
         shear = hypot(_component(item, "Vx"), _component(item, "Vy"))
         moment = hypot(_component(item, "Mx"), _component(item, "My"))
         compression = max(axial, 0.0)
-        # Uplift also needs a plate/anchor load-path model even without moment;
-        # zero concrete bearing cannot establish zero plate bending demand.
-        if axial < 0 or (compression <= 0 and moment > 0) or (
+        requires_partial = axial < 0 or (compression <= 0 and moment > 0) or (
             compression > 0 and 6 * abs(_component(item, "Mx")) / (compression * plate_width / 1000)
             + 6 * abs(_component(item, "My")) / (compression * plate_length / 1000) > 1
-        ):
-            partial_contact = True
-        uplift = max(-axial, 0.0)
-        # Full-contact rigid plate: maximum corner pressure, including both axes.
-        # Using this maximum over the whole projection is conservative for plate bending.
-        pressure = (compression * 1000 / plate_area
-                    + 6 * abs(_component(item, "Mx")) * 1e6 / (plate_length * plate_width**2)
-                    + 6 * abs(_component(item, "My")) * 1e6 / (plate_width * plate_length**2))
-        moment_tension = moment / lever_arm
-        raw_anchor_tension = uplift + max(moment_tension - compression / 2, 0.0)
-        # 计入弹性底板撬力放大系数 1.25
-        total_anchor_tension = raw_anchor_tension * 1.25
-        tension_each = total_anchor_tension / max(anchor_count / 2, 1)
-        shear_each = shear / anchor_count
-        interaction = sqrt(
-            (tension_each / max(tension_capacity_each, 1e-9)) ** 2
-            + (shear_each / max(shear_capacity_each, 1e-9)) ** 2
         )
+        solution = None
+        if not requires_partial or explicit_contact:
+            try:
+                # Zero actions have no unique displacement but zero demand.
+                if explicit_contact or axial != 0 or moment != 0:
+                    solution = solve_rectangular_contact(
+                        plate_length/1000, plate_width/1000, axial,
+                        _component(item, "Mx"), _component(item, "My"),
+                        contact_stiffness_kn_m3=contact_stiffness,
+                        anchor_springs=anchor_springs if explicit_contact else None)
+            except ContactError as exc:
+                if explicit_contact:
+                    raise CalculationInputError("contact_equilibrium_unavailable", str(exc)) from exc
+                contact_unresolved = True
+        else:
+            contact_unresolved = True
+        if solution is not None:
+            contact_solutions.append({"combination_name":item.combination_name,
+                "limit_state":item.limit_state, "status":"solved",
+                "contact_stiffness_kn_m3":contact_stiffness,
+                "contact_model_source":contact_source or "full-contact rigid rectangle equilibrium",
+                **solution.as_dict()})
+            pressure = solution.qmax_kpa / 1000
+            tension_each = max(solution.anchor_tensions_kn, default=0.0)
+            plate_tension_pending = plate_tension_pending or tension_each > 1e-8
+        else:
+            pressure = tension_each = 0.0
+            if requires_partial:
+                contact_solutions.append({"combination_name":item.combination_name,
+                    "limit_state":item.limit_state,"status":"missing_inputs",
+                    "missing_inputs":["contact_stiffness_kn_m3","anchor_springs","contact_model_source"],
+                    "verification_status":"unverified"})
+        # Axial anchor tensions come directly from compatible rigid-plane uplift;
+        # no arbitrary prying multiplier is hidden in the equilibrium solution.
+        partial_contact = contact_unresolved or plate_tension_pending
+        if explicit_contact:
+            shear_vectors = anchor_shear_distribution(anchor_springs,
+                _component(item, "Vx"), _component(item, "Vy"), _component(item, "T"))
+            shear_each = max(hypot(*v) for v in shear_vectors)
+            tensions = solution.anchor_tensions_kn if solution else [0.0]*anchor_count
+            interaction = max(sqrt((t/tension_capacity_each)**2+(hypot(*v)/shear_capacity_each)**2)
+                              for t,v in zip(tensions, shear_vectors))
+            contact_solutions[-1]["anchor_shear_vectors_kn"] = shear_vectors
+            contact_solutions[-1]["anchor_shear_model"] = "rigid_plate_equal_shear_stiffness_all_engaged_no_slip"
+        else:
+            shear_each = shear / anchor_count
+            interaction = sqrt((tension_each/tension_capacity_each)**2+(shear_each/shear_capacity_each)**2)
+            torsion_pending = torsion_pending or abs(_component(item, "T")) > 1e-9
+        # Continuous rectangular weld-group solution gives the force per weld
+        # length. Multiplying by the full length preserves the legacy kN display.
+        weld_case_demand = hypot(shear, moment / 0.1)
+        if continuous_weld:
+            weld_case_demand = rectangular_weld_peak_line_force(
+                column_depth,column_width,max(-axial,0),_component(item,"Vx"),
+                _component(item,"Vy"),_component(item,"Mx"),_component(item,"My"),
+                _component(item,"T")) * 2*(column_depth+column_width)/1000
+
         tension_concrete_ratio = tension_each / max(anchor_concrete_tension_capacity, 1e-9)
         shear_concrete_ratio = shear_each / max(anchor_concrete_shear_capacity, 1e-9)
         pullout_ratio = tension_each / max(anchor_pullout_capacity, 1e-9)
@@ -274,7 +352,7 @@ def calculate_steel_baseplate_anchor(
             "锚栓受剪混凝土边缘破坏验算": shear_each,
             "锚栓头部拔出破坏验算": tension_each,
             "锚栓劈裂破坏验算": tension_each,
-            "柱底角焊缝承载力（快算）": hypot(shear, moment / 0.1),
+            "柱底角焊缝承载力（快算）": weld_case_demand,
         }.items():
             if name not in demands_by_check or demand > demands_by_check[name][0]:
                 demands_by_check[name] = (demand, item.combination_name)
@@ -330,7 +408,7 @@ def calculate_steel_baseplate_anchor(
             governing_values["interaction"],
             1.0,
             "1",
-            "GB 50017-2017；已按 1.25 系数引入底板撬力放大",
+            "GB 50017-2017；显式弹性锚栓与压区平衡需求，未包含柔性底板撬力",
         ),
         _check(
             "锚栓受拉混凝土锥体破坏验算",
@@ -381,7 +459,7 @@ def calculate_steel_baseplate_anchor(
             weld_demand,
             weld_capacity,
             "kN",
-            "GB 50017-2017；等效合力筛查",
+            "连续周边等焊喉弹性焊缝组" if continuous_weld else "GB 50017-2017；等效合力筛查",
         ),
     ]
     for check in checks:
@@ -415,22 +493,33 @@ def calculate_steel_baseplate_anchor(
         )
     ]
     if partial_contact:
-        # Average N/A and a cantilever strip are not a partial-contact solution.
-        # Keep anchor screening, but do not publish fictitious zero-pressure passes.
-        checks = checks[2:]
+        unresolved_names = {"底板悬臂弯曲"}
+        if not continuous_weld:
+            unresolved_names.add("柱底角焊缝承载力（快算）")
+        if contact_unresolved:
+            unresolved_names.update({"底板下混凝土局部承压（快算）", "锚栓钢材拉剪组合",
+                "锚栓受拉混凝土锥体破坏验算", "锚栓头部拔出破坏验算", "锚栓劈裂破坏验算"})
+        checks = [check for check in checks if check.name not in unresolved_names]
         governing = max(checks, key=lambda item: item.utilization)
         status = "incomplete"
         warnings.append(CalculationWarning(
-            severity="critical", code="baseplate_partial_contact_unresolved",
-            message="底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+            severity="critical",
+            code="baseplate_partial_contact_unresolved" if contact_unresolved else "baseplate_tension_plate_design_pending",
+            message=("底板存在上拔或脱开；须输入支承刚度、逐根锚栓坐标/轴向刚度与来源后求解兼容平衡。"
+                if contact_unresolved else "压区与各锚栓拉力已满足刚性板兼容平衡；受拉底板局部弯曲与撬力尚未完成；未声明连续周边焊缝时焊缝受拉传力亦未完成。"),
         ))
+    if torsion_pending:
+        status = "incomplete"
+        warnings.append(CalculationWarning(
+            severity="critical", code="baseplate_torsional_shear_pending",
+            message="存在绕柱轴扭矩但缺逐根锚栓坐标；当前不能计算锚栓组扭转受剪。灌浆滑移亦不在模型范围。"))
     return CalculationResult(
         trace_id=trace_id,
         project_name=request.project_name,
         module=request.module,
         mode=request.mode,
         status=status,  # type: ignore[arg-type]
-        workflow_status="capability_unavailable" if partial_contact else "ready",
+        workflow_status="capability_unavailable" if partial_contact or torsion_pending else "ready",
         result_class=(
             "quick_estimate" if request.mode.value == "quick" else "professional_check"
         ),
@@ -454,6 +543,7 @@ def calculate_steel_baseplate_anchor(
                 "anchor_supplementary_reinforcement_area": (supplementary_area, "mm²"),
                 "anchor_cracked_concrete": "是" if cracked_concrete else "否",
                 "weld_throat": (weld_throat, "mm"),
+                "continuous_perimeter_weld": continuous_weld,
             }
         ),
         combinations=[
@@ -477,10 +567,10 @@ def calculate_steel_baseplate_anchor(
         ],
         reactions={},
         reaction_envelopes=outgoing,
-        steps=[
+        steps=[] if contact_unresolved else [
             CalculationStep(
-                name="底板平均承压",
-                equation="q = N_c / (B L)",
+                name="底板压区峰值承压",
+                equation="q(x,y)=max(a+b*2x/L+c*2y/B,0); integral(q)-sum(Ti)=N",
                 substitution=(
                     f"B={plate_width:.1f} mm, L={plate_length:.1f} mm"
                 ),
@@ -489,8 +579,8 @@ def calculate_steel_baseplate_anchor(
             ),
             CalculationStep(
                 name="锚栓组力矩拉力",
-                equation="T = max(M/z - N_c/2, 0) + N_t",
-                substitution=f"z={lever_arm:.3f} m",
+                equation="Ti=ki*max(-w(xi,yi),0), q=kc*max(w,0)",
+                substitution="采用显式弹簧输入；缺输入时不提供需求结论",
                 result=Quantity(
                     value=governing_values["tension_each"], unit="kN/根"
                 ),
@@ -498,11 +588,12 @@ def calculate_steel_baseplate_anchor(
             ),
         ],
         checks=checks,
+        contact_solutions=contact_solutions,
         governing_check=governing.name,
         warnings=warnings,
         assumptions=[
             "柱脚底板按刚性板与悬臂条带模型筛查。",
-            "锚栓按两侧对称布置并采用弹性拉剪分配。",
+            "接触模型为刚性矩形板、均匀压缩单向线性支承与无预拉/无间隙拉力锚栓；柔性板撬力另需核验。",
             "上游反力包为已组合效应，本节点不再次施加荷载分项系数。",
         ],
         applicability=[

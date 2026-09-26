@@ -1329,69 +1329,18 @@ def _framed_foundation_graph(
 def _pergola_frame_graph(
     graph_id: str, frame_label: str, supports: list[tuple[str, str]]
 ) -> SceneGraphTemplate:
-    support_nodes, support_connections = _base_and_foundation_nodes(
-        graph_id, supports
-    )
-    connections = [
-        _connection(
-            f"{graph_id}-loads-roof",
-            "environment",
-            "roof_members",
-            "manual",
-        ),
-        _connection(
-            f"{graph_id}-roof-frame",
-            "roof_members",
-            "main_frame",
-            "reaction_to_line",
-            output_unit="kN",
-            input_unit="kN",
-            support="left",
-            conversion_input_key="reaction_conversion_spacing_m",
-            requires_source_trace=True,
-        ),
-    ]
-    for suffix, support in supports:
-        connections.append(
-            _connection(
-                f"{graph_id}-frame-{suffix}",
-                "main_frame",
-                f"{graph_id}_base_{suffix}",
-                "reaction_package",
-                output_unit="kN",
-                input_unit="kN",
-                support=support,
-                requires_source_trace=True,
-            )
-        )
-    return _graph(
-        graph_id,
-        [
-            _node(
-                "environment",
-                "覆盖层、检修、风雪作用",
-                "load",
-                verification_status="independently_verified",
-            ),
-            _node(
-                "roof_members",
-                "钢檩条 / 椽条",
-                "secondary_member",
-                "continuous_beam",
-                input_bindings={
-                    "reaction_conversion_spacing_m": "frame_spacing_m"
-                },
-            ),
-            _node(
-                "main_frame",
-                frame_label,
-                "primary_member",
-                "planar_frame",
-            ),
-            *support_nodes,
-        ],
-        [*connections, *support_connections],
-    )
+    nodes=[_node("environment", "覆盖层、检修、风雪作用", "load"),
+           _node("roof_members", "按分担宽度重复的纵向檩条", "secondary_member", "continuous_beam")]
+    connections=[_connection(f"{graph_id}-loads-roof", "environment", "roof_members", "manual")]
+    for end, frame_id, prefix in (("left","main_frame",graph_id),("right","rear_frame",graph_id+"_rear")):
+        support_nodes,support_connections=_base_and_foundation_nodes(prefix,supports)
+        nodes += [_node(frame_id, ("前榀" if end=="left" else "后榀")+frame_label, "primary_member", "planar_frame"),*support_nodes]
+        connections.append(_connection(f"{graph_id}-roof-{frame_id}","roof_members",frame_id,"reaction_to_line",output_unit="kN",input_unit="kN",support=end,conversion_input_key="reaction_conversion_spacing_m",requires_source_trace=True))
+        connections += [_connection(f"{graph_id}-{frame_id}-{suffix}",frame_id,f"{prefix}_base_{suffix}","reaction_package",output_unit="kN",input_unit="kN",support=support,requires_source_trace=True) for suffix,support in supports]
+        connections += support_connections
+    graph=_graph(graph_id+"-two-frame-v33",nodes,connections)
+    graph.version="3.3"
+    return graph
 
 
 PERGOLA_MONO_GRAPH = _pergola_frame_graph(
@@ -1544,122 +1493,33 @@ ENTRANCE_UNEQUAL_GRAPH = _framed_foundation_graph(
     [("left", "left"), ("right", "right")],
 )
 
+# Explicit four-edge slab support. Each corner receives exactly the two
+# adjacent edge-beam reactions; no node represents an unstated repeated beam.
+_PLATFORM_EDGES = {
+    "south": ("south_west", "south_east"),
+    "north": ("north_west", "north_east"),
+    "west": ("south_west", "north_west"),
+    "east": ("south_east", "north_east"),
+}
+_PLATFORM_EDGE_LABELS = {"south":"南", "north":"北", "west":"西", "east":"东"}
+_PLATFORM_CORNER_LABELS = {"south_west":"西南", "south_east":"东南", "north_west":"西北", "north_east":"东北"}
 VIEWING_PLATFORM_GRAPH = _graph(
-    "viewing-platform-two-way-chain-v32",
-    [
-        _node(
-            "deck_loads",
-            "人群、栏杆与面层作用",
-            "load",
-            verification_status="independently_verified",
-        ),
-        _node("deck", "双向混凝土平台板", "surface", "two_way_slab"),
-        _node(
-            "secondary",
-            "钢次梁",
-            "secondary_member",
-            "continuous_beam",
-            input_bindings={
-                "reaction_conversion_spacing_m": "secondary_spacing_m"
-            },
-        ),
-        _node(
-            "primary",
-            "钢主梁",
-            "primary_member",
-            "continuous_beam",
-            input_bindings={
-                "reaction_conversion_spacing_m": "primary_spacing_m"
-            },
-        ),
-        _node(
-            "platform_base_left",
-            "左柱脚 / 底板锚栓",
-            "connection",
-            "steel_baseplate_anchor",
-        ),
-        _node(
-            "platform_base_right",
-            "右柱脚 / 底板锚栓",
-            "connection",
-            "steel_baseplate_anchor",
-        ),
-        _node(
-            "platform_foundation_left",
-            "左独立基础",
-            "foundation",
-            "spread_footing",
-        ),
-        _node(
-            "platform_foundation_right",
-            "右独立基础",
-            "foundation",
-            "spread_footing",
-        ),
-    ],
-    [
-        _connection("platform-load-deck", "deck_loads", "deck", "manual"),
-        _connection(
-            "platform-deck-secondary",
-            "deck",
-            "secondary",
-            "reaction_to_line",
-            output_unit="kN",
-            input_unit="kN",
-            conversion_input_key="reaction_conversion_spacing_m",
-            requires_source_trace=True,
-        ),
-        _connection(
-            "platform-secondary-primary",
-            "secondary",
-            "primary",
-            "reaction_to_line",
-            output_unit="kN",
-            input_unit="kN",
-            support="left",
-            conversion_input_key="reaction_conversion_spacing_m",
-            requires_source_trace=True,
-        ),
-        _connection(
-            "platform-primary-left-base",
-            "primary",
-            "platform_base_left",
-            "reaction_package",
-            output_unit="kN",
-            input_unit="kN",
-            support="left",
-            requires_source_trace=True,
-        ),
-        _connection(
-            "platform-primary-right-base",
-            "primary",
-            "platform_base_right",
-            "reaction_package",
-            output_unit="kN",
-            input_unit="kN",
-            support="right",
-            requires_source_trace=True,
-        ),
-        _connection(
-            "platform-left-foundation",
-            "platform_base_left",
-            "platform_foundation_left",
-            "reaction_package",
-            output_unit="kN",
-            input_unit="kN",
-            requires_source_trace=True,
-        ),
-        _connection(
-            "platform-right-foundation",
-            "platform_base_right",
-            "platform_foundation_right",
-            "reaction_package",
-            output_unit="kN",
-            input_unit="kN",
-            requires_source_trace=True,
-        ),
-    ],
+    "viewing-platform-four-edge-chain-v33",
+    [_node("deck_loads", "人群、栏杆与面层作用", "load"),
+     _node("deck", "四边简支混凝土平台板", "surface", "two_way_slab")]
+    + [_node(f"edge_{edge}", f"平台{_PLATFORM_EDGE_LABELS[edge]}边梁", "primary_member", "continuous_beam") for edge in _PLATFORM_EDGES]
+    + [_node(f"platform_base_{corner}", f"{_PLATFORM_CORNER_LABELS[corner]}角支承 / 底板锚栓", "connection", "steel_baseplate_anchor") for corner in ("south_west", "south_east", "north_west", "north_east")]
+    + [_node(f"platform_foundation_{corner}", f"{_PLATFORM_CORNER_LABELS[corner]}独立基础", "foundation", "spread_footing") for corner in ("south_west", "south_east", "north_west", "north_east")],
+    [_connection("platform-load-deck", "deck_loads", "deck", "manual")]
+    + [_connection(f"platform-deck-{edge}", "deck", f"edge_{edge}", "combination_package", output_unit="kN", input_unit="kN", requires_source_trace=True,
+        description="显式45度分担区，按边梁真实长度分段积分；四边分担总和等于板总荷载。") for edge in _PLATFORM_EDGES]
+    + [_connection(f"platform-{edge}-{corner}", f"edge_{edge}", f"platform_base_{corner}", "reaction_package", output_unit="kN", input_unit="kN", support=support, requires_source_trace=True)
+       for edge, corners in _PLATFORM_EDGES.items() for corner,support in zip(corners,("left","right"))]
+    + [_connection(f"platform-{corner}-foundation", f"platform_base_{corner}", f"platform_foundation_{corner}", "reaction_package", output_unit="kN", input_unit="kN", requires_source_trace=True)
+       for corner in ("south_west", "south_east", "north_west", "north_east")],
 )
+
+VIEWING_PLATFORM_GRAPH.version = "3.3"
 
 SIGN_PUBLIC_LOAD_PACKAGE = _package(
     "signage-panel-public-loads-v32",
@@ -2407,16 +2267,16 @@ _replace_public_variant(
     _variant(
         "viewing-platform",
         "混凝土板 + 钢梁观景平台",
-        "人群与面层作用经双向板、连续次梁和主梁传至左右柱脚与独立基础。",
+        "人群与面层作用按显式45度分担区传至四条边梁，角支承汇总相邻两梁端反力后传至四个独立基础。",
         ["混凝土板+钢构"],
         [
             _number("short_span_m", "平台板短跨", "m", 3.0),
             _number("long_span_m", "平台板长跨", "m", 4.5),
             _number("slab_thickness_mm", "平台板厚度", "mm", 140.0),
-            _number("secondary_spacing_m", "次梁间距", "m", 1.5),
-            _number("primary_spacing_m", "主梁间距", "m", 3.0),
+            _choice("slab_load_distribution", "板到边梁荷载分配", ["待选择", "45°几何分担法"], "待选择"),
+
         ],
-        support_system="双柱脚+独立基础",
+        support_system="四角支承+四个独立基础",
         graph=VIEWING_PLATFORM_GRAPH,
         load_package=BOARDWALK_LOAD_PACKAGE,
     ),

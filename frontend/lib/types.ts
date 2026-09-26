@@ -646,6 +646,8 @@ export interface FoundationTypeDefinition {
   rebar_grade: string;
   bottom_x: string;
   bottom_y: string;
+  top_x?: string | null;
+  top_y?: string | null;
   cover_mm?: number | null;
   steps?: Array<{ length_m: number; width_m: number; height_mm: number }>;
   tapered_top_length_m?: number | null;
@@ -714,6 +716,10 @@ export interface ColumnBaseAssembly {
   anchor_head_diameter_mm?: number | null;
   anchor_supplementary_reinforcement_area_mm2?: number | null;
   anchor_cracked_concrete?: boolean;
+  contact_stiffness_kn_m3?: number | null;
+  contact_model_source?: string | null;
+  anchor_springs?: Array<{ x_m: number; y_m: number; stiffness_kn_m: number }>;
+  continuous_perimeter_weld?: boolean | null;
   weld_throat_mm?: number | null;
   concrete_bearing_capacity_mpa?: number | null;
   grout_thickness_mm: number;

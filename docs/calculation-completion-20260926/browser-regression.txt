@@ -1,0 +1,28 @@
+
+Running 21 tests using 1 worker
+
+(node:38644) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [chromium] › tests\navigation.spec.ts:269:5 › 移动抽屉选择期间保持打开，应用后关闭 (2.2s)
+  ok  2 [chromium] › tests\navigation.spec.ts:283:5 › 正式亭廊入口使用Geometry 2.3六入口工作台 (738ms)
+  ok  3 [chromium] › tests\navigation.spec.ts:298:5 › 墙附悬挑雨棚不显示基础和120kPa通用默认值 (568ms)
+  ok  4 [chromium] › tests\navigation.spec.ts:309:5 › 亭廊选中构件类型后可直接编辑截面几何 (681ms)
+  ok  5 [chromium] › tests\navigation.spec.ts:319:5 › 亭廊工作台固定显示二维三维并可调整分隔线 (892ms)
+  ok  6 [chromium] › tests\navigation.spec.ts:334:5 › 栈道仅显示露天积雪与地震条件，不显示屋盖选项 (523ms)
+  ok  7 [chromium] › tests\navigation.spec.ts:345:5 › 正式亭廊项目条件驱动自动荷载且不使用零值占位 (884ms)
+  ok  8 [chromium] › tests\navigation.spec.ts:358:5 › 正式亭廊390宽使用属性二维三维标签且无横向溢出 (495ms)
+  ok  9 [chromium] › tests\navigation.spec.ts:374:5 › 单项计算仍可使用移动抽屉进入 (877ms)
+  ok 10 [chromium] › tests\navigation.spec.ts:382:5 › 十一个Schema 3.3单项模块均生成判别输入并沿用通用结果页 (2.1s)
+  ok 11 [chromium] › tests\navigation.spec.ts:508:5 › 池体地下水三态中未知水位会阻止提交且已知水位要求资料来源 (711ms)
+  ok 12 [chromium] › tests\navigation.spec.ts:533:5 › 单项计算不再提供专业模式切换 (627ms)
+  ok 13 [chromium] › tests\pergola-workbench-v2.spec.ts:3:5 › 柱脚接触参数显式录入且不静默生成刚度 (827ms)
+  ok 14 [chromium] › tests\pergola-workbench-v2.spec.ts:41:5 › QA工作台以56px入口栏、对象属性和并排二维三维呈现 (1.1s)
+  ok 15 [chromium] › tests\pergola-workbench-v2.spec.ts:59:5 › 场景库留在工作台内且项目条件驱动风雪地震荷载 (930ms)
+  ok 16 [chromium] › tests\pergola-workbench-v2.spec.ts:75:5 › 选择单根柱后可用组合字段精确修改柱顶标高和截面 (731ms)
+  ok 17 [chromium] › tests\pergola-workbench-v2.spec.ts:86:5 › 双坡屋脊可转到Y向并保持对象编号 (724ms)
+  ok 18 [chromium] › tests\pergola-workbench-v2.spec.ts:95:5 › 基础按F-A和F-B归类并可将单个实例拆分 (1.1s)
+  ok 19 [chromium] › tests\pergola-workbench-v2.spec.ts:119:5 › 梁草稿取消不写入孤立节点且节点可在既有梁上拆分 (836ms)
+  ok 20 [chromium] › tests\pergola-workbench-v2.spec.ts:137:5 › 删除工具可直接删除图面构件且重置视图恢复100% (977ms)
+  ok 21 [chromium] › tests\pergola-workbench-v2.spec.ts:160:5 › 390px使用属性二维三维三个全屏标签且无横向溢出 (424ms)
+
+  21 passed (21.1s)

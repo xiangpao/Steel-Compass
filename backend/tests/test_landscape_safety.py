@@ -35,11 +35,14 @@ def test_scene_member_checks_and_foundations_use_second_order_demand():
     assert combination["maximum_translation_mm"] == combination["second_order_maximum_translation_mm"]
     assert result["maximum_translation_mm"] == combination["second_order_maximum_translation_mm"]
     assert combination["first_order_results"]["support_reactions"] != combination["support_reactions"]
-    assert result["member_checks"]["status"] == "incomplete"
+    assert result["member_checks"]["status"] == "complete"
     for member in result["member_checks"]["items"]:
         if member["member_id"].startswith("C"):
-            assert member["status"] == "not_calculated"
-            assert "二阶" in member["reason"]
+            assert member["status"] == "pass"
+            envelope = combination["member_end_forces"][member["member_id"]]["along_member"]
+            assert envelope["status"] == "complete"
+            assert envelope["mesh_convergence_relative"] <= .005
+            assert member["verification_status"] == "unverified"
 
 
 def test_water_depth_has_quadratic_thrust_cubic_moment_and_linear_buoyancy():

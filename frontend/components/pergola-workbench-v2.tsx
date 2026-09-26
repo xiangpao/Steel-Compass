@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PergolaPlanEditorV2, type OrthographicView, type WorkbenchSelection } from "@/components/pergola-plan-editor-v2";
 import { api, errorMessage } from "@/lib/api";
+import { ColumnBaseContactFields } from "@/components/column-base-contact-fields";
 import type { CustomSectionDefinition, FoundationDesignSpecification, FoundationTypeDefinition, MemberTypeDefinition, Project, ProjectGeotechnicalProfile, ProjectSiteProfile, RoofAssembly, SceneGeometryProfile } from "@/lib/types";
 
 const SceneModelPreview = dynamic(() => import("@/components/scene-model-preview").then((module) => module.SceneModelPreview), { ssr: false });
@@ -1218,7 +1219,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
 
   function autoClassifyFoundations() {
     const types = geometry.foundation_types ?? [];
-    const signature = (item: FoundationTypeDefinition) => [item.form_id, item.length_m, item.width_m, item.thickness_mm, item.embedment_m, item.concrete_grade, item.rebar_grade, item.bottom_x, item.bottom_y, item.cover_mm, JSON.stringify(item.steps ?? []), item.tapered_top_length_m, item.tapered_top_width_m, item.tapered_height_mm, JSON.stringify(item.pedestal ?? null)].join("|");
+    const signature = (item: FoundationTypeDefinition) => [item.form_id, item.length_m, item.width_m, item.thickness_mm, item.embedment_m, item.concrete_grade, item.rebar_grade, item.bottom_x, item.bottom_y, item.top_x ?? null, item.top_y ?? null, item.cover_mm, JSON.stringify(item.steps ?? []), item.tapered_top_length_m, item.tapered_top_width_m, item.tapered_height_mm, JSON.stringify(item.pedestal ?? null)].join("|");
     const canonical = new Map<string, FoundationTypeDefinition>();
     types.forEach((item) => {
       if (!canonical.has(signature(item))) canonical.set(signature(item), item);
@@ -2499,6 +2500,11 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
                 }
               />
             </label>
+            {(["top_x", "top_y"] as const).map((key) => <label className="qa-field" key={key}>
+              <span>{key === "top_x" ? "X向顶筋" : "Y向顶筋"}</span>
+              <input value={selectedFoundationType[key] ?? ""} placeholder="如 Φ12@150；存在反向弯矩时必填"
+                onChange={event => updateFoundationType(selectedFoundationType.id, { [key]: event.target.value || null })} />
+            </label>)}
           </div>
           <div className="qa-property-group">
             <label className="qa-check-row">
@@ -2832,6 +2838,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
                 </div>
                 <small>用于柱脚底板下局部承压；工作台不再静默套用单项快算默认值。</small>
               </label>
+              <ColumnBaseContactFields value={selectedColumnBase} onChange={updateColumnBase} />
             </details>
           )}
           <button type="button" className="qa-secondary-action" onClick={detachFoundation}>

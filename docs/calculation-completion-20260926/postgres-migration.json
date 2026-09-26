@@ -1,0 +1,20 @@
+[
+  {
+    "database": "audit_empty_completion2",
+    "server_version": "17.10",
+    "legacy": false,
+    "migration_head": "20260813_07",
+    "idempotent": true,
+    "historical_rows_preserved": false,
+    "status": "passed"
+  },
+  {
+    "database": "audit_legacy_completion2",
+    "server_version": "17.10",
+    "legacy": true,
+    "migration_head": "20260813_07",
+    "idempotent": true,
+    "historical_rows_preserved": true,
+    "status": "passed"
+  }
+]

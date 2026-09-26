@@ -58,16 +58,16 @@ def test_public_structural_variants_use_real_acyclic_graphs(
 @pytest.mark.parametrize(
     ("family_id", "variant_id", "foundation_count"),
     [
-        ("pergola-pavilion", "mono-pitch", 2),
-        ("pergola-pavilion", "dual-pitch", 2),
-        ("pergola-pavilion", "multi-bay", 3),
+        ("pergola-pavilion", "mono-pitch", 4),
+        ("pergola-pavilion", "dual-pitch", 4),
+        ("pergola-pavilion", "multi-bay", 6),
         ("signage-billboard", "double-post", 2),
         ("signage-billboard", "ground-mounted", 1),
         ("signage-billboard", "eccentric-panel", 1),
         ("entrance-frame", "multi-span", 3),
         ("entrance-frame", "eccentric-lintel", 2),
         ("entrance-frame", "unequal-columns", 2),
-        ("boardwalk-platform", "viewing-platform", 2),
+        ("boardwalk-platform", "viewing-platform", 4),
     ],
 )
 def test_ground_supported_variants_end_at_expected_foundations(

@@ -28,6 +28,27 @@ from .core.scene_schemas import SceneRevisionResult
 pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
 
 
+def _contact_paragraphs(solutions: list[dict], body, heading) -> list:
+    if not solutions:
+        return []
+    paragraphs = [Paragraph("接触平衡（不等同承载力验收）", heading)]
+    for item in solutions:
+        paragraphs.append(Paragraph(escape(
+            f"组合：{item.get('combination_name', '—')}；受压面积：{item.get('contact_area_m2', '—')} m²；"
+            f"压力范围：{item.get('qmin_kpa', '—')} 至 {item.get('qmax_kpa', '—')} kPa；"
+            f"逐栓拉力：{item.get('anchor_tensions_kn', [])} kN。"), body))
+        for key, label in (("status", "接触状态"),
+                           ("missing_inputs", "接触缺项"),
+                           ("resultants_n_mx_my", "平衡合力 [N(kN), Mx(kN·m), My(kN·m)]"),
+                           ("scaled_equilibrium_residual_kn", "缩放后平衡残差(kN)"),
+                           ("anchor_shear_vectors_kn", "逐栓剪力 [Vx, Vy](kN)"),
+                           ("contact_model_source", "接触模型来源"),
+                           ("model_source", "接触模型来源")):
+            if key in item:
+                paragraphs.append(Paragraph(escape(f"{label}：{item[key]}"), body))
+    return paragraphs
+
+
 def build_calculation_pdf(result: CalculationResult, report_number: str) -> bytes:
     buffer = BytesIO()
     document = SimpleDocTemplate(
@@ -184,6 +205,7 @@ def build_calculation_pdf(result: CalculationResult, report_number: str) -> byte
             Paragraph(f"• [{escape(item.severity)}] {escape(item.message)}", body)
             for item in result.warnings
         )
+    story.extend(_contact_paragraphs(result.contact_solutions, body, heading))
     document.build(story)
     return buffer.getvalue()
 
@@ -607,6 +629,8 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
         ["荷载平衡最大残差", f"{solver.get('maximum_balance_residual_kn', '—')} kN"],
         ["荷载平衡", "满足" if solver.get("balanced") else "不满足/未完成"],
         ["最低弹性屈曲系数", str((analysis.get("buckling_analysis", {}).get("factors") or ["—"])[0])],
+        ["屈曲计算范围状态", str(analysis.get("buckling_analysis", {}).get("status", "incomplete"))],
+        ["屈曲未完成项", "；".join(analysis.get("buckling_analysis", {}).get("missing_inputs", [])) or "见模型适用范围"],
     ]
     summary_table = wrapped_table(summary_rows, colWidths=[58 * mm, 112 * mm])
     summary_table.setStyle(_table_style())
@@ -676,6 +700,15 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
         package_table.setStyle(_table_style())
         story.append(package_table)
         append_check_details(f"{section_title}逐项验算", analysis.get(package_key, {}).get("items", []))
+        for item in analysis.get(package_key, {}).get("items", []):
+            object_id = item.get("mark") or item.get("column_base_id") or item.get("foundation_id") or "—"
+            if item.get("contact_solutions"):
+                story.append(Paragraph(escape(f"{object_id}：逐组合接触结果"), heading))
+                story.extend(_contact_paragraphs(item["contact_solutions"], body, heading))
+            for pending in item.get("pending_checks", []):
+                story.append(Paragraph(escape(f"{object_id} 未完成：{pending}"), body))
+            for warning in item.get("warnings", []):
+                story.append(Paragraph(escape(f"{object_id} 提示：{warning.get('message', warning)}"), body))
         if package_key == "foundation_checks":
             pedestal_objects = [
                 item["pedestal_check"]

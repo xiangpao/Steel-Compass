@@ -51,7 +51,7 @@ def test_reference_module_has_no_production_engine_imports() -> None:
     assert "app.core" not in source
 
 
-def test_evidence_manifest_is_complete_and_verified() -> None:
+def test_evidence_manifest_does_not_treat_legacy_reviewer_text_as_signed_evidence() -> None:
     assert set(EVIDENCE_RECORDS) == {
         "steel_beam",
         "steel_column",
@@ -64,10 +64,10 @@ def test_evidence_manifest_is_complete_and_verified() -> None:
     }
     for module, record in EVIDENCE_RECORDS.items():
         assert record.module == module
-        if module in ("steel_beam", "steel_column", "portal_frame", "steel_baseplate_anchor"):
-            assert record.verification_status == "verified"
-            assert record.reviewer == "Advanced Structural Engineering Audit Group"
-            assert record.review_date == "2026-08-07"
+        assert record.verification_status == "unverified"
+        assert record.reviewer is None
+        assert record.review_date is None
+        assert record.outstanding_gaps
         assert record.applicability
         assert record.formula_mapping
         assert record.standard_mapping
@@ -209,7 +209,7 @@ def test_portal_frame_golden_case_satisfies_independent_equilibrium() -> None:
     assert sls_reactions[1].components["N"].value == pytest.approx(reference.reaction_right_kn, rel=1e-8)
 
 
-def test_baseplate_golden_case_matches_independent_strip_and_anchor_group() -> None:
+def test_baseplate_old_partial_contact_reference_requires_explicit_coupling() -> None:
     upstream = [
         {
             "name": "left_base",
@@ -245,31 +245,13 @@ def test_baseplate_golden_case_matches_independent_strip_and_anchor_group() -> N
             [],
         )
     )
-    reference = solve_baseplate_anchor(
-        axial_kn=105,
-        shear_x_kn=8,
-        shear_y_kn=0,
-        moment_x_kn_m=0,
-        moment_y_kn_m=14,
-        plate_length_mm=360,
-        plate_width_mm=360,
-        plate_thickness_mm=24,
-        column_depth_mm=200,
-        column_width_mm=200,
-        anchor_count=4,
-        anchor_diameter_mm=20,
-        anchor_spacing_mm=260,
-        anchor_fu_mpa=500,
-        plate_design_strength_mpa=295,
-        weld_throat_mm=8,
-        weld_shear_strength_mpa=170,
-    )
-    # e=14/105m > 0.36/6m: the old N/A reference is outside full contact.
+    # e=14/105m > 0.36/6m: N/A and the historical M/z allocation
+    # are not independent references for the new compatible contact model.
     assert result.status == "incomplete"
     assert any(w.code == "baseplate_partial_contact_unresolved" for w in result.warnings)
-    assert not any(c.name == "底板悬臂弯曲" for c in result.checks)
-    assert _check(result, "锚栓钢材拉剪组合").demand.value == pytest.approx(reference.anchor_interaction)
-    assert _check(result, "柱底角焊缝承载力（快算）").capacity.value == pytest.approx(reference.weld_capacity_kn)
+    assert not any(c.name in {"底板悬臂弯曲", "锚栓钢材拉剪组合", "柱底角焊缝承载力（快算）"}
+                   for c in result.checks)
+    assert result.contact_solutions[0]["status"] == "missing_inputs"
 
 
 def test_cantilever_post_golden_case_matches_static_equilibrium() -> None:
