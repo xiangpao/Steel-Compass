@@ -1,4 +1,5 @@
 from dataclasses import replace
+from math import sqrt, tanh
 
 import pytest
 
@@ -81,3 +82,56 @@ def test_tekla_published_second_order_cantilever():
     result = analyze_space_frame_stability(model).second_order
     assert result.displacements["B"].uy_mm == pytest.approx(-167.7, abs=0.05)
     assert result.reactions["A"].mz_kn_m == pytest.approx(1.121, abs=0.0005)
+    # End actions must use the same second-order equilibrium as support reactions.
+    assert result.members["m"].local_end_forces[5] / 1e6 == pytest.approx(1.121, abs=0.0005)
+    assert result.members["m"].local_end_forces[11] == pytest.approx(0.0, abs=1e-6)
+
+
+@pytest.mark.parametrize("axis", ["y", "z"])
+@pytest.mark.parametrize("offsets", [(0.0, 0.0), (0.3, 0.4)])
+@pytest.mark.parametrize("uniform", [False, True])
+@pytest.mark.parametrize("axial_kn", [-1000.0, 1000.0])
+def test_second_order_member_end_actions_match_joint_equilibrium(axis, offsets, uniform, axial_kn):
+    tip_load = SpaceNodalLoad("B", fx_kn=axial_kn, **{f"f{axis}_kn": -10.0})
+    model = replace(
+        cantilever(rigid_offset_start_m=offsets[0], rigid_offset_end_m=offsets[1]),
+        nodal_loads=(tip_load,),
+        member_uniform_loads=(SpaceMemberUniformLoad("m", **{f"q{axis}_kn_m": -2.0}),) if uniform else (),
+    )
+    result = analyze_space_frame_stability(model).second_order
+    forces = result.members["m"].local_end_forces
+    reaction = result.reactions["A"]
+    # The member is aligned with global X: its local and global force axes match.
+    expected_root = (
+        reaction.fx_kn * 1000, reaction.fy_kn * 1000, reaction.fz_kn * 1000,
+        reaction.mx_kn_m * 1e6, reaction.my_kn_m * 1e6, reaction.mz_kn_m * 1e6,
+    )
+    expected_tip = (axial_kn * 1000, -10000 if axis == "y" else 0,
+                    -10000 if axis == "z" else 0, 0, 0, 0)
+    assert forces[:6] == pytest.approx(expected_root, abs=1e-6)
+    assert forces[6:] == pytest.approx(expected_tip, abs=1e-6)
+    assert result.load_balance_kn == pytest.approx((0.0, 0.0, 0.0), abs=1e-9)
+
+
+@pytest.mark.parametrize("elements", [10, 20])
+def test_dlubal_0042_axial_tension_cantilever_against_independent_closed_form(elements):
+    # Dlubal Verification 0042 (2015), RSTAB 8.05.0030, no shear deformation.
+    # https://www.dlubal.com/en/downloads-and-information/examples-and-tutorials/verification-examples/000042
+    # Its RSTAB table is 3266.163 mm; the printed analytical 3266.136 mm differs
+    # from the source's own formula (42-16). Do not copy a production result.
+    elastic_modulus = 210000.0
+    inertia = 80.0**4 / 12
+    alpha = sqrt(1600 / (elastic_modulus * inertia))
+    reference = 7650 / 1600 * (10000 - tanh(alpha * 10000) / alpha)
+    assert reference == pytest.approx(3266.163, abs=0.0005)
+    model = SpaceFrameModel(
+        tuple(SpaceNode(str(i), i * 10 / elements, 0, 0) for i in range(elements + 1)),
+        tuple(SpaceMember(str(i), str(i), str(i + 1), 6400, inertia, inertia,
+                          1e6, elastic_modulus_mpa=elastic_modulus) for i in range(elements)),
+        (SpaceRestraint("0", True, True, True, True, True, True),),
+        (SpaceNodalLoad(str(elements), fx_kn=1.6, fz_kn=7.65),),
+    )
+    result = analyze_space_frame_stability(model).second_order
+    # 0.0005 mm is half the published three-decimal RSTAB rounding unit.
+    assert result.displacements[str(elements)].uz_mm == pytest.approx(reference, abs=0.0005)
+    assert result.displacements[str(elements)].ux_mm == pytest.approx(1600 * 10000 / (elastic_modulus * 6400))

@@ -1,0 +1,12 @@
+
+> steel-compass-frontend@2.0.0 e2e
+> playwright test tests/live-audit.spec.ts
+
+
+Running 1 test using 1 worker
+
+(node:31300) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 [chromium] › tests\live-audit.spec.ts:5:5 › 真实后端：新建、保存、计算、PDF、修改失效、刷新与移动操作 (15.8s)
+
+  1 passed (16.5s)

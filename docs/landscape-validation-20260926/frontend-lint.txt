@@ -1,0 +1,3 @@
+
+> steel-compass-frontend@2.0.0 lint
+> eslint .

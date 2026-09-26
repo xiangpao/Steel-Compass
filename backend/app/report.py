@@ -633,8 +633,8 @@ def build_scene_analysis_snapshot_pdf(snapshot: dict, report_number: str) -> byt
             str(item.get("member_id", "—")),
             f"{item.get('material_grade', '—')} / {item.get('section_id', '—')}",
             str(item.get("controlling_case", "—")),
-            str(item.get("utilization", "—")),
-            str(item.get("status", "—")),
+            str(item["utilization"]) if item.get("utilization") is not None else "未计算",
+            "；".join(filter(None, [str(item.get("status", "—")), item.get("reason")])),
         ])
     member_table = wrapped_table(member_rows, colWidths=[25 * mm, 48 * mm, 45 * mm, 25 * mm, 27 * mm], repeatRows=1)
     member_table.setStyle(_table_style())

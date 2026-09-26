@@ -74,6 +74,18 @@ def test_baseplate_pure_moment_never_claims_zero_bearing_as_pass():
     assert result.quick_outcome != "screening_passed"
 
 
+def test_baseplate_pure_uplift_cannot_pass_unchecked_plate_bending():
+    result = calculate(CalculationRequest(
+        mode="quick", module="steel_baseplate_anchor",
+        inputs={"upstream_reaction_envelopes": packet(n=-10)},
+    ))
+    assert result.status == "incomplete"
+    assert result.workflow_status == "capability_unavailable"
+    assert result.quick_outcome is None
+    assert any(w.code == "baseplate_partial_contact_unresolved" for w in result.warnings)
+    assert not any(c.name == "底板悬臂弯曲" for c in result.checks)
+
+
 def test_full_contact_baseplate_uses_peak_corner_pressure():
     result = calculate(CalculationRequest(mode="quick",module="steel_baseplate_anchor",inputs={
         "upstream_reaction_envelopes": packet(n=100,mx=5), "concrete_bearing_capacity_mpa":1.0}))

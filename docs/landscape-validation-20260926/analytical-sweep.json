@@ -1,0 +1,139 @@
+{
+  "evidence_kind": "independent_calculation",
+  "verification_status": "unverified",
+  "formula_source": {
+    "publisher": "American Wood Council",
+    "title": "Design Aid 6, Beam Design Formulas, July 2010",
+    "url": "https://web-media.awc.org/wp-content/uploads/2021/12/17210710/AWC-DA6-BeamFormulas-0710.pdf",
+    "pages": "printed 4, 9, 10 (PDF 4, 9, 10)",
+    "figures": [
+      1,
+      12,
+      13
+    ],
+    "use": "elastic formulas only, material E=206000 MPa explicitly assigned; no foreign code strength substitution"
+  },
+  "tolerance_basis": "1e-9 relative for linear closed forms, registered in regression before production execution",
+  "scope": "linear elastic analytical sensitivities; not a complete scene or code capacity approval",
+  "cases": [
+    {
+      "case": "column-100x4-H3",
+      "side_mm": 100,
+      "wall_mm": 4,
+      "height_m": 3,
+      "reference_area_mm2": 1536,
+      "reference_inertia_mm4": 2363392.0,
+      "reference_displacement_mm": 18.48585439417139,
+      "actual_displacement_mm": 18.48585439417139,
+      "relative_error": 0.0,
+      "root_moment_kn_m": 2.9999999999999996,
+      "tolerance_relative": 1e-09
+    },
+    {
+      "case": "column-150x4-H3",
+      "side_mm": 150,
+      "wall_mm": 4,
+      "height_m": 3,
+      "reference_area_mm2": 2336,
+      "reference_inertia_mm4": 8305258.666666667,
+      "reference_displacement_mm": 5.260440660770451,
+      "actual_displacement_mm": 5.260440660559319,
+      "relative_error": 4.013571681488244e-11,
+      "root_moment_kn_m": 2.9999999999999982,
+      "tolerance_relative": 1e-09
+    },
+    {
+      "case": "column-150x6-H3",
+      "side_mm": 150,
+      "wall_mm": 6,
+      "height_m": 3,
+      "reference_area_mm2": 3456,
+      "reference_inertia_mm4": 11964672.0,
+      "reference_displacement_mm": 3.6515267939103984,
+      "actual_displacement_mm": 3.6515267939103975,
+      "relative_error": 2.4323480829480106e-16,
+      "root_moment_kn_m": 2.999999999999999,
+      "tolerance_relative": 1e-09
+    },
+    {
+      "case": "column-200x6-H3",
+      "side_mm": 200,
+      "wall_mm": 6,
+      "height_m": 3,
+      "reference_area_mm2": 4656,
+      "reference_inertia_mm4": 29233472.0,
+      "reference_displacement_mm": 1.4944964590025267,
+      "actual_displacement_mm": 1.4944964590025274,
+      "relative_error": 4.45724585536785e-16,
+      "root_moment_kn_m": 3.0000000000000013,
+      "tolerance_relative": 1e-09
+    },
+    {
+      "case": "column-150x6-H4",
+      "side_mm": 150,
+      "wall_mm": 6,
+      "height_m": 4,
+      "reference_area_mm2": 3456,
+      "reference_inertia_mm4": 11964672.0,
+      "reference_displacement_mm": 8.655470918898722,
+      "actual_displacement_mm": 8.655470918898722,
+      "relative_error": 0.0,
+      "root_moment_kn_m": 4.0,
+      "tolerance_relative": 1e-09
+    },
+    {
+      "case": "simple-span-2.0",
+      "span_m": 2.0,
+      "support": "simple",
+      "reference_displacement_mm": 0.11275130183338625,
+      "actual_displacement_mm": 0.11275130183338626,
+      "relative_error": 1.2308317138831625e-16,
+      "tolerance_relative": 1e-09
+    },
+    {
+      "case": "cantilever-span-2.0",
+      "span_m": 2.0,
+      "support": "cantilever",
+      "reference_displacement_mm": 1.082412497600508,
+      "actual_displacement_mm": 1.0824124976005052,
+      "relative_error": 2.666802046746852e-15,
+      "tolerance_relative": 1e-09
+    },
+    {
+      "case": "simple-span-3.0",
+      "span_m": 3.0,
+      "support": "simple",
+      "reference_displacement_mm": 0.5708034655315178,
+      "actual_displacement_mm": 0.5708034655315183,
+      "relative_error": 7.780072068002213e-16,
+      "tolerance_relative": 1e-09
+    },
+    {
+      "case": "cantilever-span-3.0",
+      "span_m": 3.0,
+      "support": "cantilever",
+      "reference_displacement_mm": 5.479713269102572,
+      "actual_displacement_mm": 5.479713269102591,
+      "relative_error": 3.565866364501014e-15,
+      "tolerance_relative": 1e-09
+    },
+    {
+      "case": "simple-span-4.0",
+      "span_m": 4.0,
+      "support": "simple",
+      "reference_displacement_mm": 1.80402082933418,
+      "actual_displacement_mm": 1.8040208293341802,
+      "relative_error": 1.2308317138831625e-16,
+      "tolerance_relative": 1e-09
+    },
+    {
+      "case": "cantilever-span-4.0",
+      "span_m": 4.0,
+      "support": "cantilever",
+      "reference_displacement_mm": 17.31859996160813,
+      "actual_displacement_mm": 17.318599961608083,
+      "relative_error": 2.666802046746852e-15,
+      "tolerance_relative": 1e-09
+    }
+  ]
+}

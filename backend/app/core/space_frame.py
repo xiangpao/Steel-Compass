@@ -470,6 +470,7 @@ def analyze_space_frame_stability(
     elastic = np.zeros((size, size), dtype=float)
     geometric = np.zeros((size, size), dtype=float)
     prepared: dict[str, tuple[np.ndarray, np.ndarray, tuple[int, ...], float]] = {}
+    geometric_by_member: dict[str, np.ndarray] = {}
 
     for member in model.members:
         start_index = node_index[member.start]
@@ -514,6 +515,7 @@ def analyze_space_frame_stability(
                     local_geometric[target_row, target_column] += block[row, column]
         arm = _rigid_arm_transform(member)
         local_geometric = arm.T @ local_geometric @ arm
+        geometric_by_member[member.id] = local_geometric
         global_geometric = transform.T @ local_geometric @ transform
         geometric[np.ix_(dofs, dofs)] += global_geometric
 
@@ -580,7 +582,17 @@ def analyze_space_frame_stability(
     for member in model.members:
         local, transform, dofs, _ = prepared[member.id]
         member_displacements = displacements[list(dofs)]
-        forces = local @ (transform @ member_displacements) if member.behavior == "frame" else local @ member_displacements
+        if member.behavior == "frame":
+            local_displacements = transform @ member_displacements
+            forces = local @ local_displacements
+            # Recover joint actions from the same tangent stiffness used by the
+            # equilibrium solve. Elastic K*u alone leaves fictitious free-end
+            # forces and disagrees with support reactions whenever P != 0.
+            member_geometric = geometric_by_member.get(member.id)
+            if member_geometric is not None:
+                forces -= member_geometric @ local_displacements
+        else:
+            forces = local @ member_displacements
         forces -= fixed_end_loads.get(member.id, np.zeros(12, dtype=float))
         member_results[member.id] = SpaceMemberResult(member.id, tuple(float(item) for item in forces))
     total_load = load_vector.reshape((-1, 6))[:, :3].sum(axis=0) / 1000

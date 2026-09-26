@@ -237,7 +237,9 @@ def calculate_steel_baseplate_anchor(
         shear = hypot(_component(item, "Vx"), _component(item, "Vy"))
         moment = hypot(_component(item, "Mx"), _component(item, "My"))
         compression = max(axial, 0.0)
-        if (compression <= 0 and moment > 0) or (
+        # Uplift also needs a plate/anchor load-path model even without moment;
+        # zero concrete bearing cannot establish zero plate bending demand.
+        if axial < 0 or (compression <= 0 and moment > 0) or (
             compression > 0 and 6 * abs(_component(item, "Mx")) / (compression * plate_width / 1000)
             + 6 * abs(_component(item, "My")) / (compression * plate_length / 1000) > 1
         ):
@@ -420,7 +422,7 @@ def calculate_steel_baseplate_anchor(
         status = "incomplete"
         warnings.append(CalculationWarning(
             severity="critical", code="baseplate_partial_contact_unresolved",
-            message="底板存在脱开或纯弯矩；平均承压和底板条带模型不适用，承压区与锚栓耦合尚未计算。",
+            message="底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
         ))
     return CalculationResult(
         trace_id=trace_id,

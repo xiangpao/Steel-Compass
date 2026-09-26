@@ -5,10 +5,14 @@ from math import pi, sqrt
 from .design_profiles import CustomSectionDefinition, SceneGeometryProfile
 
 
-STEEL_MEMBER_CHECK_VERSION = "GB50017-member-checks-2026.1-unverified"
+STEEL_MEMBER_CHECK_VERSION = "GB50017-member-checks-2026.2-unverified"
 
 
 def _design_strength(grade: str, thickness_mm: float) -> float | None:
+    # The scene and standalone registries disagree above 40 mm. Do not choose
+    # either table until the grade/edition mapping has independent evidence.
+    if thickness_mm <= 0 or thickness_mm > 40:
+        return None
     mapping = {
         "Q235B": ((16, 215.0), (40, 205.0), (100, 195.0)),
         "Q355B": ((16, 305.0), (40, 295.0), (100, 285.0)),
@@ -72,6 +76,27 @@ def calculate_scene_member_checks(
     package_status = "complete"
 
     for member in geometry.members:
+        missing_cases = [case_id for case_id, result in case_results.items()
+                         if not (result.get("member_end_forces") or {}).get(member.id)]
+        if not case_results or missing_cases:
+            package_status = "incomplete"
+            items.append({"member_id": member.id, "status": "not_calculated",
+                          "reason": "缺少完整的构件组合内力，不能按零需求判定通过",
+                          "missing_case_ids": missing_cases,
+                          "verification_status": "unverified"})
+            continue
+        second_order_axial_cases = [
+            case_id for case_id, result in case_results.items()
+            if result.get("analysis_basis") == "second_order" and any(
+                abs(float(result["member_end_forces"][member.id][end]["n_kn"])) > 1e-8
+                for end in ("start", "end")
+            )
+        ]
+        if second_order_axial_cases:
+            # M0 - V*x - q*x²/2 below is a first-order diagram. It omits the
+            # axial-force x transverse-displacement term and cannot certify
+            # an interior maximum from second-order end actions alone.
+            package_status = "incomplete"
         section = section_by_member.get(member.id)
         grade = grade_by_member.get(member.id)
         if section is None or grade is None:
@@ -208,6 +233,8 @@ def calculate_scene_member_checks(
         deflection_utilization = maximum_relative_mm / max(deflection_limit, 1e-9)
         maximum = max(maximum, deflection_utilization)
         status = "pass" if maximum <= 1.0 else "failed"
+        if second_order_axial_cases:
+            status = "not_calculated"
         if status == "failed":
             package_status = "failed"
             controlling.append(member.id)
@@ -227,11 +254,20 @@ def calculate_scene_member_checks(
             "elastic_lateral_torsional_moment_kn_m": round(mcr_kn_m, 5) if mcr_kn_m is not None else None,
             "deflection_mm": round(maximum_relative_mm, 5),
             "deflection_limit_mm": round(deflection_limit, 5),
-            "utilization": round(maximum, 5),
+            "utilization": None if second_order_axial_cases else round(maximum, 5),
             "controlling_case": controlling_case,
             "case_checks": case_checks,
+            **({"reason": "二阶杆端力已计算；含轴力杆件的沿杆弯矩及变形包络尚未完成独立验证",
+                "blocked_case_ids": second_order_axial_cases,
+                "case_checks_basis": "end-actions-and-first-order-interpolation-diagnostic-only"}
+               if second_order_axial_cases else {}),
             "formula_source": "GB 55006-2021；GB 50017-2017（强度、稳定、长细比和变形）",
             "catalog_version": STEEL_MEMBER_CHECK_VERSION,
             "verification_status": "unverified",
         })
+    # A known failed member always controls the package, independent of member
+    # ordering. Missing evidence must not erase an already demonstrated failure.
+    package_status = ("failed" if any(item["status"] == "failed" for item in items)
+                      else "incomplete" if not items or any(item["status"] == "not_calculated" for item in items)
+                      else "complete")
     return {"status": package_status, "items": items, "controlling_member_ids": controlling}

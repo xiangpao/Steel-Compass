@@ -1,0 +1,37 @@
+
+> steel-compass-frontend@2.0.0 e2e
+> playwright test
+
+
+Running 21 tests using 3 workers
+
+(node:17684) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26660) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:37972) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -   2 [chromium] › tests\live-audit.spec.ts:5:5 › 真实后端：新建、保存、计算、PDF、修改失效、刷新与移动操作
+  ok  1 [chromium] › tests\pergola-workbench-v2.spec.ts:19:5 › QA工作台以56px入口栏、对象属性和并排二维三维呈现 (3.6s)
+  ok  3 [chromium] › tests\navigation.spec.ts:269:5 › 移动抽屉选择期间保持打开，应用后关闭 (3.8s)
+  ok  4 [chromium] › tests\pergola-workbench-v2.spec.ts:37:5 › 场景库留在工作台内且项目条件驱动风雪地震荷载 (2.3s)
+  ok  5 [chromium] › tests\navigation.spec.ts:283:5 › 正式亭廊入口使用Geometry 2.3六入口工作台 (2.4s)
+  ok  6 [chromium] › tests\pergola-workbench-v2.spec.ts:53:5 › 选择单根柱后可用组合字段精确修改柱顶标高和截面 (1.7s)
+  ok  7 [chromium] › tests\navigation.spec.ts:298:5 › 墙附悬挑雨棚不显示基础和120kPa通用默认值 (2.1s)
+  ok  8 [chromium] › tests\pergola-workbench-v2.spec.ts:64:5 › 双坡屋脊可转到Y向并保持对象编号 (1.7s)
+  ok  9 [chromium] › tests\navigation.spec.ts:309:5 › 亭廊选中构件类型后可直接编辑截面几何 (2.1s)
+  ok 10 [chromium] › tests\pergola-workbench-v2.spec.ts:73:5 › 基础按F-A和F-B归类并可将单个实例拆分 (2.2s)
+  ok 11 [chromium] › tests\navigation.spec.ts:319:5 › 亭廊工作台固定显示二维三维并可调整分隔线 (2.6s)
+  ok 12 [chromium] › tests\pergola-workbench-v2.spec.ts:97:5 › 梁草稿取消不写入孤立节点且节点可在既有梁上拆分 (2.0s)
+  ok 13 [chromium] › tests\navigation.spec.ts:334:5 › 栈道仅显示露天积雪与地震条件，不显示屋盖选项 (2.4s)
+  ok 14 [chromium] › tests\pergola-workbench-v2.spec.ts:115:5 › 删除工具可直接删除图面构件且重置视图恢复100% (2.2s)
+  ok 16 [chromium] › tests\pergola-workbench-v2.spec.ts:138:5 › 390px使用属性二维三维三个全屏标签且无横向溢出 (2.0s)
+  ok 15 [chromium] › tests\navigation.spec.ts:345:5 › 正式亭廊项目条件驱动自动荷载且不使用零值占位 (2.8s)
+  ok 17 [chromium] › tests\navigation.spec.ts:358:5 › 正式亭廊390宽使用属性二维三维标签且无横向溢出 (2.1s)
+  ok 18 [chromium] › tests\navigation.spec.ts:374:5 › 单项计算仍可使用移动抽屉进入 (2.6s)
+  ok 19 [chromium] › tests\navigation.spec.ts:382:5 › 十一个Schema 3.3单项模块均生成判别输入并沿用通用结果页 (4.5s)
+  ok 20 [chromium] › tests\navigation.spec.ts:508:5 › 池体地下水三态中未知水位会阻止提交且已知水位要求资料来源 (2.4s)
+  ok 21 [chromium] › tests\navigation.spec.ts:533:5 › 单项计算不再提供专业模式切换 (2.2s)
+
+  1 skipped
+  20 passed (33.2s)

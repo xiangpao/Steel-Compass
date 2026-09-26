@@ -1,0 +1,1868 @@
+[
+  {
+    "family": "pergola-pavilion",
+    "variant": "guided-grid",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。; 底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+        "warnings": [
+          {
+            "code": "anchor_concrete_failure_modes_checked",
+            "message": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。"
+          },
+          {
+            "code": "baseplate_partial_contact_unresolved",
+            "message": "底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。"
+          }
+        ]
+      },
+      {
+        "node_id": "base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。; 底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+        "warnings": [
+          {
+            "code": "anchor_concrete_failure_modes_checked",
+            "message": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。"
+          },
+          {
+            "code": "baseplate_partial_contact_unresolved",
+            "message": "底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。"
+          }
+        ]
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_m": 4.0,
+        "height_m": 3.0,
+        "frame_spacing_m": 3.0,
+        "purlin_spacing_m": 1.0,
+        "roof_form": "平顶",
+        "support_system": "双柱刚接落地"
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "flat-single",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。; 底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+        "warnings": [
+          {
+            "code": "anchor_concrete_failure_modes_checked",
+            "message": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。"
+          },
+          {
+            "code": "baseplate_partial_contact_unresolved",
+            "message": "底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。"
+          }
+        ]
+      },
+      {
+        "node_id": "base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。; 底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+        "warnings": [
+          {
+            "code": "anchor_concrete_failure_modes_checked",
+            "message": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。"
+          },
+          {
+            "code": "baseplate_partial_contact_unresolved",
+            "message": "底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。"
+          }
+        ]
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_m": 4.0,
+        "height_m": 3.0,
+        "frame_spacing_m": 3.0,
+        "purlin_spacing_m": 1.0,
+        "roof_form": "平顶",
+        "support_system": "双柱刚接落地"
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "mono-pitch",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "roof_members",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "钢檩条 / 椽条缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "main_frame",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：roof_members",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-mono-pitch-chain_base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-mono-pitch-chain_base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-mono-pitch-chain_foundation_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pergola-mono-pitch-chain_base_left",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-mono-pitch-chain_foundation_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pergola-mono-pitch-chain_base_right",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_m": 4.0,
+        "height_m": 3.0,
+        "bay_spacing_m": 3.0,
+        "roof_width_m": 3.0,
+        "roof_slope_deg": 8.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "dual-pitch",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "roof_members",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "钢檩条 / 椽条缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "main_frame",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：roof_members",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-dual-pitch-chain_base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-dual-pitch-chain_base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-dual-pitch-chain_foundation_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pergola-dual-pitch-chain_base_left",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-dual-pitch-chain_foundation_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pergola-dual-pitch-chain_base_right",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_m": 4.0,
+        "height_m": 3.0,
+        "bay_spacing_m": 3.0,
+        "roof_width_m": 3.0,
+        "roof_slope_deg": 15.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "pergola-pavilion",
+    "variant": "multi-bay",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "roof_members",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "钢檩条 / 椽条缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "main_frame",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：roof_members",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-two-bay-unequal-chain_base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-two-bay-unequal-chain_base_middle",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-two-bay-unequal-chain_base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：main_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-two-bay-unequal-chain_foundation_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pergola-two-bay-unequal-chain_base_left",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-two-bay-unequal-chain_foundation_middle",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pergola-two-bay-unequal-chain_base_middle",
+        "warnings": []
+      },
+      {
+        "node_id": "pergola-two-bay-unequal-chain_foundation_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pergola-two-bay-unequal-chain_base_right",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_m": 4.0,
+        "height_m": 3.0,
+        "bay_spacing_m": 3.0,
+        "roof_width_m": 3.0,
+        "bay_count": 2.0,
+        "right_height_m": 3.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "canopy",
+    "variant": "wall-cantilever",
+    "workflow": "ready",
+    "outcome": "screening_failed",
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "cantilever_m": 1.8,
+        "width_m": 3.0,
+        "wall_substrate": "钢筋混凝土"
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "canopy",
+    "variant": "single-row",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "base_connection",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。; 底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+        "warnings": [
+          {
+            "code": "anchor_concrete_failure_modes_checked",
+            "message": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。"
+          },
+          {
+            "code": "baseplate_partial_contact_unresolved",
+            "message": "底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。"
+          }
+        ]
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "cantilever_m": 1.8,
+        "width_m": 3.0,
+        "column_height_m": 3.0,
+        "support": "cantilever"
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "canopy",
+    "variant": "double-row",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。; 底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+        "warnings": [
+          {
+            "code": "anchor_concrete_failure_modes_checked",
+            "message": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。"
+          },
+          {
+            "code": "baseplate_partial_contact_unresolved",
+            "message": "底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。"
+          }
+        ]
+      },
+      {
+        "node_id": "base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。; 底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+        "warnings": [
+          {
+            "code": "anchor_concrete_failure_modes_checked",
+            "message": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。"
+          },
+          {
+            "code": "baseplate_partial_contact_unresolved",
+            "message": "底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。"
+          }
+        ]
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "main_span_m": 3.0,
+        "secondary_spacing_m": 1.0,
+        "frame_span_m": 4.0,
+        "column_height_m": 3.0,
+        "frame_spacing_m": 3.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "single-post",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "base_plate",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。; 底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+        "warnings": [
+          {
+            "code": "anchor_concrete_failure_modes_checked",
+            "message": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。"
+          },
+          {
+            "code": "baseplate_partial_contact_unresolved",
+            "message": "底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。"
+          }
+        ]
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "height_m": 2.8,
+        "panel_area_m2": 1.5,
+        "panel_cg_height_m": 2.1,
+        "panel_eccentricity_m": 0.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "double-post",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "post",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "双柱平面框架缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "signage-double-post-chain-v32_base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：post",
+        "warnings": []
+      },
+      {
+        "node_id": "signage-double-post-chain-v32_base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：post",
+        "warnings": []
+      },
+      {
+        "node_id": "signage-double-post-chain-v32_foundation_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：signage-double-post-chain-v32_base_left",
+        "warnings": []
+      },
+      {
+        "node_id": "signage-double-post-chain-v32_foundation_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：signage-double-post-chain-v32_base_right",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "panel_width_m": 2.4,
+        "panel_height_m": 1.2,
+        "post_spacing_m": 1.6
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "ground-mounted",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "post",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "落地式钢悬臂框架缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "signage-ground-mounted-chain-v32_base_base",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：post",
+        "warnings": []
+      },
+      {
+        "node_id": "signage-ground-mounted-chain-v32_foundation_base",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：signage-ground-mounted-chain-v32_base_base",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "panel_width_m": 2.0,
+        "panel_height_m": 1.5,
+        "base_width_m": 0.8
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "signage-billboard",
+    "variant": "eccentric-panel",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "base_plate",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。; 底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+        "warnings": [
+          {
+            "code": "anchor_concrete_failure_modes_checked",
+            "message": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。"
+          },
+          {
+            "code": "baseplate_partial_contact_unresolved",
+            "message": "底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。"
+          }
+        ]
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "panel_width_m": 1.5,
+        "eccentricity_m": 0.3,
+        "tilt_deg": 8.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "constrained-masonry",
+    "workflow": "ready",
+    "outcome": "screening_failed",
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "height_m": 2.0,
+        "thickness_mm": 240.0,
+        "column_spacing_m": 3.0,
+        "wall_length_m": 6.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "concrete-straight",
+    "workflow": "stale",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "wall_system",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "现浇 RC 景墙墙身缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "foundation_interface",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：wall_system",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "height_m": 1.8,
+        "length_m": 6.0,
+        "thickness_mm": 180.0,
+        "support_spacing_m": 3.0,
+        "opening_ratio": 0.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "steel-infill",
+    "workflow": "stale",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "wall_system",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "钢立柱与轻质填充墙缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "foundation_interface",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：wall_system",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "height_m": 2.0,
+        "length_m": 8.0,
+        "support_spacing_m": 2.0,
+        "opening_ratio": 0.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-wall-fence",
+    "variant": "plain-masonry",
+    "workflow": "stale",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "wall_system",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "低矮纯砌体墙缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "foundation_interface",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：wall_system",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "height_m": 1.0,
+        "length_m": 6.0,
+        "thickness_mm": 240.0,
+        "support_spacing_m": 3.0,
+        "opening_ratio": 0.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "single-span",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "gate_base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。; 底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+        "warnings": [
+          {
+            "code": "anchor_concrete_failure_modes_checked",
+            "message": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。"
+          },
+          {
+            "code": "baseplate_partial_contact_unresolved",
+            "message": "底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。"
+          }
+        ]
+      },
+      {
+        "node_id": "gate_base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。; 底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。",
+        "warnings": [
+          {
+            "code": "anchor_concrete_failure_modes_checked",
+            "message": "已显式计算锚栓混凝土锥体、受剪边缘、头部拔出和劈裂模式；结果仍须按实际锚栓产品与锚固区配筋复核。"
+          },
+          {
+            "code": "baseplate_partial_contact_unresolved",
+            "message": "底板存在上拔、脱开或纯弯矩；平均承压和底板条带模型不适用，受拉底板与锚栓、承压区耦合尚未计算。"
+          }
+        ]
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_m": 5.0,
+        "height_m": 3.2,
+        "bay_spacing_m": 3.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "multi-span",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "gate_frame",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "双跨参数化门楼框架缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-two-bay-chain-v32_base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-two-bay-chain-v32_base_middle",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-two-bay-chain-v32_base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-two-bay-chain-v32_foundation_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：entrance-two-bay-chain-v32_base_left",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-two-bay-chain-v32_foundation_middle",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：entrance-two-bay-chain-v32_base_middle",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-two-bay-chain-v32_foundation_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：entrance-two-bay-chain-v32_base_right",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_m": 4.0,
+        "height_m": 3.0,
+        "bay_spacing_m": 3.0,
+        "roof_width_m": 3.0,
+        "bay_count": 2.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "eccentric-lintel",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "gate_frame",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "偏心门楣参数化框架缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-eccentric-lintel-chain-v32_base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-eccentric-lintel-chain-v32_base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-eccentric-lintel-chain-v32_foundation_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：entrance-eccentric-lintel-chain-v32_base_left",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-eccentric-lintel-chain-v32_foundation_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：entrance-eccentric-lintel-chain-v32_base_right",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_m": 4.0,
+        "height_m": 3.0,
+        "bay_spacing_m": 3.0,
+        "roof_width_m": 3.0,
+        "eccentricity_m": 0.5
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "entrance-frame",
+    "variant": "unequal-columns",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "gate_frame",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "不同柱高参数化框架缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-unequal-column-chain-v32_base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-unequal-column-chain-v32_base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：gate_frame",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-unequal-column-chain-v32_foundation_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：entrance-unequal-column-chain-v32_base_left",
+        "warnings": []
+      },
+      {
+        "node_id": "entrance-unequal-column-chain-v32_foundation_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：entrance-unequal-column-chain-v32_base_right",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_m": 4.0,
+        "height_m": 3.0,
+        "bay_spacing_m": 3.0,
+        "roof_width_m": 3.0,
+        "right_height_m": 3.6
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "boardwalk-platform",
+    "variant": "straight",
+    "workflow": "ready",
+    "outcome": "screening_passed",
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "secondary_spacing_m": 0.6,
+        "primary_span_m": 3.0,
+        "main_span_m": 3.0,
+        "primary_spacing_m": 2.0,
+        "column_height_m": 2.8,
+        "panel_unit_width_m": 1.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "boardwalk-platform",
+    "variant": "viewing-platform",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "deck",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "双向混凝土平台板缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "secondary",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：deck",
+        "warnings": []
+      },
+      {
+        "node_id": "primary",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：secondary",
+        "warnings": []
+      },
+      {
+        "node_id": "platform_base_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：primary",
+        "warnings": []
+      },
+      {
+        "node_id": "platform_base_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：primary",
+        "warnings": []
+      },
+      {
+        "node_id": "platform_foundation_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：platform_base_left",
+        "warnings": []
+      },
+      {
+        "node_id": "platform_foundation_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：platform_base_right",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "short_span_m": 3.0,
+        "long_span_m": 4.5,
+        "slab_thickness_mm": 140.0,
+        "secondary_spacing_m": 1.5,
+        "primary_spacing_m": 3.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "bench-planter",
+    "variant": "bench",
+    "workflow": "ready",
+    "outcome": "screening_passed",
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "seat_span_m": 1.2,
+        "seat_thickness_mm": 120.0,
+        "support_spacing_m": 1.5
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "bench-planter",
+    "variant": "planter",
+    "workflow": "ready",
+    "outcome": "screening_failed",
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "wall_height_m": 0.8,
+        "wall_thickness_mm": 180.0,
+        "planter_length_m": 4.0,
+        "soil_unit_weight_kn_m3": 18.0,
+        "soil_friction_angle_deg": 30.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-above",
+    "workflow": "stale",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "pool_structure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "antifloat_support",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "inside_length_m": 6.0,
+        "inside_width_m": 3.0,
+        "wall_height_m": 1.5,
+        "wall_thickness_mm": 200.0,
+        "base_thickness_mm": 250.0,
+        "internal_water_depth_m": 1.2,
+        "external_water_head_m": 0.8,
+        "allowable_bearing_kpa": 120.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-buried",
+    "workflow": "stale",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "pool_structure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "antifloat_support",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "inside_length_m": 6.0,
+        "inside_width_m": 3.0,
+        "wall_height_m": 1.5,
+        "wall_thickness_mm": 200.0,
+        "base_thickness_mm": 250.0,
+        "internal_water_depth_m": 1.2,
+        "external_water_head_m": 0.8,
+        "allowable_bearing_kpa": 120.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-semi-buried",
+    "workflow": "stale",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "pool_structure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "antifloat_support",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "inside_length_m": 6.0,
+        "inside_width_m": 3.0,
+        "wall_height_m": 1.5,
+        "wall_thickness_mm": 200.0,
+        "base_thickness_mm": 250.0,
+        "internal_water_depth_m": 1.2,
+        "external_water_head_m": 0.8,
+        "allowable_bearing_kpa": 120.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-above-pile",
+    "workflow": "stale",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "pool_structure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "antifloat_support",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      },
+      {
+        "node_id": "pile_cap",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：antifloat_support",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "inside_length_m": 6.0,
+        "inside_width_m": 3.0,
+        "wall_height_m": 1.5,
+        "wall_thickness_mm": 200.0,
+        "base_thickness_mm": 250.0,
+        "internal_water_depth_m": 1.2,
+        "external_water_head_m": 0.8,
+        "allowable_bearing_kpa": 120.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-semi-buried-pile",
+    "workflow": "stale",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "pool_structure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "antifloat_support",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      },
+      {
+        "node_id": "pile_cap",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：antifloat_support",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "inside_length_m": 6.0,
+        "inside_width_m": 3.0,
+        "wall_height_m": 1.5,
+        "wall_thickness_mm": 200.0,
+        "base_thickness_mm": 250.0,
+        "internal_water_depth_m": 1.2,
+        "external_water_head_m": 0.8,
+        "allowable_bearing_kpa": 120.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "water-feature-pool",
+    "variant": "rect-buried-pile",
+    "workflow": "stale",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "pool_structure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "RC 池壁、底板与抗浮组合缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "antifloat_support",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：pool_structure",
+        "warnings": []
+      },
+      {
+        "node_id": "pile_cap",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：antifloat_support",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "inside_length_m": 6.0,
+        "inside_width_m": 3.0,
+        "wall_height_m": 1.5,
+        "wall_thickness_mm": 200.0,
+        "base_thickness_mm": 250.0,
+        "internal_water_depth_m": 1.2,
+        "external_water_head_m": 0.8,
+        "allowable_bearing_kpa": 120.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-straight",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "bridge_superstructure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "support_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_length_m": 6.0,
+        "deck_width_m": 2.5,
+        "crossbeam_spacing_m": 1.5,
+        "crowd_load_kpa": 4.0,
+        "wind_load_kpa": 0.5
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-span",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "bridge_superstructure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "support_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_middle",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_length_m": 6.0,
+        "deck_width_m": 2.5,
+        "crossbeam_spacing_m": 1.5,
+        "crowd_load_kpa": 4.0,
+        "wind_load_kpa": 0.5
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-steel-timber-pile",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "bridge_superstructure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "support_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_length_m": 6.0,
+        "deck_width_m": 2.5,
+        "crossbeam_spacing_m": 1.5,
+        "crowd_load_kpa": 4.0,
+        "wind_load_kpa": 0.5
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-steel-timber-pile",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "bridge_superstructure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "support_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_middle",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_length_m": 6.0,
+        "deck_width_m": 2.5,
+        "crossbeam_spacing_m": 1.5,
+        "crowd_load_kpa": 4.0,
+        "wind_load_kpa": 0.5
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-rc-shallow",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "bridge_superstructure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "support_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_length_m": 6.0,
+        "deck_width_m": 2.5,
+        "crossbeam_spacing_m": 1.5,
+        "crowd_load_kpa": 4.0,
+        "wind_load_kpa": 0.5
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "single-rc-pile",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "bridge_superstructure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "support_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_length_m": 6.0,
+        "deck_width_m": 2.5,
+        "crossbeam_spacing_m": 1.5,
+        "crowd_load_kpa": 4.0,
+        "wind_load_kpa": 0.5
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-rc-shallow",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "bridge_superstructure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "support_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_middle",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_length_m": 6.0,
+        "deck_width_m": 2.5,
+        "crossbeam_spacing_m": 1.5,
+        "crowd_load_kpa": 4.0,
+        "wind_load_kpa": 0.5
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "landscape-bridge",
+    "variant": "multi-rc-pile",
+    "workflow": "capability_unavailable",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "bridge_superstructure",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "参数化桥面板、纵横梁与墩台反力缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "support_left",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_middle",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      },
+      {
+        "node_id": "support_right",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：bridge_superstructure",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "span_length_m": 6.0,
+        "deck_width_m": 2.5,
+        "crossbeam_spacing_m": 1.5,
+        "crowd_load_kpa": 4.0,
+        "wind_load_kpa": 0.5
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "retaining-facility",
+    "variant": "cantilever-rc",
+    "workflow": "ready",
+    "outcome": "screening_passed",
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "retained_height_m": 1.5,
+        "base_width_m": 1.6,
+        "toe_length_m": 0.45,
+        "stem_thickness_mm": 200.0,
+        "base_thickness_m": 0.35,
+        "soil_unit_weight_kn_m3": 18.0,
+        "soil_friction_angle_deg": 30.0,
+        "surcharge_kpa": 0.0,
+        "water_level_depth_m": 0.0,
+        "submerged_depth_m": 0.0,
+        "soil_capacity_kpa": 120.0,
+        "base_friction_coefficient": 0.35,
+        "stem_moment_capacity_kn_m_per_m": 80.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  },
+  {
+    "family": "retaining-facility",
+    "variant": "gravity",
+    "workflow": "stale",
+    "outcome": null,
+    "verification_status": "unverified",
+    "engineering_status": null,
+    "blocked_nodes": [
+      {
+        "node_id": "gravity_wall",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "重力式挡土墙墙体与底座缺少专用模型输入；当前场景输入尚未完成转换。请在单项计算中明确几何、支承、荷载与组合，不能用默认值代替。",
+        "warnings": []
+      },
+      {
+        "node_id": "soil_contact",
+        "workflow": "capability_unavailable",
+        "status": "incomplete",
+        "reason": "上游节点尚未完成：gravity_wall",
+        "warnings": []
+      }
+    ],
+    "input_basis": {
+      "fixture": "backend/tests/test_milestone_scenes.py::_execute_public_variant",
+      "parameters": {
+        "retained_height_m": 2.0,
+        "base_width_m": 2.4,
+        "wall_bottom_thickness_m": 1.2,
+        "wall_top_thickness_m": 0.5,
+        "toe_projection_m": 0.7,
+        "water_depth_behind_m": 0.0
+      },
+      "loads": "Catalog reference loads explicitly confirmed by the fixture; not site-specific engineering inputs.",
+      "foundation_soil_capacity_kpa": 120,
+      "soil_assumption_scope": "Explicit test assumption injected for spread_footing and strip_footing nodes only.",
+      "acceptance_scope": "Legacy scene graph contract execution only; not production project engineering acceptance or Geometry 2.3 workbench acceptance."
+    }
+  }
+]

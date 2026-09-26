@@ -68,6 +68,7 @@ from ..core.design_profiles import (
 )
 from ..core.pergola_loads import build_pergola_load_package
 from ..core.pergola_analysis import analyze_pergola_package
+from ..core.foundation_candidate_validation import validate_candidate_combinations
 from ..core.scene_foundation import calculate_scene_foundations
 from ..core.scene_column_base import calculate_scene_column_bases
 from ..core.scene_pedestal import calculate_scene_pedestals
@@ -880,6 +881,8 @@ def analyze_saved_scene(
             {"topic": "foundation", "source": "GB 55003-2021；GB 50007-2011；22G101-3"},
         ],
         unsupported_capabilities=[
+            *sorted({str(item["reason"]) for item in member_check_data["items"]
+                     if item.get("status") == "not_calculated" and item.get("reason")}),
             "焊接矩形管节点屈服线/刚度精细模型",
             *(
                 ["基础沉降计算需要分层压缩参数、经验系数和允许值"]
@@ -889,7 +892,7 @@ def analyze_saved_scene(
             "外部YJK/PKPM数值对照证据尚未导入",
         ],
     )
-    statuses = [structural.status, connection_checks.status, foundation_checks.status]
+    statuses = [structural.status, member_checks.status, connection_checks.status, foundation_checks.status]
     workflow_status = "failed" if "failed" in statuses else "incomplete" if "incomplete" in statuses or buckling_analysis.status == "incomplete" else "ready"
     analysis_payload = {
         "workflow_status": workflow_status,
@@ -1178,6 +1181,10 @@ def recommend_foundation_from_saved_analysis(
             "iterations": iterations,
             "governing_check": f"全部ULS组合逐项试算；{controlling_id} 控制",
         })
+    candidate = validate_candidate_combinations(
+        candidate, reaction_cases, bearing_capacity_kpa=geotechnical.bearing_capacity_kpa,
+        pedestal=foundation_type.pedestal, base_friction_coefficient=payload.base_friction_coefficient,
+    )
     stored_candidates = dict((instance.draft_state or {}).get("foundation_candidate_sets", {}))
     stored_candidates[foundation.id] = candidate.model_dump(mode="json")
     instance.draft_state = {**(instance.draft_state or {}), "foundation_candidate_sets": stored_candidates}

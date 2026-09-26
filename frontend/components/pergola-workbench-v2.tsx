@@ -13,7 +13,7 @@ const SceneModelPreview = dynamic(() => import("@/components/scene-model-preview
 type Area = "library" | "conditions" | "model" | "loads" | "foundation" | "results";
 function statusLabel(value?: string) {
   return ({ ready: "已完成计算", complete: "已完成计算", incomplete: "尚未完成", failed: "不通过",
-    passed: "筛查通过", not_calculated: "未计算", capability_unavailable: "超出当前能力" } as Record<string, string>)[value ?? ""] ?? value ?? "未计算";
+    pass: "筛查通过", passed: "筛查通过", not_calculated: "未计算", capability_unavailable: "超出当前能力" } as Record<string, string>)[value ?? ""] ?? value ?? "未计算";
 }
 type SoilPreset = {
   id: string;
@@ -52,7 +52,8 @@ type AnalysisResult = {
     items: Array<{
       member_id?: string;
       status?: string;
-      utilization?: number;
+      utilization?: number | null;
+      reason?: string;
       controlling_case?: string;
       formula_source?: string;
     }>;
@@ -990,15 +991,23 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
       ...current,
       member_types: (current.member_types ?? []).map((item) => (item.id === typeId ? { ...item, ...values } : item)),
       members:
-        release === null
+        release === null && values.orientation === undefined
           ? current.members
           : current.members.map((item) =>
               item.group_id === typeId
                 ? {
                     ...item,
-                    end_release: values.end_release!,
-                    start_release: release,
-                    end_release_dofs: release,
+                    ...(release === null ? {} : {
+                      end_release: values.end_release!,
+                      start_release: release,
+                      end_release_dofs: release,
+                    }),
+                    ...(values.orientation === undefined || !item.design_parameters ? {} : {
+                      design_parameters: {
+                        ...item.design_parameters,
+                        local_axis_rotation_deg: values.orientation === "weak_axis" ? 90 : 0,
+                      },
+                    }),
                   }
                 : item,
             ),
@@ -1363,6 +1372,8 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
 
   async function persistProjectModel() {
     if (selectedProjectId === null) throw new Error("请先选择一个项目，再保存亭廊模型。");
+    const unsupportedGrade = geometry.member_types?.find((type) => !["Q235B", "Q355B"].includes(type.material_grade));
+    if (unsupportedGrade) throw new Error(`${unsupportedGrade.title} 的钢材牌号 ${unsupportedGrade.material_grade} 尚未在工作台开放，请选择 Q235B 或 Q355B。`);
     if ((siteProfile.completed_conditions?.length ?? 0) < 3) throw new Error("项目条件未完成：风、雪、地震必须全部明确。");
     if (geoStage === "project_check" && (!report.name || !report.date || report.modulus <= 0)) throw new Error("工程校核必须填写勘察报告名称、日期和变形参数。");
     setServerBusy(true);
@@ -1612,7 +1623,9 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
             >
               <option>Q235B</option>
               <option>Q355B</option>
-              <option>Q390B</option>
+              {!["Q235B", "Q355B"].includes(selectedMemberType.material_grade) && (
+                <option value={selectedMemberType.material_grade} disabled>{selectedMemberType.material_grade}（请选择已开放牌号）</option>
+              )}
             </select>
           </label>
           <div className="qa-property-group">
@@ -1663,25 +1676,25 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
                   ]
                 : [
                     {
-                      label: "高",
+                      label: section.family === "SHS" ? "边长" : "高",
                       value: section.h,
                       unit: "mm",
                       onChange: (value) =>
                         setSectionDrafts((current) => ({
                           ...current,
-                          [selectedMemberType.id]: { ...section, h: value },
+                          [selectedMemberType.id]: { ...section, h: value, ...(section.family === "SHS" ? { b: value } : {}) },
                         })),
                     },
-                    {
+                    ...(section.family === "SHS" ? [] : [{
                       label: "宽",
                       value: section.b,
                       unit: "mm",
-                      onChange: (value) =>
+                      onChange: (value: number) =>
                         setSectionDrafts((current) => ({
                           ...current,
                           [selectedMemberType.id]: { ...section, b: value },
                         })),
-                    },
+                    }]),
                     {
                       label: "厚",
                       value: section.tw,
@@ -1698,7 +1711,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
                     },
                   ],
             )}
-            <small>当前为项目自定义几何；保存时生成新截面修订，不覆盖历史规格。</small>
+            <small>{section.family === "SHS" ? "方管高宽相等，按边长保存；修改作用于同类型全部构件。" : "修改作用于同类型全部构件。"}保存时生成新截面修订，不覆盖历史规格。</small>
           </div>
           <details className="qa-details">
             <summary>详细参数</summary>
@@ -3023,6 +3036,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
         </>
       );
     const failedMembers = analysisResult.member_checks?.items.filter((item) => item.status === "failed") ?? [];
+    const incompleteMembers = analysisResult.member_checks?.items.filter((item) => item.status !== "pass" && item.status !== "failed") ?? [];
     const incompleteConnections = analysisResult.connection_checks.items.filter((item) => item.status !== "complete" && item.status !== "failed");
     const memberItems = [...(analysisResult.member_checks?.items ?? [])].sort((a, b) => (b.utilization ?? -1) - (a.utilization ?? -1));
     return (
@@ -3049,15 +3063,15 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
           <strong>{analysisResult.buckling_analysis?.factors?.[0]?.toFixed(3) ?? "未计算"}</strong>
         </div>
         <div className="qa-task-list">
-          <span className={analysisResult.structural_analysis.balance_checks.every((item) => item.balanced) ? "done" : ""}>
+          <span className={analysisResult.structural_analysis.balance_checks.length > 0 && analysisResult.structural_analysis.balance_checks.every((item) => item.balanced) ? "done" : ""}>
             <ClipboardCheck size={15} />
             逐工况荷载与反力平衡
           </span>
-          <span className={failedMembers.length === 0 ? "done" : ""}>
+          <span className={memberItems.length > 0 && failedMembers.length === 0 && incompleteMembers.length === 0 && analysisResult.member_checks?.status === "complete" ? "done" : ""}>
             <TriangleAlert size={15} />
-            失败构件 {failedMembers.length} 根
+            失败构件 {failedMembers.length} 根 · 未完成 {incompleteMembers.length} 根
           </span>
-          <span className={incompleteConnections.length === 0 ? "done" : ""}>
+          <span className={analysisResult.connection_checks.items.length > 0 && incompleteConnections.length === 0 && analysisResult.connection_checks.status === "complete" ? "done" : ""}>
             <TriangleAlert size={15} />
             未完成连接 {incompleteConnections.length} 个
           </span>
@@ -3083,10 +3097,11 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
           {memberItems.map((item) => (
             <button key={item.member_id} type="button" onClick={() => item.member_id && handleSelection({ kind: "member", id: item.member_id })}>
               <strong>{item.member_id ?? "未编号构件"}</strong>
-              <span className={item.status === "failed" ? "fail" : "pass"}>{item.status ?? "未计算"}</span>
+              <span className={item.status === "failed" ? "fail" : item.status === "pass" ? "pass" : "warning"}>{statusLabel(item.status ?? "not_calculated")}</span>
               <small>
-                利用率 {item.utilization === undefined ? "未计算" : item.utilization.toFixed(3)} · {item.controlling_case ?? "无控制组合"}
+                利用率 {item.utilization == null ? "未计算" : item.utilization.toFixed(3)} · {item.controlling_case ?? "无控制组合"}
               </small>
+              {item.reason && <small>{item.reason}</small>}
             </button>
           ))}
         </details>
@@ -3095,7 +3110,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
           {analysisResult.connection_checks.items.map((item) => (
             <button key={item.connection_id ?? item.mark} type="button" disabled={!item.node_id} onClick={() => item.node_id && handleSelection({ kind: "node", id: item.node_id })}>
               <strong>{item.mark ?? item.connection_id ?? "未编号连接"}</strong>
-              <span className={item.status === "failed" || item.status === "not_calculated" ? "fail" : "pass"}>{item.status ?? "未计算"}</span>
+              <span className={item.status === "failed" ? "fail" : item.status === "complete" || item.status === "pass" ? "pass" : "warning"}>{statusLabel(item.status ?? "not_calculated")}</span>
               <small>{item.failed_checks?.join("、") || item.issue_code || "已形成检查包"}</small>
             </button>
           ))}
@@ -3105,7 +3120,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
           {analysisResult.foundation_checks.items.map((item) => (
             <button key={item.foundation_id ?? item.mark} type="button" disabled={!item.foundation_id} onClick={() => item.foundation_id && handleSelection({ kind: "foundation", id: item.foundation_id })}>
               <strong>{item.mark ?? item.foundation_id ?? "未编号基础"}</strong>
-              <span className={item.status === "failed" || item.status === "not_calculated" ? "fail" : "pass"}>{item.status ?? "未计算"}</span>
+              <span className={item.status === "failed" ? "fail" : item.status === "complete" || item.status === "pass" ? "pass" : "warning"}>{statusLabel(item.status ?? "not_calculated")}</span>
               <small>{item.failed_checks?.join("、") || item.pending_checks?.join("、") || "已形成检查包"}</small>
             </button>
           ))}

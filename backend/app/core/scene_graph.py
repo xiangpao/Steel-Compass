@@ -1393,7 +1393,7 @@ def execute_scene(
             custom_sections,
         )
         catalog_versions["space_frame_solver"] = (
-            "steel-compass-space-frame-adapter-1.0-unverified"
+            "steel-compass-space-frame-adapter-2.0-unverified"
         )
 
     warnings = [*family.boundaries]

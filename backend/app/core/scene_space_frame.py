@@ -266,12 +266,24 @@ def analyze_scene_space_frame(
             f"弹簧支承尚未接入空间刚度矩阵：{', '.join(spring_supports)}",
             field="supports",
         )
+    for support in geometry.supports:
+        expected_dofs = {"ux", "uy", "uz"}
+        if support.restraint == "fixed":
+            expected_dofs |= {"rx", "ry", "rz"}
+        if support.restrained_dofs and set(support.restrained_dofs) != expected_dofs:
+            raise CalculationInputError(
+                "unsupported_support_dofs",
+                f"支承 {support.id} 的自由度约束与 {support.restraint} 不一致；"
+                "当前空间求解仅支持完整固定或三向平动约束的铰支承，不能忽略自定义自由度。",
+                field="supports",
+            )
 
     section_by_id = _catalog_properties()
     section_by_id.update({item.id: item for item in (custom_sections or [])})
     role_specs = {item.member_role: item for item in profile.members}
     group_specs = {item.group_id: item for item in profile.member_groups}
     member_overrides = {item.member_id: item for item in profile.member_overrides}
+    member_types = {item.id: item for item in geometry.member_types}
     members: list[SpaceMember] = []
     analysis_mapping: list[dict[str, str]] = []
     self_weights: dict[str, float] = {item.id: 0.0 for item in geometry.nodes}
@@ -285,6 +297,13 @@ def analyze_scene_space_frame(
         specification = role_specs.get(role)
         override = member_overrides.get(member.id)
         group = group_specs.get(member.group_id)
+        member_type = member_types.get(member.group_id)
+        orientation = (
+            override.orientation if override is not None
+            else member_type.orientation if member_type is not None
+            else specification.orientation if specification is not None
+            else "strong_axis"
+        )
         section_id = (
             override.section_id
             if override is not None
@@ -335,7 +354,8 @@ def analyze_scene_space_frame(
                 rigid_offset_end_m=member.rigid_offset.end_m if member.rigid_offset else 0.0,
                 local_axis_rotation_deg=(
                     member.design_parameters.local_axis_rotation_deg
-                    if member.design_parameters is not None else 0.0
+                    if member.design_parameters is not None
+                    else 90.0 if orientation == "weak_axis" else 0.0
                 ),
             )
         )
@@ -504,6 +524,11 @@ def analyze_scene_space_frame(
             "当前求解器与 PyNite 并行复核未通过，不能生成工程校核结论",
             field="geometry",
         )
+    # All downstream checks and foundation transfers must use the same solved
+    # state. Keep first-order diagnostics as an explicit compatible extension;
+    # older immutable snapshots are never rewritten.
+    first_order_result = result
+    result = stability.second_order
     maximum_translation = max(
         sqrt(item.ux_mm**2 + item.uy_mm**2 + item.uz_mm**2)
         for item in result.displacements.values()
@@ -513,7 +538,23 @@ def analyze_scene_space_frame(
         for item in stability.second_order.displacements.values()
     )
     return {
-        "solver": "steel-compass-space-frame-adapter-1.0",
+        "solver": "steel-compass-space-frame-adapter-2.0",
+        "analysis_basis": "second_order",
+        "first_order_results": {
+            "analysis_basis": "first_order",
+            "maximum_translation_mm": round(max(
+                sqrt(item.ux_mm**2 + item.uy_mm**2 + item.uz_mm**2)
+                for item in first_order_result.displacements.values()
+            ), 6),
+            "support_reactions": {
+                node_id: {
+                    "fx_kn": item.fx_kn, "fy_kn": item.fy_kn, "fz_kn": item.fz_kn,
+                    "mx_kn_m": item.mx_kn_m, "my_kn_m": item.my_kn_m, "mz_kn_m": item.mz_kn_m,
+                }
+                for node_id, item in first_order_result.reactions.items()
+                if node_id in support_by_node
+            },
+        },
         "verification_status": "unverified",
         "node_count": len(geometry.nodes),
         "member_count": len(geometry.members),
