@@ -102,6 +102,62 @@ def _combination_cases(cases: list[SceneLoadItem]) -> list[LoadCase]:
     return result
 
 
+def self_weight_case() -> SceneLoadItem:
+    return _scene_item(
+        case_id="SELF-WEIGHT",
+        label="钢构件自重",
+        kind="self_weight",
+        value=0.0,
+        direction="gravity",
+        source="由各杆件最终截面面积、材料密度和实际长度自动计算",
+    )
+
+
+_AREA_UNITS = {"kN/m2", "kPa"}
+_COMBINABLE_KINDS = {"self_weight", "dead", "live", "wind", "snow", "seismic"}
+_COMBINABLE_DIRECTIONS = {
+    "gravity", "down", "uplift", "up",
+    "x_positive", "x_negative", "y_positive", "y_negative",
+}
+
+
+def scene_area_cases(
+    load_cases: list[SceneLoadItem],
+) -> tuple[list[SceneLoadItem], list[str]]:
+    """Return combinable roof-pressure cases plus ids that cannot be combined.
+
+    Self-weight is always present as its own permanent case so that it is
+    factored with the combination instead of being added once unfactored.
+    """
+    cases = [self_weight_case()]
+    skipped: list[str] = []
+    for item in load_cases:
+        if item.unit not in _AREA_UNITS or item.adopted_value is None:
+            continue
+        if item.kind not in _COMBINABLE_KINDS or item.direction not in _COMBINABLE_DIRECTIONS:
+            skipped.append(item.id)
+            continue
+        cases.append(item)
+    return cases, skipped
+
+
+def design_load_combinations(
+    cases: list[SceneLoadItem],
+) -> tuple[DesignLoadCombination, ...]:
+    """Versioned ULS/SLS/seismic combinations; alternative directions never coexist."""
+    generated = generate_action_combinations(_combination_cases(cases))
+    return tuple(
+        DesignLoadCombination(
+            id=item.id,
+            title=item.id,
+            design_situation=item.design_situation,
+            factors={action.case_id: action.factor for action in item.actions},
+            source_reference="GB 50009-2012；GB 55002-2021；GB/T 50011-2010（2024年版）",
+        )
+        for item in generated.combinations
+    )
+
+
 def build_pergola_load_package(
     geometry: SceneGeometryProfile,
     site_profile: ProjectSiteProfile | None,
@@ -131,16 +187,7 @@ def build_pergola_load_package(
     if missing_conditions:
         return PergolaLoadPackage((), (), (), tuple(f"项目条件未完成：{item}" for item in missing_conditions))
 
-    cases: list[SceneLoadItem] = [
-        _scene_item(
-            case_id="SELF-WEIGHT",
-            label="钢构件自重",
-            kind="self_weight",
-            value=0.0,
-            direction="gravity",
-            source="由各杆件最终截面面积、材料密度和实际长度自动计算",
-        )
-    ]
+    cases: list[SceneLoadItem] = [self_weight_case()]
     if roof.cover_type != "none":
         cases.append(_scene_item(
             case_id="ROOF-DEAD",
@@ -225,17 +272,7 @@ def build_pergola_load_package(
             source=seismic.source_reference,
         ))
 
-    generated = generate_action_combinations(_combination_cases(cases))
-    combinations = tuple(
-        DesignLoadCombination(
-            id=item.id,
-            title=item.id,
-            design_situation=item.design_situation,
-            factors={action.case_id: action.factor for action in item.actions},
-            source_reference="GB 50009-2012；GB 55002-2021；GB/T 50011-2010（2024年版）",
-        )
-        for item in generated.combinations
-    )
+    combinations = design_load_combinations(cases)
     assumptions.append(
         f"风荷载：基本风压×高度系数{height_factor:g}×体型系数；高级覆盖必须记录原因"
     )

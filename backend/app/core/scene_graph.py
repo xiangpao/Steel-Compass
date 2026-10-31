@@ -45,7 +45,7 @@ from .schemas import (
     WallAnchorInputs,
 )
 from .site_profile import ProjectSiteProfile
-from .scene_space_frame import analyze_scene_space_frame
+from .pergola_analysis import analyze_scene_load_combinations
 from .scene_typed_adapters import MODELS as SCENE_TYPED_MODELS, adapt_scene_requests, apply_vertical_line, saved_section_properties, include_member_self_weight
 
 
@@ -1542,17 +1542,18 @@ def execute_scene(
         and structural_profile is not None
         and structural_profile.geometry is not None
     ):
-        space_frame_analysis = analyze_scene_space_frame(
+        space_frame_analysis = analyze_scene_load_combinations(
             structural_profile,
             resolved_loads,
             custom_sections,
         )
         catalog_versions["space_frame_solver"] = (
-            "steel-compass-space-frame-adapter-2.1-unverified"
+            "steel-compass-space-frame-adapter-2.2-combinations-unverified"
         )
 
     stability_incomplete = bool(space_frame_analysis and (space_frame_analysis.get("stability_scope") or {}).get("status") == "incomplete")
-    if stability_incomplete:
+    uncombined_loads = list((space_frame_analysis or {}).get("unsupported_load_case_ids", []))
+    if stability_incomplete or uncombined_loads:
         if workflow_status != "stale": workflow_status = "capability_unavailable"
         if quick_outcome != "screening_failed": quick_outcome = None
         if engineering_status == "passed": engineering_status = "incomplete"
@@ -1560,6 +1561,11 @@ def execute_scene(
     warnings = [*family.boundaries]
     if stability_incomplete:
         warnings.append("空间分析稳定范围未完整覆盖当前模型，不能形成筛查通过结论。")
+    if uncombined_loads:
+        warnings.append(
+            "以下面荷载的类型或方向不能进入空间分析组合，未计入三维杆系结果："
+            + "、".join(uncombined_loads)
+        )
     if family.id == "boardwalk-platform" and variant_id == "viewing-platform":
         warnings.append("四边简支板按显式45度几何分担区传力；边梁分段均布逼近三角/梯形荷载，四角各汇总相邻两边梁。此方案级分配不是弹性板精确边界反力。")
     if missing_load_values:

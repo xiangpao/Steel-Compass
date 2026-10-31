@@ -73,3 +73,37 @@ def test_parametric_space_frame_uses_real_geometry_and_sections() -> None:
     assert result["parallel_analysis"]["solver"] == "PyNiteFEA-3.0.0"
     assert result["parallel_analysis"]["verification_status"] == "unverified"
     assert result["parallel_analysis"]["within_tolerance"] is True
+
+
+def _wind(case_id: str, direction: str) -> SceneLoadItem:
+    return SceneLoadItem(
+        id=case_id, label=case_id, kind="wind", value_type="project_defined",
+        adopted_value=0.5, unit="kN/m2", source_reference="regression fixture",
+        applicable_when="test", distribution="pressure", direction=direction,
+        application_target="main_frame",
+    )
+
+
+def test_guided_grid_scene_analyses_real_combinations_without_netting_wind() -> None:
+    # Regression: the scene path summed every characteristic load at once and
+    # netted +X against -X wind, so equal opposite winds produced no sway.
+    from app.core.scene_catalog import get_scene_family
+    from app.core.scene_graph import execute_scene
+
+    family = get_scene_family("pergola-pavilion")
+    profile = _profile("rhs-200x100x6")
+    loads = [_wind("wind-x-pos", "x_positive"), _wind("wind-x-neg", "x_negative")]
+    result = execute_scene(family, "guided-grid", "quick", [], load_cases=loads, structural_profile=profile)
+    analysis = result.space_frame_analysis
+    # Characteristic +X wind plus unfactored self-weight is the SLS standard
+    # combination led by that wind; the reported maximum cannot be below it.
+    reference = analyze_scene_space_frame(profile, [loads[0]])
+    gravity_only = analyze_scene_space_frame(profile, [])
+    assert reference["maximum_translation_mm"] > gravity_only["maximum_translation_mm"] * 2
+    assert analysis["maximum_translation_mm"] >= reference["maximum_translation_mm"] - 1e-9
+    combinations = analysis["combination_results"]
+    assert not any({"wind-x-pos", "wind-x-neg"} <= set(item["factors"]) for item in combinations.values())
+    uls = next(item for item in combinations.values() if item["limit_state"] == "ULS" and "wind-x-pos" in item["factors"])
+    assert uls["factors"]["SELF-WEIGHT"] in {0.9, 1.3}
+    assert analysis["maximum_translation_basis"] == "SLS"
+    assert analysis["verification_status"] == "unverified"
