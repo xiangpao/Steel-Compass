@@ -535,3 +535,109 @@ def test_legacy_scene_result_remains_readable_without_recalculation() -> None:
     assert legacy.workflow_status == "missing_inputs"
     assert legacy.result_class == "quick_estimate"
     assert legacy.load_cases == []
+
+
+def _envelope(name: str, combination_id: str, limit_state: str = "ULS", **components: float) -> dict:
+    return {
+        "name": name,
+        "limit_state": limit_state,
+        "combination_id": combination_id,
+        "combination_name": combination_id,
+        "components": {
+            key: {"value": components.get(key, 0.0), "unit": "kN.m" if key in {"Mx", "My", "T"} else "kN"}
+            for key in ("N", "Vx", "Vy", "Mx", "My", "T")
+        },
+    }
+
+
+def _source(module: str, envelopes: list[dict], reactions: dict | None = None):
+    from app.core.schemas import CalculationResult
+
+    return CalculationResult.model_validate({
+        "trace_id": "source-trace", "project_name": "probe", "module": module, "mode": "quick",
+        "status": "passed", "standards": [], "input_summary": {}, "combinations": [],
+        "reactions": reactions or {}, "reaction_envelopes": envelopes,
+    })
+
+
+def _target(module: str = "steel_baseplate_anchor", inputs: dict | None = None) -> CalculationRequest:
+    return CalculationRequest(mode="quick", module=module, project_name="probe",
+                              confirmed_assumptions=True, inputs=inputs or {}, loads=[])
+
+
+def _link(support: str = "base") -> SceneConnection:
+    return SceneConnection(id=f"c-{support}", source_node_id="upstream", target_node_id="downstream",
+                           transfer="reaction_package", support=support, requires_source_trace=True)
+
+
+def test_node_named_frame_reactions_follow_support_position_not_emission_order() -> None:
+    # Planar frames emit base0/base1/base2 from a set, i.e. in hash order.
+    # The left support must always receive base0, never whichever came first.
+    source = _source("planar_frame", [
+        _envelope("base2", "ULS-1", Vy=30.0),
+        _envelope("base0", "ULS-1", Vy=10.0),
+        _envelope("base1", "ULS-1", Vy=20.0),
+    ])
+    picked = {
+        support: _apply_reaction(_target(), _link(support), source).inputs["upstream_reaction_envelopes"][0]["components"]["N"]["value"]
+        for support in ("left", "base", "right")
+    }
+    assert picked == {"left": 10.0, "base": 20.0, "right": 30.0}
+
+
+def test_merging_members_requires_every_combination_from_each_member() -> None:
+    first = _source("steel_column", [_envelope("base", "ULS-A", N=10.0), _envelope("base", "ULS-B", N=12.0)])
+    partial = _source("steel_column", [_envelope("base", "ULS-A", N=5.0)])
+    merged = _apply_reaction(_target(), _link(), first)
+    with pytest.raises(CalculationInputError) as error:
+        _apply_reaction(merged, _link(), partial)
+    assert error.value.code == "scene_adapter_missing_inputs"
+    complete = _source("steel_column", [_envelope("base", "ULS-A", N=5.0), _envelope("base", "ULS-B", N=6.0)])
+    joint = _apply_reaction(merged, _link(), complete).inputs["upstream_reaction_envelopes"]
+    assert {item["combination_id"]: item["components"]["N"]["value"] for item in joint} == {"ULS-A": 15.0, "ULS-B": 18.0}
+
+
+def test_footing_uplift_carried_by_envelopes_is_not_subtracted_again() -> None:
+    # The scalar sidecar duplicated uplift already present in envelope N, and
+    # spread_footing subtracts uplift_kn from every combination once more.
+    source = _source("steel_column", [
+        _envelope("base", "ULS-UP", N=-20.0), _envelope("base", "SLS-UP", "SLS", N=-15.0),
+    ], reactions={"base_vertical": {"value": -15.0, "unit": "kN"}})
+    footing = _apply_reaction(_target("spread_footing"), _link(), source)
+    assert footing.inputs.get("uplift_kn", 0) == 0
+    result = calculate(footing.model_copy(update={"inputs": {
+        **footing.inputs, "length_m": 2.0, "width_m": 2.0, "thickness_mm": 500.0,
+        "soil_cover_m": 0.5}}, deep=True))
+    weight = 2.0 * 2.0 * 0.5 * 25.0 + 2.0 * 2.0 * 0.5 * 18.0
+    uls = next(item for item in result.reaction_envelopes if item.combination_id == "ULS-UP")
+    assert uls.components["N"].value == pytest.approx(-20.0 + 1.3 * weight)
+
+
+def test_governing_moment_tag_uses_both_axes_and_converted_axial_force() -> None:
+    column = _source("steel_column", [
+        _envelope("base", "ULS-MX", N=10.0, Mx=40.0, My=1.0),
+        _envelope("base", "ULS-MY", N=10.0, My=5.0),
+    ])
+    tags = {item["combination_id"]: item["governing_tags"]
+            for item in _apply_reaction(_target(), _link(), column).inputs["upstream_reaction_envelopes"]}
+    assert "M_max" in tags["ULS-MX"] and "M_max" not in tags["ULS-MY"]
+    beam = _source("steel_beam", [_envelope("left_support", "ULS-1", Vy=8.0), _envelope("left_support", "ULS-2", Vy=-3.0)])
+    beam_tags = {item["combination_id"]: item["governing_tags"]
+                 for item in _apply_reaction(_target(), _link("left"), beam).inputs["upstream_reaction_envelopes"]}
+    assert "N_max" in beam_tags["ULS-1"] and "N_uplift" in beam_tags["ULS-2"]
+
+
+def test_not_applicable_node_is_never_reported_as_engineering_pass(monkeypatch) -> None:
+    import app.core.scene_graph as graph_module
+
+    family = get_scene_family("pergola-pavilion")
+    graph = instantiate_scene_graph(family, "flat-single")
+    target = next(node for node in graph.nodes if node.role == "foundation")
+    patched = graph.model_copy(update={"nodes": [
+        node.model_copy(update={"applicability": "not_applicable", "required": False}) if node.id == target.id else node
+        for node in graph.nodes]}, deep=True)
+    monkeypatch.setattr(graph_module, "instantiate_scene_graph", lambda *args: patched.model_copy(deep=True))
+    for mode in ("quick", "professional"):
+        result = execute_scene(family, "flat-single", mode, [])
+        assert result.node_results[target.id].status == "not_applicable"
+        assert result.node_results[target.id].engineering_status is None
