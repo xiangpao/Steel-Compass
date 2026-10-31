@@ -11,7 +11,9 @@ export type SavedRevision = {
   report_number: string;
 };
 
-const TONE_ICON = { passed: Check, completed: Check, incomplete: AlertTriangle, failed: X };
+const TONE_ICON = { passed: Check, completed: Check, incomplete: AlertTriangle, not_applicable: AlertTriangle, failed: X };
+// The status card only has passed / incomplete / failed styles.
+const TONE_CLASS = { passed: "passed", completed: "passed", incomplete: "incomplete", not_applicable: "incomplete", failed: "failed" };
 
 export function ResultPanel({
   result,
@@ -43,7 +45,7 @@ export function ResultPanel({
   return (
     <section className="result-section" id="result-panel">
       <header className="result-header">
-        <div className={`result-status ${evidence.tone === "completed" ? "passed" : evidence.tone}`}>
+        <div className={`result-status ${TONE_CLASS[evidence.tone]}`}>
           <ToneIcon size={24} />
           <span>
             <small>控制结论 · {evidence.qualifier}</small>

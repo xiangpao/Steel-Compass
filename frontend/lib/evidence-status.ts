@@ -2,7 +2,7 @@
 // A screening result is never shown as a plain pass, and a result that is not
 // independently verified always carries that qualifier.
 
-export type EvidenceTone = "passed" | "failed" | "incomplete" | "completed";
+export type EvidenceTone = "passed" | "failed" | "incomplete" | "completed" | "not_applicable";
 
 export interface EvidenceInput {
   mode?: string | null;
@@ -29,13 +29,14 @@ export interface EvidenceStatus {
 const SCREENING_CLASSES = new Set(["quick_estimate", "scheme_estimate"]);
 
 const LABELS: Record<"screening" | "professional", Record<EvidenceTone, string>> = {
-  screening: { passed: "筛查通过", failed: "筛查不通过", incomplete: "资料不完整", completed: "筛查已完成" },
-  professional: { passed: "专业校核通过", failed: "专业校核不通过", incomplete: "专业校核待补齐", completed: "专业校核待补齐" },
+  screening: { passed: "筛查通过", failed: "筛查不通过", incomplete: "资料不完整", completed: "筛查已完成", not_applicable: "不适用" },
+  professional: { passed: "专业校核通过", failed: "专业校核不通过", incomplete: "专业校核待补齐", completed: "专业校核待补齐", not_applicable: "不适用" },
 };
 
 function screeningTone(input: EvidenceInput): EvidenceTone {
   if (input.workflow_status === "failed") return "failed";
-  if (input.status === "not_applicable" || input.status === "incomplete") return "incomplete";
+  if (input.status === "not_applicable") return "not_applicable";
+  if (input.status === "incomplete") return "incomplete";
   // quick_outcome is authoritative when the backend sends it; null means the
   // screening produced no conclusion (missing inputs or capability limits).
   if (input.quick_outcome !== undefined) {
@@ -63,7 +64,8 @@ export function evidenceStatus(input: EvidenceInput): EvidenceStatus {
     tone = screeningTone(input);
   } else {
     const engineering = input.engineering_status ?? input.status;
-    if (engineering === "failed" || input.workflow_status === "failed") tone = "failed";
+    if (input.status === "not_applicable") tone = "not_applicable";
+    else if (engineering === "failed" || input.workflow_status === "failed") tone = "failed";
     // An unverified method or an unfinished workflow cannot form a professional pass.
     else if (engineering === "passed" && verified && (!input.workflow_status || input.workflow_status === "ready")) tone = "passed";
     else tone = "incomplete";

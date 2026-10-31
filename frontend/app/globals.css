@@ -3209,6 +3209,18 @@ button {
   border-radius: 6px;
 }
 
+.comparison-rename {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+}
+
+.comparison-rename input {
+  flex: 1;
+  min-width: 0;
+}
+
 .comparison-grid article > span,
 .comparison-grid article > small {
   color: var(--ink-faint);
