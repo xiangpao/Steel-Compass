@@ -7,7 +7,10 @@
     "build": "next build",
     "e2e": "playwright test",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "gen:api": "node scripts/gen-api.mjs",
+    "check:api": "node scripts/gen-api.mjs --check",
+    "export:openapi": "node scripts/export-openapi.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
