@@ -21,6 +21,8 @@ type SoilPreset = {
   title: string;
   range: [number, number];
   adopted: number;
+  /** Lower bound of GB 50007-2011 table 6.7.5-2 for the soil class. */
+  friction: number;
   description: string;
   risk: string;
 };
@@ -39,6 +41,7 @@ type PergolaWorkbenchProps = {
 };
 type AnalysisResult = {
   workflow_status: "ready" | "incomplete" | "failed";
+  snapshot_id?: number | null;
   structural_analysis: {
     status: string;
     reactions: unknown[];
@@ -93,6 +96,7 @@ const SOIL_PRESETS: SoilPreset[] = [
     title: "填土",
     range: [60, 100],
     adopted: 60,
+    friction: 0.20,
     description: "经压实并确认均匀性的人工填土方案参考。",
     risk: "均匀性和压实质量不确定，沉降风险较高。",
   },
@@ -101,6 +105,7 @@ const SOIL_PRESETS: SoilPreset[] = [
     title: "软塑黏土",
     range: [60, 100],
     adopted: 60,
+    friction: 0.20,
     description: "含水量较高、手捏易变形的黏性土。",
     risk: "通常由沉降控制，必须谨慎采用。",
   },
@@ -109,6 +114,7 @@ const SOIL_PRESETS: SoilPreset[] = [
     title: "可塑黏土",
     range: [100, 180],
     adopted: 100,
+    friction: 0.25,
     description: "一般黏性土方案参考档。",
     risk: "需核对含水状态和压缩性。",
   },
@@ -117,6 +123,7 @@ const SOIL_PRESETS: SoilPreset[] = [
     title: "粉土",
     range: [100, 180],
     adopted: 100,
+    friction: 0.30,
     description: "粉粒含量较高的土层。",
     risk: "地下水与振动可能显著影响承载表现。",
   },
@@ -125,6 +132,7 @@ const SOIL_PRESETS: SoilPreset[] = [
     title: "松散砂土",
     range: [80, 140],
     adopted: 80,
+    friction: 0.30,
     description: "颗粒松散、密实度较低的砂土。",
     risk: "需核对液化和地下水条件。",
   },
@@ -133,6 +141,7 @@ const SOIL_PRESETS: SoilPreset[] = [
     title: "中密砂土",
     range: [160, 260],
     adopted: 160,
+    friction: 0.40,
     description: "密实度中等的砂土方案参考档。",
     risk: "需由勘察确认密实度和液化判别。",
   },
@@ -141,6 +150,7 @@ const SOIL_PRESETS: SoilPreset[] = [
     title: "密实砂土",
     range: [240, 400],
     adopted: 240,
+    friction: 0.40,
     description: "密实度较高的砂土方案参考档。",
     risk: "实际采用值仍以勘察报告为准。",
   },
@@ -149,6 +159,7 @@ const SOIL_PRESETS: SoilPreset[] = [
     title: "强风化岩",
     range: [300, 800],
     adopted: 300,
+    friction: 0.40,
     description: "风化明显但仍保留岩体结构的持力层。",
     risk: "应确认风化差异和持力层连续性。",
   },
@@ -157,10 +168,43 @@ const SOIL_PRESETS: SoilPreset[] = [
     title: "中风化岩",
     range: [800, 3000],
     adopted: 800,
+    friction: 0.40,
     description: "岩体较完整的方案参考档。",
     risk: "需核对岩体完整性和局部破碎带。",
   },
 ];
+
+const INITIAL_REPORT = {
+  name: "",
+  date: "",
+  bearing: 120,
+  modulus: 8,
+  layerThickness: 6,
+  unitWeight: 18,
+  settlementFactor: 1.0,
+  settlementLimit: 30,
+  construction: -1.2,
+  service: -0.8,
+  antifloat: -0.5,
+  friction: 0.25,
+};
+
+const INITIAL_SITE_PROFILE: ProjectSiteProfile = {
+  profile_version: "1.1",
+  completed_conditions: [],
+  region_preset: null,
+  recurrence_period_years: 50,
+  basic_wind_pressure_kpa: null,
+  basic_snow_pressure_kpa: null,
+  terrain_category: "B",
+  structure_shape: "roof",
+  roof_form: "double_slope",
+  seismic_level: null,
+  catalog_versions: {
+    climate_regions: "zhejiang-regions-2026.1-unverified",
+    seismic: "seismic-cn-2026.1-unverified",
+  },
+};
 
 const MEMBER_TYPES: MemberTypeDefinition[] = [
   {
@@ -719,41 +763,14 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
   const [sectionDrafts, setSectionDrafts] = useState<Record<string, SectionDraft>>(DEFAULT_SECTIONS);
   const [soilPresetId, setSoilPresetId] = useState("plastic-clay");
   const [geoStage, setGeoStage] = useState<"scheme_estimate" | "project_check">("scheme_estimate");
-  const [report, setReport] = useState({
-    name: "",
-    date: "",
-    bearing: 120,
-    modulus: 8,
-    layerThickness: 6,
-    unitWeight: 18,
-    settlementFactor: 1.0,
-    settlementLimit: 30,
-    construction: -1.2,
-    service: -0.8,
-    antifloat: -0.5,
-  });
+  const [report, setReport] = useState(INITIAL_REPORT);
   const [mobilePane, setMobilePane] = useState<"property" | "2d" | "3d">("2d");
   const [splitPercent, setSplitPercent] = useState(55);
   const [draggingSplit, setDraggingSplit] = useState(false);
   const [roofAssemblyId, setRoofAssemblyId] = useState("steel");
   const [maintenanceCategory, setMaintenanceCategory] = useState<"none" | "maintenance" | "walkway" | "occupied" | "custom">("maintenance");
   const [maintenanceLoad, setMaintenanceLoad] = useState(0.5);
-  const [siteProfile, setSiteProfile] = useState<ProjectSiteProfile>({
-    profile_version: "1.1",
-    completed_conditions: [],
-    region_preset: null,
-    recurrence_period_years: 50,
-    basic_wind_pressure_kpa: null,
-    basic_snow_pressure_kpa: null,
-    terrain_category: "B",
-    structure_shape: "roof",
-    roof_form: "double_slope",
-    seismic_level: null,
-    catalog_versions: {
-      climate_regions: "zhejiang-regions-2026.1-unverified",
-      seismic: "seismic-cn-2026.1-unverified",
-    },
-  });
+  const [siteProfile, setSiteProfile] = useState<ProjectSiteProfile>(INITIAL_SITE_PROFILE);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(projects[0]?.id ?? null);
   const [newProjectName, setNewProjectName] = useState("");
   const [sceneInstanceId, setSceneInstanceId] = useState<number | null>(null);
@@ -761,8 +778,12 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
   const [analysisSnapshotId, setAnalysisSnapshotId] = useState<number | null>(null);
   const [serverBusy, setServerBusy] = useState(false);
   const savedGeotechnical = useRef<{ profile: ProjectGeotechnicalProfile; ui: string } | null>(null);
+  // Bumped whenever inputs change; an analysis response for an older input
+  // generation is discarded instead of being shown as the current result.
+  const inputGeneration = useRef(0);
 
   useEffect(() => {
+    inputGeneration.current += 1;
     setAnalysisResult(null);
     setAnalysisSnapshotId(null);
   }, [geometry, siteProfile, sectionDrafts, soilPresetId, geoStage, report,
@@ -845,7 +866,14 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
     ])
       .then(async ([instances, profile, sectionCatalog, geotechnical]) => {
         if (cancelled) return;
-        if (profile) setSiteProfile(profile);
+        // Reset first so a project without saved data never inherits the
+        // previous project's conditions or model.
+        setSiteProfile(profile ?? INITIAL_SITE_PROFILE);
+        setReport(INITIAL_REPORT);
+        setGeoStage("scheme_estimate");
+        setSoilPresetId("plastic-clay");
+        setGeometry(initialGeometry());
+        setSectionDrafts(DEFAULT_SECTIONS);
         savedGeotechnical.current = null;
         if (geotechnical) {
           const soil = SOIL_PRESETS.find(item => item.id === geotechnical.regional_hint_id || item.title === geotechnical.confirmed_soil_class)?.id ?? "plastic-clay";
@@ -860,6 +888,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
             construction: geotechnical.groundwater.construction_level_m ?? 0,
             service: geotechnical.groundwater.service_level_m ?? 0,
             antifloat: geotechnical.groundwater.antifloat_level_m ?? 0,
+            friction: geotechnical.base_friction_coefficient ?? 0.25,
           };
           setGeoStage(geotechnical.stage); setSoilPresetId(soil); setReport(restoredReport);
           savedGeotechnical.current = { profile: geotechnical,
@@ -1335,6 +1364,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
         ],
         settlement_correction_factor: report.settlementFactor,
         settlement_limit_mm: report.settlementLimit,
+        base_friction_coefficient: report.friction,
         groundwater: {
           condition: "known_levels",
           construction_level_m: report.construction,
@@ -1359,6 +1389,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
       bearing_capacity_source: `方案持力层参考档：${selectedSoil.title}`,
       deformation_modulus_mpa: null,
       compression_modulus_mpa: null,
+      base_friction_coefficient: selectedSoil.friction,
       groundwater: {
         condition: "no_influence",
         source: "方案阶段暂按地下水不影响；改变此条件必须重新分析",
@@ -1503,6 +1534,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
     if (mode !== "project" || selectedProjectId === null) return;
     try {
       const { instanceId, assemblyId } = await persistProjectModel();
+      const generation = inputGeneration.current;
       setServerBusy(true);
       const maintenance = maintenanceCategory === "none" ? "not_applicable" : maintenanceCategory === "walkway" ? "walkway_equipment" : maintenanceCategory;
       const result = await api<AnalysisResult>(`/api/v2/projects/${selectedProjectId}/scene-instances/${instanceId}/analyze`, {
@@ -1518,9 +1550,12 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
           },
         }),
       });
+      if (generation !== inputGeneration.current) {
+        setMessage("分析期间模型或条件已修改，本次结果已作废，请重新分析。");
+        return;
+      }
       setAnalysisResult(result);
-      const snapshots = await api<Array<{ id: number }>>(`/api/v2/projects/${selectedProjectId}/scene-instances/${instanceId}/analysis-snapshots`);
-      setAnalysisSnapshotId(snapshots[0]?.id ?? null);
+      setAnalysisSnapshotId(result.snapshot_id ?? null);
       setArea("results");
       setMessage(`服务端分析完成：${statusLabel(result.workflow_status)}`);
     } catch (error) {
@@ -2909,7 +2944,7 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
                 <strong>
                   {selectedSoil.range[0]}–{selectedSoil.range[1]} kPa
                 </strong>
-                <b>方案采用 {selectedSoil.adopted} kPa</b>
+                <b>方案采用 {selectedSoil.adopted} kPa · 基底摩擦系数 {selectedSoil.friction.toFixed(2)}</b>
                 <p>{selectedSoil.description}</p>
                 <small>{selectedSoil.risk}</small>
               </div>
@@ -2981,6 +3016,12 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
                   value: report.settlementLimit,
                   unit: "mm",
                   onChange: (value) => setReport((current) => ({ ...current, settlementLimit: value })),
+                },
+                {
+                  label: "基底摩擦系数",
+                  value: report.friction,
+                  unit: "1",
+                  onChange: (value) => setReport((current) => ({ ...current, friction: value })),
                 },
               ])}
               {renderComposite([

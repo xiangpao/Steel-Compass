@@ -82,9 +82,11 @@ def _reaction_vertical(envelope: ReactionEnvelope) -> float:
     value = _reaction_component(envelope, "N")
     if "N" not in envelope.components:
         value = _reaction_component(envelope, "Vy")
+    # N is algebraic (compression positive). Only an explicit uplift tag may
+    # force tension; a missing or horizontal direction must keep the sign.
     if envelope.direction is LoadDirection.UPLIFT:
         return -abs(value)
-    return abs(value)
+    return value
 
 
 def _reaction_combinations(
@@ -108,9 +110,11 @@ def _reaction_combinations(
         }
         components["N"] = Quantity(value=vertical, unit="kN")
         if horizontal_lever_arm_m > 0:
+            # Transfer to the footing underside: M_base = M + r x V with
+            # r = (0, 0, h), i.e. Mx - Vy*h and My + Vx*h (right-hand rule).
             components["Mx"] = Quantity(
                 value=_reaction_component(item, "Mx")
-                + _reaction_component(item, "Vy") * horizontal_lever_arm_m,
+                - _reaction_component(item, "Vy") * horizontal_lever_arm_m,
                 unit="kN.m",
             )
             components["My"] = Quantity(
@@ -202,6 +206,27 @@ def _foundation_status(
     if mode is CalculationMode.PROFESSIONAL and not FOUNDATION_PROFESSIONAL_VALIDATED:
         return "incomplete"
     return "passed"
+
+
+# Inputs a scene design profile must state explicitly. In standalone quick
+# mode they may fall back to the module defaults; on the scene path a default
+# would be a hidden assumption, so it only yields an incomplete result.
+_SPREAD_EXPLICIT_INPUTS = (
+    "column_x_mm", "column_y_mm", "cover_mm", "soil_cover_m",
+    "base_friction_coefficient", "embedment_m",
+)
+_STRIP_EXPLICIT_INPUTS = (
+    "wall_width_mm", "cover_mm", "soil_cover_m",
+    "base_friction_coefficient", "embedment_m",
+)
+
+
+def _defaulted_explicit_inputs(
+    request: CalculationRequest, names: tuple[str, ...]
+) -> list[str]:
+    if not request.inputs.get("explicit_design_profile"):
+        return []
+    return [name for name in names if request.inputs.get(name) is None]
 
 
 def _provided_rebar_area(diameter_mm: float, spacing_mm: float, width_mm: float) -> float:
@@ -311,6 +336,29 @@ def _groundwater_depth(request: CalculationRequest) -> tuple[bool, float | None]
     return known, depth
 
 
+def _antifloat_depth(
+    request: CalculationRequest, service_depth: float | None
+) -> float | None:
+    """Water depth for buoyancy checks; defaults to the service water table."""
+
+    raw = request.inputs.get("antifloat_water_table_depth_m")
+    if raw is None or request.inputs.get("groundwater_condition") != "known_water_table":
+        return service_depth
+    try:
+        depth = float(raw)
+    except (TypeError, ValueError):
+        depth = -1.0
+    if depth < 0:
+        from .errors import CalculationInputError
+
+        raise CalculationInputError(
+            "invalid_groundwater_depth",
+            "antifloat_water_table_depth_m 必须为非负数值",
+            field="antifloat_water_table_depth_m",
+        )
+    return depth
+
+
 def _groundwater_inputs_complete(
     request: CalculationRequest,
     known: bool,
@@ -330,6 +378,14 @@ def _groundwater_inputs_complete(
 def calculate_spread_footing(
     request: CalculationRequest, trace_id: str
 ) -> CalculationResult:
+    defaulted_inputs = _defaulted_explicit_inputs(request, _SPREAD_EXPLICIT_INPUTS)
+    if request.inputs.get("unresolved_section_shape"):
+        defaulted_inputs.append("tapered_height_mm（锥形坡面高度）")
+    if request.inputs.get("pedestal_enabled") and "column_x_mm" in defaulted_inputs:
+        # Pedestal dimensions replace the column footprint.
+        defaulted_inputs = [
+            name for name in defaulted_inputs if name not in {"column_x_mm", "column_y_mm"}
+        ]
     length = mode_number(request, "length_m", quick_default=2.0, minimum=0.5, maximum=15)
     width = mode_number(request, "width_m", quick_default=2.0, minimum=0.5, maximum=15)
     thickness = mode_number(
@@ -470,11 +526,30 @@ def calculate_spread_footing(
         total_foundation_height_m=total_foundation_height,
     )
     permanent_weight = footing_weight + cover_weight + pedestal_weight
+    antifloat_depth = _antifloat_depth(request, groundwater_depth)
+    # Buoyancy is checked at the anti-float design level, which may be higher
+    # than the service level used for bearing pressure.
+    antifloat_footing, antifloat_cover, antifloat_water = _effective_foundation_weights(
+        plan_area_m2=area,
+        thickness_m=thickness / 1000,
+        embedment_m=embedment,
+        soil_cover_m=soil_cover,
+        groundwater_depth_m=antifloat_depth,
+        concrete_volume_m3=concrete_volume,
+        soil_cover_volume_m3=soil_cover_volume,
+        total_foundation_height_m=total_foundation_height,
+    )
+    antifloat_weight_loss = (footing_weight + cover_weight) - (antifloat_footing + antifloat_cover)
+    # Column-base shear acts on top of the pedestal (or footing); it reaches the
+    # footing underside through the pedestal and the full footing height.
+    horizontal_lever_arm = pedestal_height + float(
+        total_foundation_height if total_foundation_height is not None else thickness / 1000
+    )
     adjusted_reactions: list[ReactionEnvelope] = []
     design_reaction: ReactionEnvelope | None = None
     if upstream_reactions:
         adjusted_reactions, result_combinations = _reaction_combinations(
-            upstream_reactions, permanent_weight, uplift, pedestal_height
+            upstream_reactions, permanent_weight, uplift, horizontal_lever_arm
         )
         sls_reactions = [
             item for item in adjusted_reactions if item.limit_state == "SLS"
@@ -528,9 +603,8 @@ def calculate_spread_footing(
     else:
         service_vertical = envelope.maximum_sls.total.value + permanent_weight - uplift
         design_vertical = envelope.maximum_uls.total.value + 1.3 * permanent_weight - 1.5 * uplift
-        if pedestal_height > 0:
-            moment_x += horizontal_y * pedestal_height
-            moment_y += horizontal_x * pedestal_height
+        moment_x -= horizontal_y * horizontal_lever_arm
+        moment_y += horizontal_x * horizontal_lever_arm
         sls_reactions = []
         result_combinations = envelope.combinations
     effective_vertical = max(service_vertical, 1e-9)
@@ -624,7 +698,7 @@ def calculate_spread_footing(
         minimum_vertical = _reaction_vertical(uplift_reaction)
         # Reactions are already adjusted for footing/cover weight and explicit
         # uplift. Any negative net vertical effect is therefore a failure.
-        uplift_demand = max(-minimum_vertical, 0)
+        uplift_demand = max(antifloat_weight_loss - minimum_vertical, 0)
         uplift_resistance = 0.0
     else:
         downward_external = sum(
@@ -638,7 +712,7 @@ def calculate_spread_footing(
             if direction_sign(item.direction) < 0
         )
         uplift_demand = upward_external + uplift
-        uplift_resistance = permanent_weight + downward_external
+        uplift_resistance = permanent_weight - antifloat_weight_loss + downward_external
 
     # Integrate the actual pressure polygon at both sides of each section.
     # The rectangular critical punching perimeter is centred on the column.
@@ -741,9 +815,13 @@ def calculate_spread_footing(
     # 水浮力抗浮安全系数验算 (GB 50007 / GB 55003)
     # Effective permanent weight already excludes displaced water. Restore gross
     # resistance once when expressing the water-only safety factor.
-    buoyancy_force = displaced_water
-    net_vertical = (minimum_vertical if sls_reactions else uplift_resistance - uplift_demand)
-    buoyancy_safety_factor = max(net_vertical + displaced_water, 0) / max(buoyancy_force, 1e-9) if buoyancy_force > 0 else 2.0
+    buoyancy_force = antifloat_water
+    net_vertical = (
+        minimum_vertical - antifloat_weight_loss
+        if sls_reactions
+        else uplift_resistance - uplift_demand
+    )
+    buoyancy_safety_factor = max(net_vertical + antifloat_water, 0) / max(buoyancy_force, 1e-9) if buoyancy_force > 0 else 2.0
 
     checks = [
         _check(
@@ -889,6 +967,7 @@ def calculate_spread_footing(
     if structural_scope_incomplete:
         warnings.append(CalculationWarning(severity="critical",code="foundation_net_bending_inputs_incomplete",
             message="净荷载已识别反向弯矩但缺顶筋，或非等厚基础自重分布尚未精确建模；不得形成基础结构通过结论。"))
+    geotechnical_complete = complete
     if not complete:
         warnings.append(
             CalculationWarning(
@@ -897,7 +976,17 @@ def calculate_spread_footing(
                 message="专业模式缺少地下水条件、水位资料来源或地基承载力来源，结论标记为 incomplete。",
             )
         )
-    elif (
+    if defaulted_inputs:
+        complete = False
+        warnings.append(
+            CalculationWarning(
+                severity="critical",
+                code="explicit_design_input_defaulted",
+                message="场景基础设计资料未填写以下参数，暂按单项快算默认值试算，结论标记为 incomplete："
+                + "、".join(defaulted_inputs),
+            )
+        )
+    if geotechnical_complete and not defaulted_inputs and (
         request.mode is CalculationMode.PROFESSIONAL
         and not FOUNDATION_PROFESSIONAL_VALIDATED
     ):
@@ -947,6 +1036,12 @@ def calculate_spread_footing(
                     else "未提供"
                 ),
                 "displaced_water_weight": (displaced_water, "kN"),
+                "antifloat_water_table_depth": (
+                    (antifloat_depth, "m")
+                    if antifloat_depth is not None
+                    else "未提供"
+                ),
+                "antifloat_displaced_water_weight": (antifloat_water, "kN"),
             }
         ),
         combinations=result_combinations,
@@ -1035,10 +1130,11 @@ def calculate_spread_footing(
             "不计被动土压力；基础与覆土自重自动计入。",
             "等厚基础按实际压区反力减均布自重/覆土计算净荷载，搜索柱边及外伸段零剪力截面正负弯矩；非均匀自重分布不形成结构通过结论。",
             *(
-                [f"短柱自重 {pedestal_weight:.3f} kN 已计入；柱脚水平力按 {pedestal_height:.3f} m 力臂换算至基础底面，冲切周长采用短柱根部尺寸。"]
+                [f"短柱自重 {pedestal_weight:.3f} kN 已计入；冲切周长采用短柱根部尺寸。"]
                 if pedestal_enabled
                 else ["未启用短柱；冲切周长采用直接支承构件尺寸。"]
             ),
+            f"柱脚水平力按 {horizontal_lever_arm:.3f} m 力臂（短柱净高＋基础总高）换算至基础底面。",
             f"基底接触面积比 Acontact/A={contact_ratio:.3f}。",
         ],
         applicability=["柱下方形/矩形独立基础", "中心、单向或双向偏心方案筛查"],
@@ -1054,6 +1150,7 @@ def calculate_spread_footing(
 def calculate_strip_footing(
     request: CalculationRequest, trace_id: str
 ) -> CalculationResult:
+    defaulted_inputs = _defaulted_explicit_inputs(request, _STRIP_EXPLICIT_INPUTS)
     width = mode_number(request, "width_m", quick_default=1.2, minimum=0.4, maximum=10)
     thickness = mode_number(
         request, "thickness_mm", quick_default=400, minimum=200, maximum=2500
@@ -1137,6 +1234,13 @@ def calculate_strip_footing(
         groundwater_depth_m=groundwater_depth,
     )
     permanent_weight = footing_weight + cover_weight
+    antifloat_footing, antifloat_cover, _ = _effective_foundation_weights(
+        plan_area_m2=width,
+        thickness_m=thickness / 1000,
+        embedment_m=embedment,
+        soil_cover_m=soil_cover,
+        groundwater_depth_m=_antifloat_depth(request, groundwater_depth),
+    )
     service_vertical = envelope.maximum_sls.total.value + permanent_weight
     design_vertical = envelope.maximum_uls.total.value + 1.3 * permanent_weight
     total_moment = moment + service_vertical * wall_eccentricity / 1000
@@ -1177,7 +1281,7 @@ def calculate_strip_footing(
         _check(
             "抗浮稳定",
             upward_external,
-            permanent_weight + downward_external,
+            antifloat_footing + antifloat_cover + downward_external,
             "kN/m",
             "GB 55003-2021 基础抗浮稳定",
             "基础及覆土按地下水位折减为有效重量。",
@@ -1186,11 +1290,13 @@ def calculate_strip_footing(
         _check("横向底筋", as_demand, as_provided, "mm2/m", "GB/T 50010-2010"),
     ]
     complete = (
-        request.mode is CalculationMode.QUICK
-        and not bool(request.inputs.get("explicit_design_profile"))
-    ) or _groundwater_inputs_complete(
-        request, groundwater_known, groundwater_depth, soil_source
-    )
+        (
+            request.mode is CalculationMode.QUICK
+            and not bool(request.inputs.get("explicit_design_profile"))
+        ) or _groundwater_inputs_complete(
+            request, groundwater_known, groundwater_depth, soil_source
+        )
+    ) and not defaulted_inputs
     governing = max(checks, key=lambda item: item.utilization)
     warnings = [
         CalculationWarning(
@@ -1212,7 +1318,12 @@ def calculate_strip_footing(
             CalculationWarning(
                 severity="critical",
                 code="geotechnical_input_incomplete",
-                message="专业模式缺少地下水条件、水位资料来源或地基承载力来源。",
+                message=(
+                    "场景基础设计资料未填写以下参数，暂按单项快算默认值试算："
+                    + "、".join(defaulted_inputs)
+                    if defaulted_inputs
+                    else "专业模式缺少地下水条件、水位资料来源或地基承载力来源。"
+                ),
             )
         )
     elif (

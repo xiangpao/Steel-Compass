@@ -329,6 +329,7 @@ function LegacySceneWorkspace({
   const [constructionWaterLevel, setConstructionWaterLevel] = useState<number | "">("");
   const [serviceWaterLevel, setServiceWaterLevel] = useState<number | "">("");
   const [antifloatWaterLevel, setAntifloatWaterLevel] = useState<number | "">("");
+  const [baseFriction, setBaseFriction] = useState<number | "">("");
   const [geotechnicalReportName, setGeotechnicalReportName] = useState("");
   const [geotechnicalReportDate, setGeotechnicalReportDate] = useState("");
   const [deformationModulus, setDeformationModulus] = useState<number | "">("");
@@ -847,6 +848,7 @@ function LegacySceneWorkspace({
     setConstructionWaterLevel(profile.groundwater.construction_level_m ?? "");
     setServiceWaterLevel(profile.groundwater.service_level_m ?? "");
     setAntifloatWaterLevel(profile.groundwater.antifloat_level_m ?? "");
+    setBaseFriction(profile.base_friction_coefficient ?? "");
     setGroundwaterSource(profile.groundwater.source);
     setGeotechnicalReportName(profile.report_name ?? "");
     setGeotechnicalReportDate(profile.report_date ?? "");
@@ -1399,6 +1401,7 @@ function LegacySceneWorkspace({
       bearing_capacity_source: bearingSource.trim(),
       deformation_modulus_mpa:
         deformationModulus === "" ? null : Number(deformationModulus),
+      base_friction_coefficient: baseFriction === "" ? null : Number(baseFriction),
       groundwater: {
         condition:
           groundwaterCondition === "known_water_table"
@@ -2319,6 +2322,7 @@ function LegacySceneWorkspace({
                         <label><span>现场确认土质类型</span><input value={soilClass} onChange={(event) => setSoilClass(event.target.value)} /></label>
                         <label><span>地基承载力特征值<HelpTip term="地基承载力" what="地基在正常使用条件下允许采用的承载能力。" adopted="方案阶段采用已确认土质档的保守参考值；工程校核采用勘察值。" changeWhen="取得项目岩土勘察报告或现场土质与参考档不符时。" /></span><div className="input-with-unit"><input aria-label="地基承载力特征值" type="number" min="1" value={bearingCapacity} onChange={(event) => setBearingCapacity(event.target.value ? Number(event.target.value) : "")} /><span>kPa</span></div></label>
                         <label><span>承载力资料来源</span><input value={bearingSource} onChange={(event) => setBearingSource(event.target.value)} /></label>
+                        <label><span>基底摩擦系数<HelpTip term="基底摩擦系数" what="基础底面与地基土之间的摩擦系数，用于抗滑验算。" adopted="按勘察报告或 GB 50007 表 6.7.5-2 按土类取值；未填写时基础结果保持资料不完整。" changeWhen="取得勘察建议值或土类与参考档不符时。" /></span><input aria-label="基底摩擦系数" type="number" min="0.05" max="1" step="0.05" value={baseFriction} placeholder="例如 0.30" onChange={(event) => { setBaseFriction(event.target.value === "" ? "" : Number(event.target.value)); markChanged(visibleNodes.map((node) => node.id)); }} /></label>
                         <label><span>地下水条件<HelpTip term="地下水" what="影响基础有效自重、浮力和土压力的设计水位边界。" adopted="按相对场地 ±0.000 的标高分别记录施工、使用和抗浮水位。" changeWhen="取得勘察、季节最高水位或运营控制水位资料时。" /></span><select aria-label="地下水条件" value={groundwaterCondition} onChange={(event) => setGroundwaterCondition(event.target.value as GroundwaterCondition)}><option value="unknown">尚未确认</option><option value="no_influence">有资料证明无影响</option><option value="known_water_table">已知三个设计水位</option></select></label>
                         {groundwaterCondition === "known_water_table" && <><label><span>施工期水位标高</span><div className="input-with-unit"><input type="number" step="0.1" value={constructionWaterLevel} onChange={(event) => setConstructionWaterLevel(event.target.value === "" ? "" : Number(event.target.value))} /><span>m</span></div></label><label><span>正常使用水位标高</span><div className="input-with-unit"><input type="number" step="0.1" value={serviceWaterLevel} onChange={(event) => setServiceWaterLevel(event.target.value === "" ? "" : Number(event.target.value))} /><span>m</span></div></label><label><span>抗浮设计水位标高</span><div className="input-with-unit"><input type="number" step="0.1" value={antifloatWaterLevel} onChange={(event) => setAntifloatWaterLevel(event.target.value === "" ? "" : Number(event.target.value))} /><span>m</span></div></label></>}
                         <label><span>地下水资料来源</span><input value={groundwaterSource} placeholder="勘察报告、水位记录或无影响依据" onChange={(event) => setGroundwaterSource(event.target.value)} /></label>

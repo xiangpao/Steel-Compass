@@ -461,6 +461,7 @@ export interface ProjectGeotechnicalProfile {
   settlement_correction_factor?: number | null;
   settlement_limit_mm?: number | null;
   groundwater: GroundwaterDesignProfile;
+  base_friction_coefficient?: number | null;
   report_name?: string | null;
   report_date?: string | null;
   catalog_versions: Record<string, string>;

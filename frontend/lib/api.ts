@@ -26,6 +26,15 @@ export async function api<T>(
   const payload = contentType.includes("application/json")
     ? await response.json()
     : await response.text();
+  if (
+    response.status === 401 &&
+    typeof window !== "undefined" &&
+    !path.startsWith("/api/v1/auth/") &&
+    window.location.pathname !== "/login"
+  ) {
+    // Session expired mid-work: return to login instead of showing raw JSON.
+    window.location.assign("/login");
+  }
   if (!response.ok) {
     const message =
       typeof payload === "object" && payload !== null

@@ -516,7 +516,7 @@ def _wall_canopy_graph() -> SceneGraphTemplate:
     return _graph(
         "canopy-wall-cantilever-chain",
         [
-            _node("environment", "覆盖层与风雪作用", "load", maturity="verified", verification_status="independently_verified"),
+            _node("environment", "覆盖层与风雪作用", "load"),
             _node("secondary_beam", "次梁 / 悬挑构件", "secondary_member", "steel_beam"),
             _node("wall_substrate", "墙体基材与边界", "column_wall", quick_assumption="快算仅确认基材类别和可锚固厚度，不评价既有墙体承载力。"),
             _node("wall_anchor", "墙体预埋件锚筋", "connection", quick_assumption="快算按理想固定端传力；预埋件拉剪、锚筋构造和混凝土破坏须专项复核。"),
@@ -533,7 +533,7 @@ def _column_canopy_graph(graph_id: str) -> SceneGraphTemplate:
     return _graph(
         graph_id,
         [
-            _node("environment", "覆盖层与风雪作用", "load", maturity="verified", verification_status="independently_verified"),
+            _node("environment", "覆盖层与风雪作用", "load"),
             _node("secondary_beam", "次梁", "secondary_member", "steel_beam"),
             _node("primary_system", "主梁 / 平面框架", "primary_member", "portal_frame"),
             _node("column", "支承立柱", "column_wall", "steel_column"),
@@ -553,7 +553,7 @@ def _column_canopy_graph(graph_id: str) -> SceneGraphTemplate:
 SIGN_GRAPH = _graph(
     "signage-complete-chain",
     [
-        _node("wind_panel", "面板自重与正反向风", "load", maturity="verified", verification_status="independently_verified"),
+        _node("wind_panel", "面板自重与正反向风", "load"),
         _node("post", "立柱", "column_wall", "steel_column"),
         _node("base_plate", "底板与锚栓", "connection", quick_assumption="快算按固定柱脚传力；底板和锚栓仅作反力接口，须专项复核。"),
         _node("foundation", "柱下独立基础", "foundation", "spread_footing"),
@@ -569,7 +569,7 @@ SIGN_GRAPH = _graph(
 WALL_GRAPH = _graph(
     "constrained-masonry-landscape-wall-chain",
     [
-        _node("wall_loads", "墙体自重与正反向风", "load", maturity="verified", verification_status="independently_verified"),
+        _node("wall_loads", "墙体自重与正反向风", "load"),
         _node("masonry_infill", "砌体填充墙", "surface", quick_assumption="快算按构造柱间单向墙片分配面外风荷载；开洞和转角须复核。"),
         _node("construction_columns", "钢筋混凝土构造柱", "column_wall", quick_assumption="快算按构造柱间距分配墙片反力，不替代砌体结构专项设计。"),
         _node("cap_beam", "顶部压顶梁 / 系梁", "primary_member", quick_assumption="快算仅计入顶部约束与线荷载传递。"),
@@ -590,7 +590,7 @@ WALL_GRAPH = _graph(
 ENTRANCE_GRAPH = _graph(
     "entrance-frame-complete-chain",
     [
-        _node("gate_loads", "面层、招牌与正反向风", "load", maturity="verified", verification_status="independently_verified"),
+        _node("gate_loads", "面层、招牌与正反向风", "load"),
         _node("gate_frame", "横梁 / 平面框架", "primary_member", "portal_frame"),
         _node("gate_base", "柱脚与锚栓", "connection", quick_assumption="快算按固定柱脚传力；底板和锚栓须专项复核。"),
         _node("gate_foundation", "柱下独立基础", "foundation", "spread_footing"),
@@ -1134,8 +1134,6 @@ def _site_wall_system_graph(
                 "wall_loads",
                 "墙体附加恒载与正反向风",
                 "load",
-                maturity="verified",
-                verification_status="independently_verified",
                 description="场景荷载包直接写入墙体模块的 typed load_cases。",
             ),
             _node(
@@ -1154,8 +1152,6 @@ def _site_wall_system_graph(
                 "foundation_interface",
                 foundation_label,
                 "foundation",
-                maturity="verified",
-                verification_status="independently_verified",
                 quick_assumption="墙体模块输出同组合底部六分量反力和基础线荷载，供基础单项计算继续使用。",
             ),
         ],
@@ -1201,8 +1197,6 @@ GRAVITY_RETAINING_GRAPH = _graph(
             "soil_water_inputs",
             "土压力、水压力、附加荷载与地下水",
             "load",
-            maturity="verified",
-            verification_status="independently_verified",
             description="地勘和项目水位参数输入，不作为独立荷载计算器发布。",
         ),
         _node(
@@ -1215,8 +1209,6 @@ GRAVITY_RETAINING_GRAPH = _graph(
             "soil_contact",
             "基底接触与地基接口",
             "geotechnical",
-            maturity="verified",
-            verification_status="independently_verified",
             quick_assumption="重力墙核心已输出基底压力、滑移、倾覆和同组合基础反力。",
         ),
     ],
@@ -1312,7 +1304,6 @@ def _framed_foundation_graph(
                 load_node_id,
                 load_label,
                 "load",
-                verification_status="independently_verified",
             ),
             _node(
                 frame_node_id,
@@ -1366,7 +1357,6 @@ CANOPY_WALL_PUBLIC_GRAPH = _graph(
             "canopy_loads",
             "覆盖层、检修、风雪作用",
             "load",
-            verification_status="independently_verified",
         ),
         _node(
             "secondary_beam",
@@ -1424,7 +1414,6 @@ SIGN_ECCENTRIC_GRAPH = _graph(
             "wind_panel",
             "倾斜面板自重与正负风压",
             "load",
-            verification_status="independently_verified",
         ),
         _node(
             "post",
@@ -1658,7 +1647,6 @@ def _pool_graph(graph_id: str, *, piled: bool) -> SceneGraphTemplate:
             "pool_loads",
             "内外水位、土压力与地下水",
             "load",
-            verification_status="independently_verified",
         ),
         _node(
             "pool_structure",
@@ -1734,7 +1722,6 @@ def _bridge_graph(
             "bridge_loads",
             "桥面、人群、栏杆与横向风作用",
             "load",
-            verification_status="independently_verified",
         ),
         _node(
             "bridge_superstructure",

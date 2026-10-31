@@ -137,6 +137,19 @@ class SceneAnalysisView(BaseModel):
     trace: CalculationTracePackage
     solver_result: dict[str, object] | None = None
     snapshot: SavedSceneAnalysisSnapshot | None = None
+    snapshot_id: int | None = None
+
+
+class SceneAnalysisSnapshotSummary(BaseModel):
+    id: int
+    project_id: int
+    scene_instance_id: int
+    snapshot_number: int
+    snapshot_schema_version: str
+    standard_profile: str
+    content_hash: str
+    report_number: str
+    created_at: datetime
 
 
 class SceneAnalysisSnapshotView(BaseModel):

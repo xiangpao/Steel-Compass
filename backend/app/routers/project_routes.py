@@ -65,6 +65,16 @@ def _owned_project(db: Session, project_id: int, user_id: int) -> Project:
     return project
 
 
+def _lock_project_numbering(db: Session, project_id: int) -> None:
+    """Serialize number allocation per project (row lock; no-op on SQLite).
+
+    Version, revision, report and snapshot numbers are max+1 within a project;
+    without the lock two concurrent saves read the same max and one fails on
+    the unique constraint after its calculation already ran.
+    """
+    db.execute(select(Project.id).where(Project.id == project_id).with_for_update())
+
+
 def _project_view(project: Project) -> ProjectView:
     return ProjectView(
         id=project.id,
@@ -454,6 +464,7 @@ def create_version(
     project = _owned_project(db, project_id, user.id)
     require_current_request_schema(payload.calculation)
     result = calculate(payload.calculation)
+    _lock_project_numbering(db, project.id)
     current_version = db.scalar(
         select(func.max(ProjectVersion.version_number)).where(
             ProjectVersion.project_id == project.id
@@ -555,6 +566,7 @@ def create_revision(
             }
         )
 
+    _lock_project_numbering(db, project.id)
     current_revision = db.scalar(
         select(func.max(ProjectRevision.revision_number)).where(
             ProjectRevision.project_id == project.id

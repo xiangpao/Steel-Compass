@@ -15,6 +15,9 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Databases created by Base.metadata.create_all already have the table.
+    if sa.inspect(op.get_bind()).has_table("scene_analysis_snapshots"):
+        return
     op.create_table(
         "scene_analysis_snapshots",
         sa.Column("id", sa.Integer(), nullable=False),

@@ -137,3 +137,24 @@ def test_roof_opening_is_subtracted_from_tributary_area() -> None:
     first_case = next(iter(result["case_results"].values()))
     assert first_case["net_loaded_roof_area_m2"] == 10.0
     assert sum(item["tributary_area_m2"] for item in first_case["member_load_assignments"]) == 10.0
+
+
+def test_downward_roof_wind_reaches_supports() -> None:
+    geometry = geometry_23()
+    profile = SceneStructuralProfile(
+        profile_version="3.0",
+        stage="scheme_estimate",
+        member_groups=[
+            MemberGroupSpecification(group_id="columns", role="column", material_grade="Q355B", section_catalog_id="shs-150x6", strong_axis_unbraced_length_m=3, weak_axis_unbraced_length_m=3),
+            MemberGroupSpecification(group_id="beams", role="beam", material_grade="Q355B", section_catalog_id="rhs-200x100x6", strong_axis_unbraced_length_m=4, weak_axis_unbraced_length_m=4),
+        ],
+        geometry=geometry,
+    )
+    package = build_pergola_load_package(geometry, site_profile(), roof_selection())
+    result = analyze_pergola_package(profile, package, [])
+    wind_down = next(item for item in package.cases if item.id == "WIND-DOWN")
+    reactions = result["case_results"]["WIND-DOWN"]["support_reactions"].values()
+    total_fz = sum(item["fz_kn"] for item in reactions)
+    # Net roof area is 12 m2; supports must carry the full downward pressure.
+    assert float(wind_down.adopted_value) > 0
+    assert abs(total_fz - float(wind_down.adopted_value) * 12.0) < 1e-6

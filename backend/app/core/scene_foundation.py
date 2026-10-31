@@ -80,6 +80,10 @@ def _groundwater_inputs(profile: ProjectGeotechnicalProfile) -> dict[str, Any]:
         return {
             "groundwater_condition": "known_water_table",
             "water_table_depth_m": max(-groundwater.service_level_m, 0.0),
+            "antifloat_water_table_depth_m": max(
+                -(groundwater.antifloat_level_m if groundwater.antifloat_level_m is not None else groundwater.service_level_m),
+                0.0,
+            ),
             "groundwater_source": groundwater.source,
         }
     return {
@@ -370,10 +374,11 @@ def calculate_scene_foundations(
             "bar_spacing_y_mm": rebar_y[1],
             "soil_capacity_kpa": geotechnical.bearing_capacity_kpa,
             "soil_source": geotechnical.bearing_capacity_source,
-            "base_friction_coefficient": 0.30,
             "upstream_reaction_envelopes": scene_reaction_envelopes(reaction),
             **_groundwater_inputs(geotechnical),
         }
+        if geotechnical.base_friction_coefficient is not None:
+            inputs["base_friction_coefficient"] = geotechnical.base_friction_coefficient
         for axis in ("x", "y"):
             top_text = getattr(foundation_type, f"top_{axis}", None)
             if top_text:

@@ -154,7 +154,8 @@ def test_pedestal_changes_weight_lever_arm_and_punching_perimeter() -> None:
     punching = next(step for step in result.steps if step.name == "冲切承载力")
     # 短柱自重 = 0.6*0.5*0.8*25 = 6 kN。
     assert pressure.result.value == pytest.approx(39.0)
-    assert result.reactions["My"].value == pytest.approx(8.0)
+    # Lever arm = pedestal 0.8 m + footing 0.5 m to the footing underside.
+    assert result.reactions["My"].value == pytest.approx(13.0)
     # 冲切周长采用短柱 600x500 根部，而不是钢柱 300x300。
     assert "u_m=3972.0 mm" in punching.substitution
     assert result.input_summary["pedestal_weight"].value == pytest.approx(6.0)

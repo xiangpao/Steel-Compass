@@ -1123,6 +1123,48 @@ def execute_scene(
                 "selection_source": specification.selection_source,
                 "explicit_design_profile": True,
             }
+            reinforcement = specification.reinforcement
+            if reinforcement is not None:
+                # Per-axis bottom bars override the single legacy diameter.
+                updates.update({
+                    "bar_dia_x_mm": reinforcement.bottom_x_diameter_mm,
+                    "bar_spacing_x_mm": reinforcement.bottom_x_spacing_mm,
+                    "bar_dia_y_mm": reinforcement.bottom_y_diameter_mm,
+                    "bar_spacing_y_mm": reinforcement.bottom_y_spacing_mm,
+                })
+            if specification.section_shape == "stepped" and specification.steps:
+                base_area = specification.length_m * specification.width_m
+                base_height = specification.thickness_mm / 1000
+                step_volume = sum(
+                    step.length_m * step.width_m * step.height_mm / 1000
+                    for step in specification.steps
+                )
+                total_height = base_height + sum(
+                    step.height_mm for step in specification.steps
+                ) / 1000
+                cover_depth = max(specification.embedment_m - base_height, 0.0)
+                updates.update({
+                    "footing_concrete_volume_m3": base_area * base_height + step_volume,
+                    "total_foundation_height_m": total_height,
+                    "soil_cover_m": cover_depth,
+                    "soil_cover_volume_m3": max(base_area * cover_depth - step_volume, 0.0),
+                })
+            elif specification.section_shape == "tapered":
+                # Slope height is not part of this specification, so the
+                # tapered volume cannot be computed; keep the result open.
+                updates["unresolved_section_shape"] = "tapered"
+            else:
+                updates["soil_cover_m"] = max(
+                    specification.embedment_m - specification.thickness_mm / 1000, 0.0
+                )
+            pedestal = specification.pedestal
+            if pedestal is not None and pedestal.enabled:
+                updates.update({
+                    "pedestal_enabled": True,
+                    "pedestal_length_mm": pedestal.length_mm,
+                    "pedestal_width_mm": pedestal.width_mm,
+                    "pedestal_height_mm": pedestal.height_mm,
+                })
             if geotechnical_profile is not None:
                 groundwater = geotechnical_profile.groundwater
                 updates.update(
@@ -1139,9 +1181,21 @@ def execute_scene(
                         "groundwater_source": groundwater.source,
                     }
                 )
+                if geotechnical_profile.base_friction_coefficient is not None:
+                    updates["base_friction_coefficient"] = (
+                        geotechnical_profile.base_friction_coefficient
+                    )
                 if groundwater.condition == "known_levels":
                     updates["water_table_depth_m"] = max(
                         0.0, -(groundwater.service_level_m or 0.0)
+                    )
+                    updates["antifloat_water_table_depth_m"] = max(
+                        0.0,
+                        -(
+                            groundwater.antifloat_level_m
+                            if groundwater.antifloat_level_m is not None
+                            else groundwater.service_level_m or 0.0
+                        ),
                     )
             calculations[specification.node_id] = calculation.model_copy(
                 update={"inputs": {**calculation.inputs, **updates}}, deep=True

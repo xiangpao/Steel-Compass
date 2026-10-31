@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, errorMessage } from "@/lib/api";
+import { ApiError, api, errorMessage } from "@/lib/api";
 import { SceneWorkspace } from "@/components/scene-workspace";
 import { HelpTip } from "@/components/help-tip";
 import {
@@ -220,7 +220,15 @@ export default function WorkspacePage() {
         }
       },
       )
-      .catch(() => router.replace("/login"));
+      .catch((caught) => {
+        // Only an authentication failure goes back to login; a failing catalog
+        // must not bounce between "/" and "/login" forever.
+        if (caught instanceof ApiError && caught.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        setError(`工作台数据加载失败：${errorMessage(caught)}`);
+      });
   }, [router]);
 
   const definition = MODULE_MAP[module];
@@ -377,8 +385,17 @@ export default function WorkspacePage() {
     activateCalculation(pendingModule);
   }
 
+  // Any input edit invalidates the shown result so a saved version or a
+  // derived foundation never pairs new inputs with old conclusions.
+  function invalidateResult() {
+    setResult(null);
+    setSavedVersion(null);
+    setSavedRevision(null);
+  }
+
   function updateInput(key: string, value: unknown) {
     setInputs((current) => ({ ...current, [key]: value }));
+    invalidateResult();
   }
 
   function fieldWithCatalog(field: FieldDefinition): FieldDefinition {
@@ -406,6 +423,7 @@ export default function WorkspacePage() {
   }
 
   function updateLoad(index: number, patch: Partial<LoadItem>) {
+    invalidateResult();
     setLoads((current) =>
       current.map((item, itemIndex) =>
         itemIndex === index ? { ...item, ...patch } : item,
@@ -420,6 +438,7 @@ export default function WorkspacePage() {
       );
       return;
     }
+    invalidateResult();
     setLoads((current) => [
       ...current,
       {
@@ -448,6 +467,7 @@ export default function WorkspacePage() {
       return;
     }
     const calculated = basic * heightFactor * shapeFactor;
+    invalidateResult();
     setLoads((current) => [
       ...current,
       {
@@ -647,15 +667,23 @@ export default function WorkspacePage() {
   }
 
   async function logout() {
-    await api<void>("/api/v1/auth/logout", { method: "POST" });
-    router.replace("/login");
+    try {
+      await api<void>("/api/v1/auth/logout", { method: "POST" });
+    } finally {
+      router.replace("/login");
+    }
   }
 
   if (!user) {
     return (
-      <main className="loading-screen">
-        <Compass className="spin-slow" size={32} />
-        <span>正在载入结构工作台…</span>
+      <main className="loading-screen" role={error ? "alert" : undefined}>
+        <Compass className={error ? undefined : "spin-slow"} size={32} />
+        <span>{error || "正在载入结构工作台…"}</span>
+        {error && (
+          <button type="button" onClick={() => window.location.reload()}>
+            重新加载
+          </button>
+        )}
       </main>
     );
   }
@@ -1177,11 +1205,12 @@ export default function WorkspacePage() {
                   />
                   <button
                     className="remove-button"
-                    onClick={() =>
+                    onClick={() => {
+                      invalidateResult();
                       setLoads((current) =>
                         current.filter((_, itemIndex) => itemIndex !== index),
-                      )
-                    }
+                      );
+                    }}
                     title="删除荷载"
                   >
                     <X size={15} />
@@ -1212,12 +1241,13 @@ export default function WorkspacePage() {
             </div>
             <button
               className="text-button"
-              onClick={() =>
+              onClick={() => {
+                invalidateResult();
                 setLoads((current) => [
                   ...current,
                   { kind: "live", value: 0, unit: "kN/m", source: "" },
-                ])
-              }
+                ]);
+              }}
             >
               <Plus size={16} /> 添加荷载工况
             </button>
@@ -1573,14 +1603,18 @@ function ResultPanel({
             <X size={24} />
           )}
           <span>
-            <small>控制结论</small>
+            <small>
+              控制结论 ·{" "}
+              {result.mode === "quick" ? "方案筛查" : "专业校核"}
+              {result.verification_status === "independently_verified" ? "" : " · 未独立验证"}
+            </small>
             <strong>
               当前输入与适用范围内
               {displayedStatus === "passed"
-                ? "通过"
+                ? result.mode === "quick" ? "筛查通过" : "通过"
                 : displayedStatus === "incomplete"
                   ? "资料不完整"
-                  : "不通过"}
+                  : result.mode === "quick" ? "筛查不通过" : "不通过"}
             </strong>
           </span>
         </div>

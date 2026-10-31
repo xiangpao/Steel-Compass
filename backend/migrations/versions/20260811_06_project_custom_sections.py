@@ -15,6 +15,10 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Databases created by Base.metadata.create_all already have the column.
+    columns = {item["name"] for item in sa.inspect(op.get_bind()).get_columns("projects")}
+    if "custom_sections" in columns:
+        return
     op.add_column(
         "projects",
         sa.Column("custom_sections", sa.JSON(), nullable=False, server_default="[]"),

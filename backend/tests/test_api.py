@@ -374,7 +374,15 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
         )
         assert snapshots.status_code == 200, snapshots.text
         assert len(snapshots.json()) == 1
-        snapshot_record = snapshots.json()[0]
+        assert "snapshot" not in snapshots.json()[0]
+        assert snapshots.json()[0]["id"] == analysis_package["snapshot_id"]
+        snapshot_record = client.get(
+            f"/api/v2/projects/{project_id}/scene-instances/{analysis_instance_id}/analysis-snapshots/{analysis_package['snapshot_id']}"
+        ).json()
+        listed = client.get(f"/api/v2/projects/{project_id}/scene-instances").json()
+        listed_draft = next(item for item in listed if item["id"] == analysis_instance_id)["draft_state"]
+        assert listed_draft["last_analysis_package"] is None
+        assert listed_draft["last_analysis_snapshot_id"] == analysis_package["snapshot_id"]
         assert snapshot_record["snapshot"]["snapshot_schema_version"] == "4.0"
         assert snapshot_record["snapshot"]["standard_profile"] == "CN-2026.7"
         assert len(snapshot_record["snapshot"]["content_hash"]) == 64

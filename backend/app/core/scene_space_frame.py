@@ -396,8 +396,11 @@ def analyze_scene_space_frame(
         item.adopted_value or 0
         for item in load_cases
         if item.unit in {"kN/m2", "kPa"}
-        and item.kind in {"dead", "live", "snow"}
-        and item.direction not in {"uplift", "up"}
+        and (
+            (item.kind in {"dead", "live", "snow"} and item.direction not in {"uplift", "up"})
+            # Downward roof wind pressure acts like gravity on the roof plane.
+            or (item.kind == "wind" and item.direction in {"gravity", "down"})
+        )
     )
     uplift_pressure = max(
         [

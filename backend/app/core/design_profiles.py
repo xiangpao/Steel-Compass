@@ -885,6 +885,7 @@ class ProjectGeotechnicalProfile(BaseModel):
     settlement_correction_factor: float | None = Field(default=None, gt=0, le=3)
     settlement_limit_mm: float | None = Field(default=None, gt=0, le=500)
     groundwater: GroundwaterDesignProfile
+    base_friction_coefficient: float | None = Field(default=None, gt=0, le=1)
     report_name: str | None = Field(default=None, max_length=240)
     report_date: date | None = None
     catalog_versions: dict[str, str] = Field(

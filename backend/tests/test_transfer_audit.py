@@ -124,3 +124,66 @@ def test_planar_vertical_reaction_is_converted_at_column_base_interface(module):
         assert p["components"]["N"]["value"] == 10
         assert p["components"]["Vy"]["value"] == 0
         assert p["components"]["Vx"]["value"] == 5
+
+
+@pytest.mark.parametrize("direction", [None, "x_positive", "x_negative"])
+def test_foundation_keeps_negative_axial_without_uplift_tag(direction):
+    # Planar frames and portal frames emit signed N without an uplift tag.
+    raw = [dict(item, direction=direction) for item in packet("风吸", n=-120)]
+    updated, _ = _reaction_combinations(
+        [ReactionEnvelope.model_validate(item) for item in raw], 20, 0
+    )
+    assert updated[0].components["N"].value == pytest.approx(-100)
+    result = calculate(CalculationRequest(mode="quick", module="spread_footing", inputs={
+        "upstream_reaction_envelopes": raw, "soil_cover_m": 0, "groundwater_depth_m": 5}))
+    assert result.status != "passed"
+
+
+def test_antifloat_level_governs_buoyancy_not_service_level():
+    def run(**extra):
+        result = calculate(CalculationRequest(mode="quick", module="spread_footing", inputs={
+            "upstream_reaction_envelopes": packet(n=-40), "soil_cover_m": 0,
+            "embedment_m": 1.0, "groundwater_condition": "known_water_table",
+            "water_table_depth_m": 1.0, "groundwater_source": "测试", **extra}))
+        return next(c for c in result.checks if c.name == "抗浮稳定"), result
+    service_only, base = run()
+    high_water, raised = run(antifloat_water_table_depth_m=0.0)
+    # 2x2x0.5 m footing = 50 kN; anti-float level at grade removes 20 kN.
+    assert service_only.demand.value == pytest.approx(0.0)
+    assert high_water.demand.value == pytest.approx(10.0)
+    assert raised.input_summary["antifloat_water_table_depth"].value == 0.0
+    # Bearing pressure still uses the service water table.
+    bearing = lambda r: next(c for c in r.checks if c.name == "地基承载力").demand.value
+    assert bearing(raised) == pytest.approx(bearing(base))
+
+
+def test_scene_footing_defaults_are_not_silent():
+    inputs = {"explicit_design_profile": True, "length_m": 2, "width_m": 2,
+              "thickness_mm": 500, "embedment_m": 1.0, "concrete_grade": "C30",
+              "rebar_grade": "HRB400", "bar_dia_x_mm": 14, "bar_spacing_x_mm": 150,
+              "bar_dia_y_mm": 14, "bar_spacing_y_mm": 150, "soil_capacity_kpa": 150,
+              "soil_source": "勘察", "groundwater_condition": "no_influence",
+              "groundwater_source": "勘察", "upstream_reaction_envelopes": packet(n=100)}
+    result = calculate(CalculationRequest(mode="quick", module="spread_footing", inputs=inputs))
+    assert result.status == "incomplete"
+    warning = next(w for w in result.warnings if w.code == "explicit_design_input_defaulted")
+    assert "base_friction_coefficient" in warning.message
+    explicit = {**inputs, "column_x_mm": 300, "column_y_mm": 300, "cover_mm": 50,
+                "soil_cover_m": 0.5, "base_friction_coefficient": 0.3}
+    result = calculate(CalculationRequest(mode="quick", module="spread_footing", inputs=explicit))
+    assert not any(w.code == "explicit_design_input_defaulted" for w in result.warnings)
+
+
+def test_base_shear_moment_uses_right_hand_rule_and_full_height():
+    # Cantilever column under +Vy reaction gives Mx = +30 at the base plate
+    # (space-frame convention); the footing underside adds -Vy*h.
+    raw = packet("剪力", n=100, vy=-10, mx=30)
+    updated, _ = _reaction_combinations(
+        [ReactionEnvelope.model_validate(item) for item in raw], 0, 0, 1.5
+    )
+    assert updated[0].components["Mx"].value == pytest.approx(45.0)
+    raw = packet("剪力", n=100, vx=-10, my=-30)
+    updated, _ = _reaction_combinations(
+        [ReactionEnvelope.model_validate(item) for item in raw], 0, 0, 1.5
+    )
+    assert updated[0].components["My"].value == pytest.approx(-45.0)

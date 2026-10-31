@@ -20,6 +20,7 @@ from ..api_schemas import (
     SceneAnalyzeRequest,
     SceneAnalysisPreviewView,
     SceneAnalysisView,
+    SceneAnalysisSnapshotSummary,
     SceneAnalysisSnapshotView,
     SceneRevisionCreate,
     SceneRecommendationRequest,
@@ -95,6 +96,16 @@ def _owned_project(db: Session, project_id: int, user_id: int) -> Project:
     if project is None:
         raise HTTPException(status_code=404, detail="项目不存在")
     return project
+
+
+def _lock_project_numbering(db: Session, project_id: int) -> None:
+    """Serialize number allocation per project (row lock; no-op on SQLite).
+
+    Version, revision, report and snapshot numbers are max+1 within a project;
+    without the lock two concurrent saves read the same max and one fails on
+    the unique constraint after its calculation already ran.
+    """
+    db.execute(select(Project.id).where(Project.id == project_id).with_for_update())
 
 
 def _owned_scene_instance(
@@ -933,6 +944,7 @@ def analyze_saved_scene(
         created_at=datetime.now(timezone.utc).isoformat(),
         content_hash=_canonical_hash(snapshot_basis),
     )
+    _lock_project_numbering(db, project_id)
     snapshot_record = db.scalar(
         select(SceneAnalysisSnapshotRecord).where(
             SceneAnalysisSnapshotRecord.scene_instance_id == scene_instance_id,
@@ -971,11 +983,14 @@ def analyze_saved_scene(
         trace=trace,
         solver_result=solver_result,
         snapshot=snapshot,
+        snapshot_id=snapshot_record.id,
     )
+    # The immutable snapshot table is the single copy of the analysis; the
+    # draft only keeps a pointer so instance listings stay small.
     instance.draft_state = {
         **(instance.draft_state or {}),
-        "last_analysis_package": package.model_dump(mode="json"),
-        "last_analysis_snapshot": snapshot.model_dump(mode="json"),
+        "last_analysis_package": None,
+        "last_analysis_snapshot": None,
         "last_analysis_snapshot_id": snapshot_record.id,
     }
     instance.updated_at = datetime.now(timezone.utc)
@@ -985,24 +1000,35 @@ def analyze_saved_scene(
 
 @router.get(
     "/projects/{project_id}/scene-instances/{scene_instance_id}/analysis-snapshots",
-    response_model=list[SceneAnalysisSnapshotView],
+    response_model=list[SceneAnalysisSnapshotSummary],
 )
 def list_scene_analysis_snapshots(
     project_id: int,
     scene_instance_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(require_ready_user),
-) -> list[SceneAnalysisSnapshotView]:
+) -> list[SceneAnalysisSnapshotSummary]:
     _owned_scene_instance(db, project_id, scene_instance_id, user.id)
-    records = db.scalars(
-        select(SceneAnalysisSnapshotRecord)
+    # Metadata only: each full snapshot can be tens of MB; fetch one by id.
+    rows = db.execute(
+        select(
+            SceneAnalysisSnapshotRecord.id,
+            SceneAnalysisSnapshotRecord.project_id,
+            SceneAnalysisSnapshotRecord.scene_instance_id,
+            SceneAnalysisSnapshotRecord.snapshot_number,
+            SceneAnalysisSnapshotRecord.snapshot_schema_version,
+            SceneAnalysisSnapshotRecord.standard_profile,
+            SceneAnalysisSnapshotRecord.content_hash,
+            SceneAnalysisSnapshotRecord.report_number,
+            SceneAnalysisSnapshotRecord.created_at,
+        )
         .where(
             SceneAnalysisSnapshotRecord.project_id == project_id,
             SceneAnalysisSnapshotRecord.scene_instance_id == scene_instance_id,
         )
         .order_by(SceneAnalysisSnapshotRecord.snapshot_number.desc())
     ).all()
-    return [_analysis_snapshot_view(record) for record in records]
+    return [SceneAnalysisSnapshotSummary(**row._mapping) for row in rows]
 
 
 @router.get(
@@ -1241,6 +1267,7 @@ def duplicate_scene_instance(
         None,
     )
     if latest is not None:
+        _lock_project_numbering(db, project.id)
         current_revision = db.scalar(
             select(func.max(ProjectRevision.revision_number)).where(
                 ProjectRevision.project_id == project.id
@@ -1355,6 +1382,7 @@ def create_scene_revision(
         for node_id, node_result in scene_result.node_results.items()
         if node_result.calculation_result is not None
     }
+    _lock_project_numbering(db, project.id)
     current_revision = db.scalar(
         select(func.max(ProjectRevision.revision_number)).where(
             ProjectRevision.project_id == project.id
