@@ -16,11 +16,9 @@ import {
   Save,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import { api, errorMessage } from "@/lib/api";
 import { HelpTip } from "@/components/help-tip";
 import { PergolaWorkbenchV2 } from "@/components/pergola-workbench-v2";
-import { SceneModelPreview } from "@/components/scene-model-preview";
 import { MODULE_MAP, normalizeInputs } from "@/lib/modules";
 import type {
   ClimateRegionCatalog,
@@ -39,7 +37,6 @@ import type {
   FoundationDesignSpecification,
   SceneFamily,
   SceneGraphTemplate,
-  SceneGeometryProfile,
   SceneConditionProfile,
   SceneInstance,
   SceneLoadCase,
@@ -69,11 +66,6 @@ type WorkspaceTab = "settings" | "results";
 type GroundwaterCondition = "no_influence" | "known_water_table" | "unknown";
 type SnowExposure = "exposed" | "not_applicable";
 type DesignStage = "scheme_estimate" | "project_check";
-
-const PlanModelEditor = dynamic(
-  () => import("@/components/plan-model-editor").then((module) => module.PlanModelEditor),
-  { ssr: false },
-);
 
 const LEGACY_SCENE_CONDITIONS: Record<string, SceneConditionProfile> = {
   "pergola-pavilion": { wind: "required", snow: "required", seismic: "required", wind_semantics: "roof", snow_semantics: "roof", height_parameter_keys: ["height_m", "column_height_m"], geotechnical_mode: "generic" },
@@ -306,7 +298,6 @@ function LegacySceneWorkspace({
   const initialVariantId =
     family.default_variant_id ?? family.variants[0]?.id ?? "";
   const [variantId, setVariantId] = useState(initialVariantId);
-  const [mode, setMode] = useState<Mode>("quick");
   const [tab, setTab] = useState<WorkspaceTab>("settings");
   const [material, setMaterial] = useState(
     family.variants.find((item) => item.id === initialVariantId)
@@ -343,19 +334,6 @@ function LegacySceneWorkspace({
   const [customSectionPreview, setCustomSectionPreview] = useState<CustomSectionDefinition | null>(null);
   const [roofAssemblies, setRoofAssemblies] = useState<RoofAssembly[]>([]);
   const [roofAssemblyId, setRoofAssemblyId] = useState("steel-panel");
-  const [layoutMode, setLayoutMode] = useState<"preset" | "custom_grid">("custom_grid");
-  const [xBaySpans, setXBaySpans] = useState("4");
-  const [yBaySpans, setYBaySpans] = useState("3,3");
-  const [columnHeights, setColumnHeights] = useState("3");
-  const [omittedColumns, setOmittedColumns] = useState("");
-  const [roofGeometry, setRoofGeometry] = useState<"flat" | "single_slope" | "double_slope" | "custom_heights">("flat");
-  const [roofSlopeDeg, setRoofSlopeDeg] = useState(8);
-  const [roofDirectionDeg, setRoofDirectionDeg] = useState(0);
-  const [geometryOverride, setGeometryOverride] = useState<SceneGeometryProfile | null>(null);
-  const [modelSelection, setModelSelection] = useState<{ kind: "node" | "member"; id: string } | null>(null);
-  const [modelMessage, setModelMessage] = useState("选择构件可查看并修改属性。");
-  const [memberGroupSections, setMemberGroupSections] = useState<Record<string, string>>({});
-  const [memberSectionOverrides, setMemberSectionOverrides] = useState<Record<string, string>>({});
   const [memberSpecifications, setMemberSpecifications] = useState<MemberSpecification[]>([]);
   const [foundationSpecifications, setFoundationSpecifications] = useState<FoundationDesignSpecification[]>([]);
   const [verticalEnclosure, setVerticalEnclosure] = useState<"none" | "open_members" | "perforated_panel" | "solid_panel">("none");
@@ -393,7 +371,6 @@ function LegacySceneWorkspace({
   const hydrated = useRef(false);
   const projectLoadSequence = useRef(0);
   const suppressNextProjectLoad = useRef(false);
-  const preserveHydratedGeometry = useRef(false);
 
   const variant = useMemo(
     () =>
@@ -401,7 +378,6 @@ function LegacySceneWorkspace({
       family.variants[0],
     [family, variantId],
   );
-  const isParametricPergola = family.id === "pergola-pavilion";
   const availableSections = useMemo<SectionCatalogEntry[]>(
     () => [
       ...steelSections,
@@ -449,11 +425,9 @@ function LegacySceneWorkspace({
   const hasFoundation = foundationModules.size > 0;
   const hasGenericFoundation =
     hasFoundation && conditionProfile.geotechnical_mode !== "variant_owned";
-  const visibleParameters = isParametricPergola
-    ? []
-    : (variant?.parameters ?? []).filter(
-        (parameter) => !parameter.hidden_when_condition_driven,
-      );
+  const visibleParameters = (variant?.parameters ?? []).filter(
+    (parameter) => !parameter.hidden_when_condition_driven,
+  );
   const stale = Boolean(revision && inputVersion !== calculatedVersion);
   const loadPackageTitle = variant?.load_package?.title ?? "场景荷载包";
   const comparisonInstances = projectInstances.slice(0, 3);
@@ -615,17 +589,9 @@ function LegacySceneWorkspace({
         : conditionProfile.wind_semantics === "solid_panel"
           ? "solid_panel"
           : "open_frame";
-    const roofSource = isParametricPergola
-      ? roofGeometry === "single_slope"
-        ? "单坡"
-        : roofGeometry === "double_slope"
-          ? "双坡"
-          : roofGeometry === "flat"
-            ? "平顶"
-            : "其他"
-      : (conditionProfile.roof_form_parameter_key
-        ? parameters[conditionProfile.roof_form_parameter_key]
-        : undefined) ?? variant?.roof_form;
+    const roofSource = (conditionProfile.roof_form_parameter_key
+      ? parameters[conditionProfile.roof_form_parameter_key]
+      : undefined) ?? variant?.roof_form;
     const effectiveRoofForm =
       conditionProfile.snow_semantics === "exposed_horizontal"
         ? "flat"
@@ -640,114 +606,7 @@ function LegacySceneWorkspace({
       structureShape: effectiveStructureShape,
       roofForm: effectiveRoofForm,
     };
-  }, [parameters, terrainCategory, conditionProfile, variant, heightFactorOverride, shapeFactorOverride, snowFactorOverride, isParametricPergola, roofGeometry]);
-
-  const generatedGeometryProfile = useMemo<SceneGeometryProfile | null>(() => {
-    if (family.id !== "pergola-pavilion") return null;
-    const parsePositive = (text: string, fallback: number[]) => {
-      const values = text.split(/[,，\s]+/).map(Number).filter((value) => Number.isFinite(value) && value > 0);
-      return values.length ? values : fallback;
-    };
-    const xSpans = layoutMode === "custom_grid" ? parsePositive(xBaySpans, [4]) : [Number(parameters.span_m ?? 4)];
-    const ySpans = layoutMode === "custom_grid" ? parsePositive(yBaySpans, [3, 3]) : [Number(parameters.frame_spacing_m ?? parameters.bay_spacing_m ?? 3)];
-    const positions = (spans: number[]) => spans.reduce<number[]>((all, span) => [...all, all[all.length - 1] + span], [0]);
-    const xs = positions(xSpans);
-    const ys = positions(ySpans);
-    const customHeights = parsePositive(columnHeights, [Number(parameters.height_m ?? 3)]);
-    const baseHeight = customHeights[0] ?? 3;
-    const angle = (roofDirectionDeg * Math.PI) / 180;
-    const projections = xs.flatMap((x) => ys.map((y) => x * Math.cos(angle) + y * Math.sin(angle)));
-    const minProjection = Math.min(...projections);
-    const maxProjection = Math.max(...projections);
-    const projectionRange = Math.max(maxProjection - minProjection, 1);
-    const roofRise = Math.tan((roofSlopeDeg * Math.PI) / 180) * projectionRange;
-    const omitted = new Set(omittedColumns.split(/[,，\s]+/).map((item) => item.trim()).filter(Boolean));
-    const nodes: SceneGeometryProfile["nodes"] = [];
-    xs.forEach((x, ix) => ys.forEach((y, iy) => {
-      const customHeight = customHeights[ix * ys.length + iy] ?? customHeights[customHeights.length - 1];
-      const normalizedProjection = (x * Math.cos(angle) + y * Math.sin(angle) - minProjection) / projectionRange;
-      const height = roofGeometry === "single_slope"
-        ? baseHeight + roofRise * normalizedProjection
-        : roofGeometry === "double_slope"
-          ? baseHeight + roofRise * (1 - Math.abs(2 * normalizedProjection - 1)) / 2
-          : roofGeometry === "flat"
-            ? baseHeight
-            : customHeight;
-      if (!omitted.has(`${ix + 1}-${iy + 1}`)) nodes.push({ id: `B-${ix + 1}-${iy + 1}`, x_m: x, y_m: y, z_m: 0, support: "none", column_top: false });
-      nodes.push({ id: `T-${ix + 1}-${iy + 1}`, x_m: x, y_m: y, z_m: height, support: "none", column_top: true });
-    }));
-    const known = new Set(nodes.map((node) => node.id));
-    const members: SceneGeometryProfile["members"] = [];
-    nodes.filter((node) => node.column_top && known.has(`B-${node.id.slice(2)}`)).forEach((node) => members.push({ id: `C-${node.id.slice(2)}`, start_node_id: `B-${node.id.slice(2)}`, end_node_id: node.id, role: "column", group_id: "columns", behavior: "frame", end_release: "rigid" }));
-    const addBeam = (a: string, b: string, id: string) => { if (known.has(a) && known.has(b)) members.push({ id, start_node_id: a, end_node_id: b, role: "beam", group_id: "roof-beams", behavior: "frame", end_release: "rigid" }); };
-    xs.forEach((_x, ix) => ys.slice(0, -1).forEach((_y, iy) => addBeam(`T-${ix + 1}-${iy + 1}`, `T-${ix + 1}-${iy + 2}`, `BY-${ix + 1}-${iy + 1}`)));
-    ys.forEach((_y, iy) => xs.slice(0, -1).forEach((_x, ix) => addBeam(`T-${ix + 1}-${iy + 1}`, `T-${ix + 2}-${iy + 1}`, `BX-${ix + 1}-${iy + 1}`)));
-    const roofSurfaces: SceneGeometryProfile["roof_surfaces"] = [];
-    xs.slice(0, -1).forEach((_x, ix) => ys.slice(0, -1).forEach((_y, iy) => {
-      const nodeIds = [`T-${ix + 1}-${iy + 1}`, `T-${ix + 2}-${iy + 1}`, `T-${ix + 2}-${iy + 2}`, `T-${ix + 1}-${iy + 2}`];
-      if (nodeIds.every((id) => known.has(id))) roofSurfaces.push({ id: `R-${ix + 1}-${iy + 1}`, node_ids: nodeIds, form: roofGeometry === "custom_heights" ? "faceted" : roofGeometry, load_path_group_ids: ["roof-beams"] });
-    }));
-    return {
-      profile_version: "2.0",
-      layout_mode: "free_plan",
-      axes: [{ id: "X", direction: "x", positions_m: xs }, { id: "Y", direction: "y", positions_m: ys }],
-      nodes,
-      members,
-      roof_surfaces: roofSurfaces,
-      supports: nodes.filter((node) => node.id.startsWith("B-")).map((node) => ({ id: `SUP-${node.id}`, node_id: node.id, restraint: "fixed", foundation_id: `F-${node.id}` })),
-      plan_boundary: {
-        outer_points: [
-          { id: "BP-1", x_m: xs[0], y_m: ys[0] },
-          { id: "BP-2", x_m: xs[xs.length - 1], y_m: ys[0] },
-          { id: "BP-3", x_m: xs[xs.length - 1], y_m: ys[ys.length - 1] },
-          { id: "BP-4", x_m: xs[0], y_m: ys[ys.length - 1] },
-        ],
-        outer_segments: [
-          { id: "BS-1", start_point_id: "BP-1", end_point_id: "BP-2", kind: "line" },
-          { id: "BS-2", start_point_id: "BP-2", end_point_id: "BP-3", kind: "line" },
-          { id: "BS-3", start_point_id: "BP-3", end_point_id: "BP-4", kind: "line" },
-          { id: "BS-4", start_point_id: "BP-4", end_point_id: "BP-1", kind: "line" },
-        ],
-        source: "参数化轴网生成，可在二维编辑器修改",
-      },
-      roof_elevation: {
-        kind: roofGeometry === "custom_heights" ? "node_elevations" : roofGeometry,
-        datum_height_m: baseHeight,
-        slope_deg: roofGeometry === "flat" || roofGeometry === "custom_heights" ? null : roofSlopeDeg,
-        direction_deg: roofGeometry === "flat" || roofGeometry === "custom_heights" ? null : roofDirectionDeg,
-        ridge_start: roofGeometry === "double_slope" ? [xs[0], (ys[0] + ys[ys.length - 1]) / 2] : null,
-        ridge_end: roofGeometry === "double_slope" ? [xs[xs.length - 1], (ys[0] + ys[ys.length - 1]) / 2] : null,
-        opposite_slope_deg: roofGeometry === "double_slope" ? roofSlopeDeg : null,
-      },
-      source: layoutMode === "custom_grid" ? "用户引导式自定义轴网" : "亭廊快捷模板生成",
-    };
-  }, [family.id, layoutMode, xBaySpans, yBaySpans, columnHeights, omittedColumns, parameters, roofGeometry, roofSlopeDeg, roofDirectionDeg]);
-
-  const geometryProfile = geometryOverride ?? generatedGeometryProfile;
-  const selectedModelMember = modelSelection?.kind === "member"
-    ? geometryProfile?.members.find((item) => item.id === modelSelection.id) ?? null
-    : null;
-  const selectedMemberNodes = selectedModelMember && geometryProfile
-    ? [
-        geometryProfile.nodes.find((item) => item.id === selectedModelMember.start_node_id),
-        geometryProfile.nodes.find((item) => item.id === selectedModelMember.end_node_id),
-      ]
-    : [];
-  const selectedMemberLength = selectedMemberNodes[0] && selectedMemberNodes[1]
-    ? Math.hypot(
-        selectedMemberNodes[1].x_m - selectedMemberNodes[0].x_m,
-        selectedMemberNodes[1].y_m - selectedMemberNodes[0].y_m,
-        selectedMemberNodes[1].z_m - selectedMemberNodes[0].z_m,
-      )
-    : null;
-
-  useEffect(() => {
-    if (preserveHydratedGeometry.current) {
-      preserveHydratedGeometry.current = false;
-      return;
-    }
-    setGeometryOverride(null);
-  }, [family.id, xBaySpans, yBaySpans, columnHeights, omittedColumns, roofGeometry, roofSlopeDeg, roofDirectionDeg]);
+  }, [parameters, terrainCategory, conditionProfile, variant, heightFactorOverride, shapeFactorOverride, snowFactorOverride]);
 
   const climateInputsReady = useMemo(() => {
     if (!(needsWind || needsSnow)) return true;
@@ -886,7 +745,6 @@ function LegacySceneWorkspace({
           designStage?: DesignStage;
           memberSpecifications?: MemberSpecification[];
           foundationSpecifications?: FoundationDesignSpecification[];
-          guidedGrid?: { layoutMode?: "preset" | "custom_grid"; xBaySpans?: string; yBaySpans?: string; columnHeights?: string; omittedColumns?: string; roofGeometry?: "flat" | "single_slope" | "double_slope" | "custom_heights"; roofSlopeDeg?: number };
         };
         if (family.variants.some((item) => item.id === draft.variantId)) {
           nextVariantId = draft.variantId!;
@@ -896,7 +754,6 @@ function LegacySceneWorkspace({
         );
         const nextGraph = graphFor(family, nextVariant);
         setVariantId(nextVariantId);
-        setMode("quick");
         setMaterial(
           draft.material ?? nextVariant?.material_systems[0] ?? "",
         );
@@ -936,15 +793,6 @@ function LegacySceneWorkspace({
         setDesignStage(draft.designStage ?? "scheme_estimate");
         if (draft.memberSpecifications) setMemberSpecifications(draft.memberSpecifications);
         if (draft.foundationSpecifications) setFoundationSpecifications(normalizedFoundations(draft.foundationSpecifications));
-        if (draft.guidedGrid) {
-          setLayoutMode(draft.guidedGrid.layoutMode ?? "custom_grid");
-          setXBaySpans(draft.guidedGrid.xBaySpans ?? "4");
-          setYBaySpans(draft.guidedGrid.yBaySpans ?? "3,3");
-          setColumnHeights(draft.guidedGrid.columnHeights ?? "3");
-          setOmittedColumns(draft.guidedGrid.omittedColumns ?? "");
-          setRoofGeometry(draft.guidedGrid.roofGeometry ?? "flat");
-          setRoofSlopeDeg(draft.guidedGrid.roofSlopeDeg ?? 8);
-        }
         setSceneTitle(draft.sceneTitle ?? family.title);
         if (typeof draft.selectedProject === "number") {
           setSelectedProject(draft.selectedProject);
@@ -984,7 +832,7 @@ function LegacySceneWorkspace({
       `steel-compass:scene-draft:${family.id}`,
       JSON.stringify({
         variantId,
-        mode,
+        mode: "quick",
         material,
         parameters,
         loadCases,
@@ -1001,7 +849,6 @@ function LegacySceneWorkspace({
         designStage,
         memberSpecifications,
         foundationSpecifications,
-        guidedGrid: { layoutMode, xBaySpans, yBaySpans, columnHeights, omittedColumns, roofGeometry, roofSlopeDeg },
       }),
     );
   }, [
@@ -1012,7 +859,6 @@ function LegacySceneWorkspace({
     groundwaterSource,
     loadCases,
     material,
-    mode,
     parameters,
     sceneTitle,
     selectedProject,
@@ -1023,13 +869,6 @@ function LegacySceneWorkspace({
     designStage,
     memberSpecifications,
     foundationSpecifications,
-    layoutMode,
-    xBaySpans,
-    yBaySpans,
-    columnHeights,
-    omittedColumns,
-    roofGeometry,
-    roofSlopeDeg,
     variantId,
   ]);
 
@@ -1053,7 +892,6 @@ function LegacySceneWorkspace({
     selected: SceneInstance,
     revisions: SceneRevision[],
   ) {
-    preserveHydratedGeometry.current = true;
     const selectedVariant = family.variants.find(
       (item) => item.id === selected.variant_id,
     );
@@ -1062,7 +900,6 @@ function LegacySceneWorkspace({
     const restoredLoads = state.load_cases as SceneLoadCase[] | undefined;
     setInstance(selected);
     setVariantId(selected.variant_id);
-    setMode("quick");
     setSceneTitle(selected.title);
     setMaterial(
       (state.material_system as string | undefined) ??
@@ -1123,21 +960,6 @@ function LegacySceneWorkspace({
       setVerticalOpenRatio(exposure.vertical_open_ratio ?? "");
       setTopOpenRatio(exposure.top_open_ratio ?? "");
     }
-    const guidedGrid = state.guided_grid as { layoutMode?: "preset" | "custom_grid"; xBaySpans?: string; yBaySpans?: string; columnHeights?: string; omittedColumns?: string; roofGeometry?: "flat" | "single_slope" | "double_slope" | "custom_heights"; roofSlopeDeg?: number; roofDirectionDeg?: number } | undefined;
-    if (guidedGrid) {
-      setLayoutMode(guidedGrid.layoutMode ?? "custom_grid");
-      setXBaySpans(guidedGrid.xBaySpans ?? "4");
-      setYBaySpans(guidedGrid.yBaySpans ?? "3,3");
-      setColumnHeights(guidedGrid.columnHeights ?? "3");
-      setOmittedColumns(guidedGrid.omittedColumns ?? "");
-      setRoofGeometry(guidedGrid.roofGeometry ?? "flat");
-      setRoofSlopeDeg(guidedGrid.roofSlopeDeg ?? 8);
-      setRoofDirectionDeg(guidedGrid.roofDirectionDeg ?? 0);
-    }
-    setGeometryOverride((state.geometry_profile as SceneGeometryProfile | undefined) ?? null);
-    const structural = state.structural_profile as SceneStructuralProfile | undefined;
-    setMemberGroupSections(Object.fromEntries((structural?.member_groups ?? []).map((item) => [item.group_id, item.section_catalog_id ?? item.custom_section_id ?? ""])));
-    setMemberSectionOverrides(Object.fromEntries((structural?.member_overrides ?? []).map((item) => [item.member_id, item.section_id])));
     const latest = revisions[0] ?? null;
     setRevision(latest);
     setInputVersion(0);
@@ -1386,9 +1208,8 @@ function LegacySceneWorkspace({
       surface_exposure: needsWind
         ? { vertical_enclosure: verticalEnclosure, top_cover: topCover }
         : null,
-      geometry_profile: geometryProfile,
+      geometry_profile: null,
       structural_profile: currentStructuralProfile(),
-      guided_grid: { layoutMode, xBaySpans, yBaySpans, columnHeights, omittedColumns, roofGeometry, roofSlopeDeg, roofDirectionDeg },
     };
   }
 
@@ -1504,31 +1325,10 @@ function LegacySceneWorkspace({
           }
         : null,
       members,
-      member_groups: Array.from(new Set((geometryProfile?.members ?? []).map((item) => item.group_id))).map((groupId) => {
-        const representative = geometryProfile?.members.find((item) => item.group_id === groupId);
-        const legacy = members.find((item) => item.member_role === (representative?.role === "column" ? "column" : "beam"));
-        const sectionId = memberGroupSections[groupId] || legacy?.section_catalog_id || availableSections[0]?.id || null;
-        return {
-          group_id: groupId,
-          role: representative?.role ?? "beam",
-          material_grade: legacy?.material_grade ?? "Q355B",
-          section_catalog_id: customSections.some((item) => item.id === sectionId) ? null : sectionId,
-          custom_section_id: customSections.some((item) => item.id === sectionId) ? sectionId : null,
-          strong_axis_unbraced_length_m: legacy?.unbraced_length_m ?? 3,
-          weak_axis_unbraced_length_m: legacy?.unbraced_length_m ?? 3,
-          effective_length_factor_y: 1,
-          effective_length_factor_z: 1,
-        };
-      }),
-      member_overrides: Object.entries(memberSectionOverrides).map(([memberId, sectionId]) => ({
-        member_id: memberId,
-        material_grade: "Q355B",
-        section_id: sectionId,
-        orientation: "strong_axis" as const,
-        source: "用户仅应用到选中构件",
-      })),
+      member_groups: [],
+      member_overrides: [],
       foundations,
-      geometry: geometryProfile,
+      geometry: null,
       roof_assembly: conditionProfile.wind_semantics === "roof"
         ? roofAssemblies.find((item) => item.id === (topCover === "none" ? "none" : roofAssemblyId)) ?? null
         : null,
@@ -1749,32 +1549,12 @@ function LegacySceneWorkspace({
             : [[targetInput, parameters[sceneParameter]]],
       ),
     );
-    const geometryDrivenInputs = isParametricPergola && geometryProfile
-      ? {
-          span_m: Math.max(
-            ...geometryProfile.axes
-              .filter((axis) => axis.direction === "x")
-              .flatMap((axis) => axis.positions_m.slice(1).map((value, index) => value - axis.positions_m[index])),
-            0.1,
-          ),
-          frame_spacing_m: Math.max(
-            ...geometryProfile.axes
-              .filter((axis) => axis.direction === "y")
-              .flatMap((axis) => axis.positions_m.slice(1).map((value, index) => value - axis.positions_m[index])),
-            0.1,
-          ),
-          height_m: Math.max(...geometryProfile.nodes.map((item) => item.z_m), 0.1),
-          column_height_m: Math.max(...geometryProfile.nodes.map((item) => item.z_m), 0.1),
-          roof_slope_deg: roofGeometry === "flat" || roofGeometry === "custom_heights" ? 0 : roofSlopeDeg,
-        }
-      : {};
     const nextInputs: Record<string, unknown> = {
       ...(SCENE_ADAPTER_FIELDS[calculationModule] ? {} : definition.defaults),
       ...Object.fromEntries(
         Object.entries(parameters).filter(([key]) => key in definition.defaults),
       ),
       ...boundInputs,
-      ...geometryDrivenInputs,
       ...(SCENE_ADAPTER_FIELDS[calculationModule] ? {
         ...parameters,
         ...((parameters.scene_node_inputs as Record<string, Record<string, unknown>> | undefined)?.[nodeId] ?? {}),
@@ -1891,7 +1671,7 @@ function LegacySceneWorkspace({
       node_id: nodeId,
       calculation: {
         schema_version: "3.3",
-        mode,
+        mode: "quick",
         module: calculationModule,
         project_name: `${sceneTitle} · ${nodeId}`,
         standard_profile: "CN-2026.6",
@@ -1908,9 +1688,6 @@ function LegacySceneWorkspace({
   }
 
   function validateSettings() {
-    if (geometryProfile && (geometryProfile.nodes.length > 200 || geometryProfile.members.length > 400)) {
-      return "当前三维轴网超过 200 个节点或 400 根杆件，请拆分为多个场景。";
-    }
     if (!loadCases.length) return "当前场景没有可用荷载包。";
     const invalidCustom = loadCases.find(
       (item) =>
@@ -1937,11 +1714,6 @@ function LegacySceneWorkspace({
     );
     if (missingOverride) {
       return `“${missingOverride.label}”覆盖了建议值，请填写调整原因。`;
-    }
-    if (hasGenericFoundation && mode === "professional") {
-      if (!bearingCapacity) {
-        return "专业模式需要填写勘察承载力。";
-      }
     }
     return "";
   }
@@ -2162,7 +1934,7 @@ function LegacySceneWorkspace({
         </div>
       )}
 
-      <div className={`scene-layout workbench-layout ${tab === "settings" && isParametricPergola ? "free-model-layout" : ""}`}>
+      <div className="scene-layout workbench-layout">
         <section className="scene-workbench">
           {tab === "settings" ? (
             <div className="settings-stack">
@@ -2172,12 +1944,7 @@ function LegacySceneWorkspace({
                   <ChevronDown size={17} />
                 </summary>
                 <div className="settings-section-body">
-                  {isParametricPergola ? (
-                    <div className="parametric-scene-intro">
-                      <strong>参数化亭廊模型</strong>
-                      <span>不再区分“平顶单跨、单坡、双坡、多跨”。轴网、柱高和屋面分区共同决定实际形态。</span>
-                    </div>
-                  ) : <div className="variant-grid compact-grid">
+                  <div className="variant-grid compact-grid">
                     {family.variants.map((item) => {
                       const disabled = item.availability === "development";
                       return (
@@ -2193,7 +1960,7 @@ function LegacySceneWorkspace({
                         </button>
                       );
                     })}
-                  </div>}
+                  </div>
                   {variant && (
                     <div className="parameter-grid compact-parameters">
                       <label>
@@ -2287,25 +2054,6 @@ function LegacySceneWorkspace({
                   <ChevronDown size={17} />
                 </summary>
                 <div className="settings-section-body">
-                  {family.id === "pergola-pavilion" && <div className="scene-climate-guide">
-                    <div><strong>亭廊几何生成器</strong><span>平顶、坡顶、多跨和不同柱高由同一组轴网与标高生成，不再切换场景分类。</span></div>
-                    <div className="geometry-preset-row" aria-label="亭廊几何快速起点">
-                      <button type="button" onClick={() => { setXBaySpans("4"); setYBaySpans("3"); setColumnHeights("3"); setOmittedColumns(""); setRoofGeometry("flat"); }}>规则单跨</button>
-                      <button type="button" onClick={() => { setXBaySpans("4,4,4"); setYBaySpans("3"); setColumnHeights("3"); setOmittedColumns(""); setRoofGeometry("flat"); }}>长廊多跨</button>
-                      <button type="button" onClick={() => { setXBaySpans("4,4"); setYBaySpans("3,3"); setColumnHeights("3"); setOmittedColumns("3-2,3-3"); setRoofGeometry("flat"); }}>L形平面</button>
-                    </div>
-                    <div className="parameter-grid compact-parameters">
-                      <label><span>X向各跨</span><input value={xBaySpans} onChange={(event) => setXBaySpans(event.target.value)} placeholder="例如 4,4,3.5" /><small>单位 m，逗号分隔；数量决定跨数</small></label>
-                      <label><span>Y向各跨</span><input value={yBaySpans} onChange={(event) => setYBaySpans(event.target.value)} placeholder="例如 3,3" /><small>单位 m，逗号分隔</small></label>
-                      <label><span>屋面几何</span><select value={roofGeometry} onChange={(event) => setRoofGeometry(event.target.value as typeof roofGeometry)}><option value="flat">平面屋盖</option><option value="single_slope">单坡屋盖</option><option value="double_slope">双坡屋盖</option><option value="custom_heights">逐柱控制标高</option></select></label>
-                      {(roofGeometry === "single_slope" || roofGeometry === "double_slope") && <label><span>屋面坡度</span><div className="input-with-unit"><input type="number" min="0.5" max="45" step="0.5" value={roofSlopeDeg} onChange={(event) => setRoofSlopeDeg(Number(event.target.value))} /><span>°</span></div></label>}
-                      {(roofGeometry === "single_slope" || roofGeometry === "double_slope") && <label><span>出坡方向角</span><div className="input-with-unit"><input type="number" min="-360" max="360" step="5" value={roofDirectionDeg} onChange={(event) => setRoofDirectionDeg(Number(event.target.value))} /><span>°</span></div><small>0° 为 +X，90° 为 +Y；修改方向不改变平面边界和构件编号。</small></label>}
-                      <label><span>{roofGeometry === "custom_heights" ? "各柱顶标高" : "檐口/基准柱高"}</span><input value={columnHeights} onChange={(event) => setColumnHeights(event.target.value)} placeholder={roofGeometry === "custom_heights" ? "例如 3,3.2,3.5" : "例如 3"} /><small>{roofGeometry === "custom_heights" ? "按 X 后 Y 顺序，不足时沿用最后一个值" : "单位 m；坡度由软件生成其他柱顶标高"}</small></label>
-                      <label><span>移除柱位置</span><input value={omittedColumns} onChange={(event) => setOmittedColumns(event.target.value)} placeholder="例如 2-1,3-2" /><small>只移除柱、柱脚支承和基础；屋面节点与钢梁保持不变。</small></label>
-                    </div>
-                    {geometryProfile && <div className="boundary-note">当前模型：{geometryProfile.nodes.length} 个节点、{geometryProfile.members.length} 根杆件、{geometryProfile.roof_surfaces.length} 个屋面分区。上限为 200 节点 / 400 杆件。</div>}
-                    {geometryProfile && <div className="boundary-note">二维编辑器与三维模型固定显示在工作台右侧；修改这里的轴网参数会重新生成起始模型。</div>}
-                  </div>}
                   <div className="parameter-grid">
                     {visibleParameters.map((parameter) => (
                       <label key={parameter.key}>
@@ -2382,7 +2130,7 @@ function LegacySceneWorkspace({
                   && !(key === "slab_load_distribution" && family.id !== "boardwalk-platform")
                   && !(key === "frame_wind_exposed_height_m" && family.id !== "entrance-frame")
                   && !(key === "post_height_m" && family.id !== "signage-billboard")
-                  && !(key === "roof_member_tributary_width_m" && family.id !== "pergola-pavilion"));
+                  && key !== "roof_member_tributary_width_m");
                 return <details className="settings-section" key={`specialist-${node.id}`}>
                   <summary><span><strong>{node.label} · 专项参数</strong><small>按材料、配筋和勘察资料填写；空白项会阻止该节点计算</small></span><ChevronDown size={17} /></summary>
                   <div className="settings-section-body parameter-grid compact-parameters">
@@ -2905,66 +2653,7 @@ function LegacySceneWorkspace({
           </div>
         </section>
 
-        {tab === "settings" && isParametricPergola && geometryProfile && (
-          <aside className="plan-editor-panel" aria-label="二维结构编辑器">
-            <div className="model-panel-heading">
-              <div><span className="eyebrow">PLAN EDITOR</span><h2>二维精确编辑</h2></div>
-              <span>{geometryProfile.nodes.length} 节点 · {geometryProfile.members.length} 杆件</span>
-            </div>
-            <PlanModelEditor
-              geometry={geometryProfile}
-              selected={modelSelection}
-              onSelectedChange={setModelSelection}
-              onChange={(next) => { setGeometryOverride(next); markChanged(visibleNodes.map((node) => node.id)); }}
-              onMessage={setModelMessage}
-            />
-            <p className="model-editor-message" role="status">{modelMessage}</p>
-          </aside>
-        )}
-
         <aside className="load-path-panel desktop-load-path">
-          {tab === "settings" && isParametricPergola && geometryProfile && (
-            <div className="model-inspector-stack">
-              <div className="load-path-heading">
-                <div><span className="eyebrow">LIVE MODEL</span><h2>三维模型与属性</h2></div>
-              </div>
-              <SceneModelPreview
-                geometry={geometryProfile}
-                foundation={foundationSpecifications[0] ?? null}
-                selectedMemberId={selectedModelMember?.id ?? null}
-                onSelectMember={(id) => setModelSelection(id ? { kind: "member", id } : null)}
-              />
-              {selectedModelMember ? (
-                <div className="selected-member-card">
-                  <strong>{selectedModelMember.id} · {selectedModelMember.role}</strong>
-                  <dl>
-                    <div><dt>连接节点</dt><dd>{selectedModelMember.start_node_id} → {selectedModelMember.end_node_id}</dd></div>
-                    <div><dt>实际长度</dt><dd>{selectedMemberLength?.toFixed(3) ?? "—"} m</dd></div>
-                    <div><dt>构件组</dt><dd>{selectedModelMember.group_id}</dd></div>
-                  </dl>
-                  <label>
-                    <span>截面分配</span>
-                    <select
-                      value={memberSectionOverrides[selectedModelMember.id] || memberGroupSections[selectedModelMember.group_id] || ""}
-                      onChange={(event) => {
-                        if (event.target.value === "__custom__") { setCustomSectionOpen(true); return; }
-                        setMemberSectionOverrides((current) => ({ ...current, [selectedModelMember.id]: event.target.value }));
-                        markChanged(visibleNodes.map((node) => node.id));
-                      }}
-                    >
-                      <option value="">继承构件组</option>
-                      {availableSections.map((item) => <option key={item.id} value={item.id}>{item.designation}</option>)}
-                      <option value="__custom__">＋ 输入自定义截面</option>
-                    </select>
-                  </label>
-                  <div className="member-scope-actions">
-                    <button type="button" onClick={() => setMemberSectionOverrides((current) => { const next = { ...current }; delete next[selectedModelMember.id]; return next; })}>继承构件组</button>
-                    <button type="button" disabled={!memberSectionOverrides[selectedModelMember.id]} onClick={() => { const sectionId = memberSectionOverrides[selectedModelMember.id]; if (!sectionId) return; setMemberGroupSections((current) => ({ ...current, [selectedModelMember.group_id]: sectionId })); setMemberSectionOverrides((current) => { const next = { ...current }; delete next[selectedModelMember.id]; return next; }); }}>应用到构件组</button>
-                  </div>
-                </div>
-              ) : <div className="boundary-note">在二维或三维图中选择梁柱，规格和选择状态会同步。</div>}
-            </div>
-          )}
           <div className="load-path-heading">
             <div><span className="eyebrow">LOAD PATH</span><h2>当前传力链</h2></div>
             <span>{visibleNodes.length}</span>
