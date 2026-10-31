@@ -661,3 +661,15 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
         )
         assert client.get("/api/v1/projects").json() == []
         assert client.get(f"/api/v1/projects/{project_id}").status_code == 404
+
+
+def test_login_failures_are_rate_limited() -> None:
+    from app.routers import auth_routes
+
+    auth_routes._login_failures.clear()
+    with TestClient(app) as limited:
+        for _ in range(auth_routes._LOGIN_MAX_FAILURES):
+            assert limited.post("/api/v1/auth/login", json={"username": "nobody", "password": "wrong"}).status_code == 401
+        blocked = limited.post("/api/v1/auth/login", json={"username": "nobody", "password": "wrong"})
+        assert blocked.status_code == 429
+    auth_routes._login_failures.clear()
