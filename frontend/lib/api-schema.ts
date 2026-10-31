@@ -345,7 +345,7 @@ export interface DoubleSlopeRoofRule {
 }
 
 export interface FoundationCandidatesRequest {
-  base_friction_coefficient?: number;
+  base_friction_coefficient?: number | null;
   foundation_instance_id: string;
   max_plan_m?: number;
 }

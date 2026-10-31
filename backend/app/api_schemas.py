@@ -269,7 +269,9 @@ class SceneRecommendationView(DesignCandidateSet):
 class FoundationCandidatesRequest(BaseModel):
     foundation_instance_id: str = Field(min_length=1, max_length=80)
     max_plan_m: float = Field(default=6.0, ge=0.5, le=30)
-    base_friction_coefficient: float = Field(default=0.30, gt=0, le=1)
+    # Ignored since 2026-11-01: sizing uses the project geotechnical profile's
+    # base_friction_coefficient. Kept so older clients are not rejected.
+    base_friction_coefficient: float | None = Field(default=None, gt=0, le=1, deprecated=True)
 
 
 class SceneRevisionView(BaseModel):

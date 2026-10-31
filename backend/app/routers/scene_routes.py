@@ -63,14 +63,12 @@ from ..core.design_profiles import (
     SceneStructuralProfile,
     StructuralAnalysisPackage,
     RoofLoadSelectionProfile,
-    DesignCandidateSet,
     STEEL_SECTIONS,
     recommend_spread_foundation,
-    recommend_spread_foundation_from_reaction,
 )
 from ..core.pergola_loads import build_pergola_load_package
 from ..core.pergola_analysis import analyze_pergola_package
-from ..core.foundation_candidate_validation import validate_candidate_combinations
+from ..core.foundation_candidate_validation import size_scene_foundation_candidate
 from ..core.scene_foundation import calculate_scene_foundations
 from ..core.scene_column_base import calculate_scene_column_bases
 from ..core.scene_pedestal import calculate_scene_pedestals
@@ -1206,65 +1204,16 @@ def recommend_foundation_from_saved_analysis(
     if not project.geotechnical_profile:
         raise HTTPException(status_code=422, detail={"code": "missing_geotechnical_profile", "message": "请先保存项目地勘资料或方案土质档。"})
     geotechnical = ProjectGeotechnicalProfile.model_validate(project.geotechnical_profile)
-    reaction_cases = [item for item in reaction.get("_cases", []) if item.get("limit_state") == "ULS"]
-    if not reaction_cases:
-        reaction_cases = [{
-            "combination_id": "ULS-LEGACY-ENVELOPE",
-            "reaction": {key: value for key, value in reaction.items() if key != "_cases"},
-        }]
-    candidates: list[tuple[str, DesignCandidateSet]] = []
-    for reaction_case in reaction_cases:
-        candidates.append((
-            str(reaction_case["combination_id"]),
-            recommend_spread_foundation_from_reaction(
-                foundation_instance_id=foundation.id,
-                reaction={key: float(value) for key, value in reaction_case["reaction"].items()},
-                bearing_capacity_kpa=geotechnical.bearing_capacity_kpa,
-                initial_length_m=foundation_type.length_m,
-                initial_width_m=foundation_type.width_m,
-                initial_thickness_mm=foundation_type.thickness_mm,
-                pedestal=foundation_type.pedestal,
-                base_friction_coefficient=payload.base_friction_coefficient,
-                max_plan_m=payload.max_plan_m,
-            ),
-        ))
-    failed_candidates = [(case_id, item) for case_id, item in candidates if not item.converged]
-    if failed_candidates:
-        controlling_id, failed_candidate = failed_candidates[0]
-        candidate = failed_candidate.model_copy(update={
-            "failure_reason": f"组合 {controlling_id}：{failed_candidate.failure_reason}",
-            "governing_check": f"全部ULS组合逐项试算；{controlling_id} 控制",
-        })
-    else:
-        controlling_id, controlling_candidate = max(
-            candidates,
-            key=lambda item: (
-                float(item[1].recommended.get("length_m", 0))
-                * float(item[1].recommended.get("width_m", 0))
-                * float(item[1].recommended.get("thickness_mm", 0))
-                if item[1].recommended else 0
-            ),
-        )
-        recommended = {**(controlling_candidate.recommended or {}), "controlling_combination_id": controlling_id}
-        alternatives = [
-            {**(item.recommended or {}), "combination_id": case_id}
-            for case_id, item in candidates
-            if case_id != controlling_id and item.recommended
-        ][-2:]
-        iterations = [
-            {**iteration, "combination_id": case_id}
-            for case_id, item in candidates
-            for iteration in item.iterations
-        ]
-        candidate = controlling_candidate.model_copy(update={
-            "recommended": recommended,
-            "alternatives": alternatives,
-            "iterations": iterations,
-            "governing_check": f"全部ULS组合逐项试算；{controlling_id} 控制",
-        })
-    candidate = validate_candidate_combinations(
-        candidate, reaction_cases, bearing_capacity_kpa=geotechnical.bearing_capacity_kpa,
-        pedestal=foundation_type.pedestal, base_friction_coefficient=payload.base_friction_coefficient,
+    # Size with the same final check the analysis runs (all saved combinations,
+    # cover, groundwater, pedestal, project friction), so the recommendation
+    # cannot be rejected later by a check the search ignored.
+    candidate = size_scene_foundation_candidate(
+        geometry,
+        foundation.id,
+        reactions,
+        geotechnical,
+        project_name=project.name,
+        max_plan_m=payload.max_plan_m,
     )
     stored_candidates = dict((instance.draft_state or {}).get("foundation_candidate_sets", {}))
     stored_candidates[foundation.id] = candidate.model_dump(mode="json")

@@ -401,8 +401,11 @@ def test_invited_user_project_version_report_and_owner_isolation() -> None:
         foundation_candidate = foundation_candidates.json()
         assert foundation_candidate["converged"] is True
         assert foundation_candidate["target_node_id"] == "FI1"
-        assert foundation_candidate["recommended"]["column_reaction_n_kn"] > 0
-        assert "冲切" in foundation_candidate["recommended"]["pending_checks"]
+        # The recommendation comes from the same final foundation check the
+        # analysis runs: no failed check and every saved combination covered.
+        assert foundation_candidate["recommended"]["failed_checks"] == []
+        assert foundation_candidate["recommended"]["final_check_status"] == "incomplete"
+        assert foundation_candidate["recommended"]["validated_combination_ids"]
 
         resaved_analysis_geometry = client.put(
             f"/api/v2/projects/{project_id}/scene-instances/{analysis_instance_id}/geometry",

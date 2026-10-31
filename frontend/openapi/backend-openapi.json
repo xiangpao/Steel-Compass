@@ -2133,11 +2133,18 @@
       "FoundationCandidatesRequest": {
         "properties": {
           "base_friction_coefficient": {
-            "default": 0.3,
-            "exclusiveMinimum": 0.0,
-            "maximum": 1.0,
-            "title": "Base Friction Coefficient",
-            "type": "number"
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 1.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "deprecated": true,
+            "title": "Base Friction Coefficient"
           },
           "foundation_instance_id": {
             "maxLength": 80,
