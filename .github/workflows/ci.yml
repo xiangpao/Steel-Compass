@@ -26,6 +26,42 @@ jobs:
       - run: STEEL_COMPASS_DATABASE_URL=sqlite:///./migration-ci.db uv run alembic upgrade head
       - run: uv run pytest --cov=app --cov-report=term-missing
 
+  backend-postgres-migrations:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: steel_compass_ci
+          POSTGRES_USER: steel_compass
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U steel_compass -d steel_compass_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      STEEL_COMPASS_DATABASE_URL: postgresql+psycopg://steel_compass:ci-only-password@localhost:5432/steel_compass_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.x"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked
+      - run: uv run alembic upgrade head
+      # Re-running must be a no-op; the latest step must round-trip.
+      - run: uv run alembic upgrade head
+      - run: uv run alembic downgrade -1 && uv run alembic upgrade head
+      - run: uv run alembic current | grep "(head)"
+
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -46,7 +82,7 @@ jobs:
 
   compose:
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend, backend-postgres-migrations, frontend]
     steps:
       - uses: actions/checkout@v4
       - run: cp .env.example .env
