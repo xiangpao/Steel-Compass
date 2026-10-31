@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from math import atan2, cos, degrees, radians, sin, sqrt
 
 import numpy as np
@@ -27,7 +28,8 @@ from .space_frame import (
 )
 
 
-def _catalog_properties() -> dict[str, CustomSectionDefinition]:
+@lru_cache(maxsize=1)
+def _standard_section_properties() -> dict[str, CustomSectionDefinition]:
     result: dict[str, CustomSectionDefinition] = {}
     for entry in STEEL_SECTIONS:
         dimensions = dict(entry.dimensions)
@@ -43,6 +45,16 @@ def _catalog_properties() -> dict[str, CustomSectionDefinition]:
             section_id=entry.id,
         )
     return result
+
+
+def section_catalog(
+    custom_sections: list[CustomSectionDefinition] | None = None,
+) -> dict[str, CustomSectionDefinition]:
+    """Standard catalog sections overlaid by project custom sections."""
+    return {
+        **_standard_section_properties(),
+        **{item.id: item for item in (custom_sections or [])},
+    }
 
 
 def _surface_area(profile: SceneStructuralProfile) -> float:
@@ -278,8 +290,7 @@ def analyze_scene_space_frame(
                 field="supports",
             )
 
-    section_by_id = _catalog_properties()
-    section_by_id.update({item.id: item for item in (custom_sections or [])})
+    section_by_id = section_catalog(custom_sections)
     role_specs = {item.member_role: item for item in profile.members}
     group_specs = {item.group_id: item for item in profile.member_groups}
     member_overrides = {item.member_id: item for item in profile.member_overrides}
@@ -402,14 +413,13 @@ def analyze_scene_space_frame(
             or (item.kind == "wind" and item.direction in {"gravity", "down"})
         )
     )
-    uplift_pressure = max(
-        [
-            item.adopted_value or 0
-            for item in load_cases
-            if item.unit in {"kN/m2", "kPa"}
-            and item.direction in {"uplift", "up"}
-        ]
-        or [0.0]
+    # ``load_cases`` is one already-factored combination (or one case), so
+    # every listed action acts simultaneously and same-direction values add.
+    uplift_pressure = sum(
+        item.adopted_value or 0
+        for item in load_cases
+        if item.unit in {"kN/m2", "kPa"}
+        and item.direction in {"uplift", "up"}
     )
     wind_pressure = {
         direction: sum(
@@ -532,13 +542,10 @@ def analyze_scene_space_frame(
     # older immutable snapshots are never rewritten.
     first_order_result = result
     result = stability.second_order
+    # The reported maximum is the second-order state used by all checks.
     maximum_translation = max(
         sqrt(item.ux_mm**2 + item.uy_mm**2 + item.uz_mm**2)
         for item in result.displacements.values()
-    )
-    second_order_maximum = max(
-        sqrt(item.ux_mm**2 + item.uy_mm**2 + item.uz_mm**2)
-        for item in stability.second_order.displacements.values()
     )
     return {
         "solver": "steel-compass-space-frame-adapter-2.1",
@@ -564,7 +571,7 @@ def analyze_scene_space_frame(
         "roof_area_m2": round(roof_area, 4),
         "net_loaded_roof_area_m2": round(net_roof_area, 4),
         "maximum_translation_mm": round(maximum_translation, 6),
-        "second_order_maximum_translation_mm": round(second_order_maximum, 6),
+        "second_order_maximum_translation_mm": round(maximum_translation, 6),
         "second_order_amplification_ratio": round(stability.amplification_ratio, 6),
         "elastic_buckling_factors": [round(value, 6) for value in stability.buckling_factors],
         "stability_method": "first-order axial-force geometric stiffness / elastic eigen-buckling",

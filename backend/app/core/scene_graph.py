@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from math import hypot
+import re
 
 from .engine import calculate
 from .errors import CalculationInputError
@@ -45,7 +46,7 @@ from .schemas import (
     WallAnchorInputs,
 )
 from .site_profile import ProjectSiteProfile
-from .scene_space_frame import analyze_scene_space_frame
+from .pergola_analysis import analyze_scene_load_combinations
 from .scene_typed_adapters import MODELS as SCENE_TYPED_MODELS, adapt_scene_requests, apply_vertical_line, saved_section_properties, include_member_self_weight
 
 
@@ -464,6 +465,31 @@ def _typed_reaction_input(
     return typed
 
 
+def _natural_key(name: str) -> tuple:
+    return tuple(int(part) if part.isdigit() else part for part in re.split(r"(\d+)", name))
+
+
+def _envelope_component(envelope: dict, name: str) -> float:
+    return float(envelope.get("components", {}).get(name, {}).get("value", 0.0))
+
+
+def _tag_governing_envelopes(envelopes: list[dict]) -> None:
+    """Mark the combinations governing compression, uplift and resultant moment."""
+    if not envelopes:
+        return
+    axial = [_envelope_component(item, "N") for item in envelopes]
+    moment = [hypot(_envelope_component(item, "Mx"), _envelope_component(item, "My")) for item in envelopes]
+    for item, n_val, m_val in zip(envelopes, axial, moment):
+        tags = []
+        if abs(n_val - max(axial)) < 1e-6:
+            tags.append("N_max")
+        if abs(n_val - min(axial)) < 1e-6 and n_val < 0:
+            tags.append("N_uplift")
+        if abs(m_val - max(moment)) < 1e-6:
+            tags.append("M_max")
+        item["governing_tags"] = tags or ["general"]
+
+
 def _apply_reaction(
     calculation: CalculationRequest,
     connection: SceneConnection,
@@ -492,26 +518,23 @@ def _apply_reaction(
         for item in source.reaction_envelopes
         if item.name in envelope_names
     ]
-    if not upstream_envelopes and source.reaction_envelopes and connection.support in {
-        "left",
-        "base",
-        "right",
-    }:
+    if not upstream_envelopes and source.reaction_envelopes:
+        # Solvers name supports by node (base0..baseN, S1..Sn, E0..En) from
+        # left to right but may emit them in any order (e.g. from a set), so
+        # pick by the names' natural order, never by emission order.
         grouped: dict[str, list] = defaultdict(list)
         for item in source.reaction_envelopes:
             grouped[item.combination_id or item.combination_name].append(item)
-        upstream_envelopes = [
-            items[0]
-            if connection.support == "left"
-            else items[-1]
-            if connection.support == "right"
-            else items[len(items) // 2]
-            for items in grouped.values()
-        ]
-    if not upstream_envelopes and len(
-        {item.name for item in source.reaction_envelopes}
-    ) == 1:
-        upstream_envelopes = list(source.reaction_envelopes)
+        upstream_envelopes = []
+        for items in grouped.values():
+            items = sorted(items, key=lambda item: _natural_key(item.name))
+            upstream_envelopes.append(
+                items[0]
+                if connection.support == "left"
+                else items[-1]
+                if connection.support == "right"
+                else items[len(items) // 2]
+            )
     if connection.requires_source_trace and not upstream_envelopes:
         raise CalculationInputError(
             "missing_source_reaction_envelope",
@@ -523,28 +546,7 @@ def _apply_reaction(
             },
         )
 
-    def _tag_governing_envelopes(envelope_list: list[dict]) -> list[dict]:
-        if not envelope_list:
-            return envelope_list
-        tagged = [dict(item) for item in envelope_list]
-        max_n = max((float(item.get("components", {}).get("N", {}).get("value", 0.0)) for item in tagged), default=0.0)
-        min_n = min((float(item.get("components", {}).get("N", {}).get("value", 0.0)) for item in tagged), default=0.0)
-        max_m = max((abs(float(item.get("components", {}).get("My", {}).get("value", 0.0))) for item in tagged), default=0.0)
-        for item in tagged:
-            comp = item.get("components", {})
-            n_val = float(comp.get("N", {}).get("value", 0.0))
-            m_val = abs(float(comp.get("My", {}).get("value", 0.0)))
-            tags = []
-            if abs(n_val - max_n) < 1e-6:
-                tags.append("N_max")
-            if abs(n_val - min_n) < 1e-6 and n_val < 0:
-                tags.append("N_uplift")
-            if abs(m_val - max_m) < 1e-6:
-                tags.append("M_max")
-            item["governing_tags"] = tags or ["general"]
-        return tagged
-
-    converted_envelopes = _tag_governing_envelopes([item.model_dump(mode="json") for item in upstream_envelopes])
+    converted_envelopes = [item.model_dump(mode="json") for item in upstream_envelopes]
     for envelope in converted_envelopes:
         combination=next((c for c in source.combinations if c.combination_id==envelope.get('combination_id')),None)
         if combination is not None:
@@ -600,12 +602,21 @@ def _apply_reaction(
     if previous and connection.transfer in {'reaction_package','combination_package'}:
         # Multiple physical members meeting at the same support contribute to
         # one real vector per combination. Never overwrite the first member.
-        combined={ (item.get('combination_id'),item.get('limit_state')):dict(item) for item in previous }
+        def key_of(item):
+            return (item.get('combination_id') or item.get('combination_name'),item.get('limit_state'))
+        combined={key_of(item):dict(item) for item in previous}
+        incoming={key_of(item) for item in converted_envelopes}
+        if len(combined)!=len(previous) or len(incoming)!=len(converted_envelopes) or incoming!=set(combined):
+            # A combination present in only one member would silently drop the
+            # other member's share; the joint vector cannot be formed.
+            raise CalculationInputError(
+                'scene_adapter_missing_inputs',
+                '汇合到同一支座的上游节点缺少一致组合，不能形成同一组合的合力。',
+                details={'missing_fields':[f'combination:{key[0]}:{connection.source_node_id}'
+                                           for key in sorted(incoming^set(combined),key=str)]},
+            )
         for item in converted_envelopes:
-            key=(item.get('combination_id'),item.get('limit_state'))
-            if key not in combined:
-                combined[key]=item
-                continue
+            key=key_of(item)
             old=combined[key]
             components={}
             for component in ('N','Vx','Vy','Mx','My','T'):
@@ -615,6 +626,8 @@ def _apply_reaction(
                 components[component]={'value':first['value']+second['value'],'unit':first['unit']}
             combined[key]={**old,'components':components}
         converted_envelopes=list(combined.values())
+    # Tag the final vectors: after beam Vy->N conversion and member merging.
+    _tag_governing_envelopes(converted_envelopes)
     updated_inputs = {
         **calculation.inputs,
         "reaction_source_node_id": connection.source_node_id,
@@ -627,7 +640,9 @@ def _apply_reaction(
     updated_typed_inputs = _typed_reaction_input(
         calculation, connection, converted_envelopes
     )
-    if calculation.module is CalculationModule.SPREAD_FOOTING:
+    if calculation.module is CalculationModule.SPREAD_FOOTING and not converted_envelopes:
+        # Scalar sidecars are only a fallback. Envelope N already carries any
+        # uplift and spread_footing subtracts uplift_kn from every combination.
         updated_inputs.update(
             {
                 "horizontal_x_kn": horizontal,
@@ -1232,7 +1247,7 @@ def execute_scene(
                 maturity=node.maturity,
                 applicability=node.applicability,
                 workflow_status="ready",
-                engineering_status="passed",
+                engineering_status=None,
                 verification_status=node.verification_status,
             )
             continue
@@ -1313,40 +1328,6 @@ def execute_scene(
                     ]
                     if len(forwarded) == 1:
                         calculated[node_id] = forwarded[0]
-            elif node.applicability == "required":
-                node_results[node_id] = SceneNodeResult(
-                    node_id=node.id,
-                    label=node.label,
-                    status="incomplete",
-                    maturity=node.maturity,
-                    applicability=node.applicability,
-                    workflow_status=(
-                        "capability_unavailable"
-                        if node.maturity == "planned"
-                        else "missing_inputs"
-                    ),
-                    engineering_status="incomplete",
-                    verification_status=node.verification_status,
-                    message=(
-                        "该节点计算能力尚未开放。"
-                        if node.maturity == "planned"
-                        else "该节点尚缺少必要输入。"
-                    ),
-                    stale=node.id in stale,
-                )
-            else:
-                node_results[node_id] = SceneNodeResult(
-                    node_id=node.id,
-                    label=node.label,
-                    status="not_applicable",
-                    maturity=node.maturity,
-                    applicability=node.applicability,
-                    workflow_status="ready",
-                    engineering_status=(
-                        None if mode is CalculationMode.QUICK else "passed"
-                    ),
-                    verification_status=node.verification_status,
-                )
             continue
 
         if calculation is None:
@@ -1542,17 +1523,18 @@ def execute_scene(
         and structural_profile is not None
         and structural_profile.geometry is not None
     ):
-        space_frame_analysis = analyze_scene_space_frame(
+        space_frame_analysis = analyze_scene_load_combinations(
             structural_profile,
             resolved_loads,
             custom_sections,
         )
         catalog_versions["space_frame_solver"] = (
-            "steel-compass-space-frame-adapter-2.1-unverified"
+            "steel-compass-space-frame-adapter-2.2-combinations-unverified"
         )
 
     stability_incomplete = bool(space_frame_analysis and (space_frame_analysis.get("stability_scope") or {}).get("status") == "incomplete")
-    if stability_incomplete:
+    uncombined_loads = list((space_frame_analysis or {}).get("unsupported_load_case_ids", []))
+    if stability_incomplete or uncombined_loads:
         if workflow_status != "stale": workflow_status = "capability_unavailable"
         if quick_outcome != "screening_failed": quick_outcome = None
         if engineering_status == "passed": engineering_status = "incomplete"
@@ -1560,6 +1542,11 @@ def execute_scene(
     warnings = [*family.boundaries]
     if stability_incomplete:
         warnings.append("空间分析稳定范围未完整覆盖当前模型，不能形成筛查通过结论。")
+    if uncombined_loads:
+        warnings.append(
+            "以下面荷载的类型或方向不能进入空间分析组合，未计入三维杆系结果："
+            + "、".join(uncombined_loads)
+        )
     if family.id == "boardwalk-platform" and variant_id == "viewing-platform":
         warnings.append("四边简支板按显式45度几何分担区传力；边梁分段均布逼近三角/梯形荷载，四角各汇总相邻两边梁。此方案级分配不是弹性板精确边界反力。")
     if missing_load_values:

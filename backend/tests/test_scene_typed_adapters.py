@@ -267,14 +267,14 @@ def test_guided_grid_propagates_incomplete_stability_scope(monkeypatch):
     from tests.test_scene_space_frame import _profile
     import app.core.scene_graph as graph_module
     family,variant,_,loads=fixture('pergola-pavilion','guided-grid')
-    monkeypatch.setattr(graph_module,'analyze_scene_space_frame',lambda *args,**kwargs:{
+    monkeypatch.setattr(graph_module,'analyze_scene_load_combinations',lambda *args,**kwargs:{
         'stability_scope':{'status':'incomplete','excluded_truss_member_ids':['brace']},
         'verification_status':'unverified'})
     result=execute_scene(family,variant.id,'quick',[],load_cases=loads,structural_profile=_profile('rhs-200x100x6'))
     assert result.workflow_status=='capability_unavailable'
     assert result.quick_outcome is None
     assert result.status=='incomplete'
-    assert result.catalog_versions['space_frame_solver']=='steel-compass-space-frame-adapter-2.1-unverified'
+    assert result.catalog_versions['space_frame_solver']=='steel-compass-space-frame-adapter-2.2-combinations-unverified'
 
 
 def test_pile_cap_thickness_adds_self_weight_with_actual_source_combination_factors_once():
