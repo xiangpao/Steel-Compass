@@ -3298,14 +3298,14 @@ export function PergolaWorkbenchV2({ mode = "qa", projects = [], onProjectsChang
             <span>二维精确编辑</span>
             <strong>{view === "plan" ? "平面" : view === "x_elevation" ? "X立面" : "Y立面"}</strong>
           </div>
-          <div className="qa-view-tabs" role="tablist">
-            <button type="button" className={view === "plan" ? "active" : ""} onClick={() => setView("plan")}>
+          <div className="qa-view-tabs" role="tablist" aria-label="二维视图">
+            <button type="button" role="tab" aria-selected={view === "plan"} className={view === "plan" ? "active" : ""} onClick={() => setView("plan")}>
               平面
             </button>
-            <button type="button" className={view === "x_elevation" ? "active" : ""} onClick={() => setView("x_elevation")}>
+            <button type="button" role="tab" aria-selected={view === "x_elevation"} className={view === "x_elevation" ? "active" : ""} onClick={() => setView("x_elevation")}>
               X立面
             </button>
-            <button type="button" className={view === "y_elevation" ? "active" : ""} onClick={() => setView("y_elevation")}>
+            <button type="button" role="tab" aria-selected={view === "y_elevation"} className={view === "y_elevation" ? "active" : ""} onClick={() => setView("y_elevation")}>
               Y立面
             </button>
           </div>

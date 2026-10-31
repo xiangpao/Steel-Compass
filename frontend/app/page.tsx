@@ -1666,12 +1666,16 @@ function ResultPanel({
       </header>
       <div className="result-tabs" role="tablist" aria-label="结果显示层级">
         <button
+          role="tab"
+          aria-selected={resultView === "overview"}
           className={resultView === "overview" ? "active" : ""}
           onClick={() => setResultView("overview")}
         >
           速览
         </button>
         <button
+          role="tab"
+          aria-selected={resultView === "details"}
           className={resultView === "details" ? "active" : ""}
           onClick={() => setResultView("details")}
         >

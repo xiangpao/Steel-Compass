@@ -1142,6 +1142,8 @@ function LegacySceneWorkspace({
     setRevision(latest);
     setInputVersion(0);
     setCalculatedVersion(latest ? 0 : -1);
+    captureFingerprint.current = Boolean(latest);
+    if (!latest) calculatedFingerprint.current = null;
     setChangedNodeIds([]);
     setTab(state.workspace_tab === "results" && latest ? "results" : "settings");
   }
@@ -1181,6 +1183,34 @@ function LegacySceneWorkspace({
       if (sequence === projectLoadSequence.current) setError(errorMessage(caught));
     }
   }
+
+  // Specifications and geotechnical fields are edited in many places; mark the
+  // result stale from their values instead of relying on each handler. The
+  // fingerprint of the last calculated inputs is compared, so loading a
+  // project or a revision does not count as an edit.
+  const designInputFingerprint = JSON.stringify([
+    memberSpecifications, foundationSpecifications, designStage, seismicLevel,
+    soilHintId, soilClass, bearingCapacity, bearingSource, baseFriction,
+    groundwaterCondition, constructionWaterLevel, serviceWaterLevel,
+    antifloatWaterLevel, groundwaterSource, deformationModulus,
+    geotechnicalReportName, geotechnicalReportDate,
+  ]);
+  const calculatedFingerprint = useRef<string | null>(null);
+  // Set when a revision is restored; the next render's values become the
+  // baseline because the restored state is applied in the same batch.
+  const captureFingerprint = useRef(false);
+  useEffect(() => {
+    if (captureFingerprint.current) {
+      captureFingerprint.current = false;
+      calculatedFingerprint.current = designInputFingerprint;
+      return;
+    }
+    if (calculatedFingerprint.current === null || revision === null) return;
+    if (calculatedFingerprint.current !== designInputFingerprint) {
+      setInputVersion((current) => current + 1);
+      calculatedFingerprint.current = designInputFingerprint;
+    }
+  }, [designInputFingerprint, revision]);
 
   function markChanged(nodeIds: string[]) {
     setInputVersion((current) => current + 1);
@@ -1953,6 +1983,7 @@ function LegacySceneWorkspace({
         [saved.id]: [calculated, ...(current[saved.id] ?? [])],
       }));
       setCalculatedVersion(inputVersion);
+      calculatedFingerprint.current = designInputFingerprint;
       setChangedNodeIds([]);
       setTab("results");
       const refreshed = await api<Project[]>("/api/v2/projects");
