@@ -115,6 +115,10 @@ class ProjectRevision(Base):
         ForeignKey("projects.id", ondelete="CASCADE"), index=True
     )
     revision_number: Mapped[int] = mapped_column(Integer)
+    # Scene revisions only: copy of snapshot["scene_context"]["scene_instance_id"]
+    # so lookups need not load every snapshot. No FK: historical rows may name
+    # instances that no longer exist.
+    scene_instance_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     snapshot_schema_version: Mapped[str] = mapped_column(String(20), default="1.0")
     snapshot: Mapped[dict] = mapped_column(JSON)
     result_bundle: Mapped[dict] = mapped_column(JSON)

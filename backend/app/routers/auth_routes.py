@@ -25,7 +25,7 @@ from ..auth import (
 )
 from ..config import get_settings
 from ..database import get_db
-from ..models import LoginSession, User
+from ..models import User
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])

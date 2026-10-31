@@ -20,6 +20,10 @@ from .models import User
 from .routers import auth_routes, calculation_routes, project_routes, scene_routes
 
 
+class BootstrapConfigError(RuntimeError):
+    """Startup configuration that would leave a fresh install without an admin."""
+
+
 def bootstrap_database() -> None:
     Base.metadata.create_all(bind=engine)
     settings = get_settings()
@@ -29,17 +33,27 @@ def bootstrap_database() -> None:
         existing = db.scalar(
             select(User).where(User.username == settings.bootstrap_admin_username)
         )
-        if existing is None:
-            db.add(
-                User(
-                    username=settings.bootstrap_admin_username,
-                    display_name="系统管理员",
-                    password_hash=hash_password(settings.bootstrap_admin_password),
-                    is_admin=True,
-                    must_change_password=True,
-                )
+        if existing is not None:
+            return
+        # Fail fast with a readable cause: skipping would start a server that
+        # nobody can log in to, and the health check would still pass.
+        try:
+            password_hash = hash_password(settings.bootstrap_admin_password)
+        except ValueError as exc:
+            raise BootstrapConfigError(
+                "STEEL_COMPASS_BOOTSTRAP_ADMIN_PASSWORD is too short to create the "
+                f"bootstrap admin {settings.bootstrap_admin_username!r}: {exc}"
+            ) from exc
+        db.add(
+            User(
+                username=settings.bootstrap_admin_username,
+                display_name="系统管理员",
+                password_hash=password_hash,
+                is_admin=True,
+                must_change_password=True,
             )
-            db.commit()
+        )
+        db.commit()
 
 
 @asynccontextmanager

@@ -7,6 +7,7 @@ from hashlib import sha256
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -76,36 +77,86 @@ from ..core.scene_pedestal import calculate_scene_pedestals
 from ..core.scene_steel_connection import calculate_scene_steel_connections
 from ..core.geometry_topology import find_member_topology_conflicts, validate_plan_boundary
 from ..database import get_db
-from ..models import Project, ProjectRevision, SceneAnalysisSnapshotRecord, SceneInstance, User
+from ..models import ProjectRevision, SceneAnalysisSnapshotRecord, SceneInstance, User
 from ..report import build_scene_analysis_snapshot_pdf
+from .project_routes import (
+    _applicable_node_ids,
+    _client_draft,
+    _lock_project_numbering,
+    _next_number,
+    _numbering_conflict_as_409,
+    _owned_project,
+)
 
 
 router = APIRouter(tags=["scene-system"])
 
-
-def _client_draft(payload: dict) -> dict:
-    """Client drafts cannot restore server-owned analysis pointers or candidates."""
-    return {**payload, "last_analysis_package": None, "last_analysis_snapshot": None,
-            "last_analysis_snapshot_id": None, "foundation_candidate_sets": {}}
-
-
-def _owned_project(db: Session, project_id: int, user_id: int) -> Project:
-    project = db.scalar(
-        select(Project).where(Project.id == project_id, Project.owner_id == user_id)
-    )
-    if project is None:
-        raise HTTPException(status_code=404, detail="项目不存在")
-    return project
+# Server-owned caches that are rebuilt from the snapshot table; immutable
+# revision snapshots keep the user's inputs only.
+_TRANSIENT_DRAFT_KEYS = frozenset({
+    "last_analysis_package",
+    "last_analysis_snapshot",
+    "last_analysis_snapshot_id",
+    "foundation_candidate_sets",
+})
+# A maximal Geometry 2.3 model (200 nodes / 400 members) is well under 1 MB.
+MAX_DRAFT_STATE_BYTES = 2 * 1024 * 1024
 
 
-def _lock_project_numbering(db: Session, project_id: int) -> None:
-    """Serialize number allocation per project (row lock; no-op on SQLite).
+def _snapshot_draft(draft_state: dict | None) -> dict:
+    return {key: value for key, value in (draft_state or {}).items() if key not in _TRANSIENT_DRAFT_KEYS}
 
-    Version, revision, report and snapshot numbers are max+1 within a project;
-    without the lock two concurrent saves read the same max and one fails on
-    the unique constraint after its calculation already ran.
-    """
-    db.execute(select(Project.id).where(Project.id == project_id).with_for_update())
+
+def _validation_errors(exc: ValidationError) -> list[dict]:
+    return [{"loc": list(item["loc"]), "msg": item["msg"], "type": item["type"]} for item in exc.errors()]
+
+
+def _validated_client_draft(payload: dict) -> dict:
+    """Bound the draft size and store geometry_profile only in validated form."""
+    size = len(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+    if size > MAX_DRAFT_STATE_BYTES:
+        raise HTTPException(status_code=413, detail={
+            "code": "draft_state_too_large",
+            "message": f"草稿数据 {size} 字节，超过 {MAX_DRAFT_STATE_BYTES} 字节上限。",
+        })
+    draft = dict(payload)
+    if draft.get("geometry_profile") is not None:
+        try:
+            geometry = SceneGeometryProfile.model_validate(draft["geometry_profile"])
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail={
+                "code": "invalid_geometry_profile",
+                "message": "草稿中的空间模型未通过校验。",
+                "errors": _validation_errors(exc),
+            }) from exc
+        draft["geometry_profile"] = geometry.model_dump(mode="json")
+    return _client_draft(draft)
+
+
+def _saved_geometry(instance: SceneInstance) -> SceneGeometryProfile | None:
+    """The stored geometry, or 422 when an older unvalidated draft is corrupt."""
+    value = (instance.draft_state or {}).get("geometry_profile")
+    if not value:
+        return None
+    try:
+        return SceneGeometryProfile.model_validate(value)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail={
+            "code": "invalid_saved_geometry",
+            "message": "已保存的空间模型未通过校验，请重新保存模型。",
+            "errors": _validation_errors(exc),
+        }) from exc
+
+
+def _has_saved_scene_revision(db: Session, project_id: int, scene_instance_id: int) -> bool:
+    return db.scalar(
+        select(ProjectRevision.id)
+        .where(
+            ProjectRevision.project_id == project_id,
+            ProjectRevision.scene_instance_id == scene_instance_id,
+        )
+        .limit(1)
+    ) is not None
 
 
 def _owned_scene_instance(
@@ -142,14 +193,24 @@ def _instance_view(instance: SceneInstance) -> SceneInstanceView:
     return SceneInstanceView.model_validate(instance)
 
 
+def _scene_graph_or_422(family: SceneFamily, variant_id: str):
+    try:
+        return instantiate_scene_graph(family, variant_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=422, detail={
+            "code": "unknown_scene_variant",
+            "message": "场景变体已不在当前目录中；历史记录只读。",
+            "variant_id": variant_id,
+        }) from exc
+
+
 def _scene_revision_view(revision: ProjectRevision) -> SceneRevisionView:
-    scene_context = revision.snapshot.get("scene_context", {})
     return SceneRevisionView(
         id=revision.id,
         project_id=revision.project_id,
         revision_number=revision.revision_number,
         snapshot_schema_version=revision.snapshot_schema_version,
-        scene_instance_id=scene_context["scene_instance_id"],
+        scene_instance_id=revision.snapshot["scene_context"]["scene_instance_id"],
         scene_result=SceneRevisionResult.model_validate(
             revision.snapshot["scene_result"]
         ),
@@ -231,7 +292,7 @@ def create_scene_instance(
         title=payload.title,
         mode=payload.mode.value,
         template_version=SCENE_CATALOG_VERSION,
-        draft_state=_client_draft(payload.draft_state),
+        draft_state=_validated_client_draft(payload.draft_state),
         stale_node_ids=[],
     )
     project.updated_at = datetime.now(timezone.utc)
@@ -257,15 +318,15 @@ def update_scene_instance(
     )
     family = _family_or_404(instance.family_id)
     if payload.variant_id is not None:
-        old_graph = instantiate_scene_graph(family, instance.variant_id)
         _validate_variant(family, payload.variant_id)
         if payload.variant_id != instance.variant_id:
+            # A historical variant may have left the catalog; switching away
+            # from it is still allowed.
+            old_node_ids = _applicable_node_ids(family.id, instance.variant_id) or []
             instance.variant_id = payload.variant_id
-            new_graph = instantiate_scene_graph(family, payload.variant_id)
             instance.stale_node_ids = [
-                node.id
-                for node in [*old_graph.nodes, *new_graph.nodes]
-                if node.applicability != "not_applicable"
+                *old_node_ids,
+                *(_applicable_node_ids(family.id, payload.variant_id) or []),
             ]
     if payload.title is not None:
         instance.title = payload.title
@@ -273,35 +334,23 @@ def update_scene_instance(
         if payload.mode.value != "quick":
             raise HTTPException(status_code=422, detail="重新计算统一采用方案筛查模式")
         instance.mode = "quick"
+    geometry_changed = False
     if payload.draft_state is not None:
-        instance.draft_state = _client_draft(payload.draft_state)
+        previous_geometry = (instance.draft_state or {}).get("geometry_profile")
+        instance.draft_state = _validated_client_draft(payload.draft_state)
+        geometry_changed = instance.draft_state.get("geometry_profile") != previous_geometry
     if payload.variant_id is not None or payload.changed_node_ids:
         instance.draft_state = _client_draft(instance.draft_state or {})
     if payload.archived is not None:
         instance.archived = payload.archived
-    if payload.changed_node_ids:
-        has_saved_result = any(
-            item.snapshot.get("scene_context", {}).get("scene_instance_id")
-            == instance.id
-            for item in db.scalars(
-                select(ProjectRevision).where(
-                    ProjectRevision.project_id == project_id
-                )
-            ).all()
-        )
-        if has_saved_result:
-            instance.stale_node_ids = list(
-                dict.fromkeys(
-                    [
-                        *instance.stale_node_ids,
-                        *downstream_node_ids(
-                            family,
-                            payload.changed_node_ids,
-                            instance.variant_id,
-                        ),
-                    ]
-                )
-            )
+    if (payload.changed_node_ids or geometry_changed) and _has_saved_scene_revision(db, project_id, instance.id):
+        stale = [*instance.stale_node_ids]
+        if payload.changed_node_ids:
+            stale.extend(downstream_node_ids(family, payload.changed_node_ids, instance.variant_id))
+        if geometry_changed:
+            # Same effect as PUT .../geometry: a changed model stales every node.
+            stale.extend(_applicable_node_ids(instance.family_id, instance.variant_id) or [])
+        instance.stale_node_ids = list(dict.fromkeys(stale))
     instance.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(instance)
@@ -318,9 +367,7 @@ def get_scene_geometry(
     db: Session = Depends(get_db),
     user: User = Depends(require_ready_user),
 ) -> SceneGeometryProfile | None:
-    instance = _owned_scene_instance(db, project_id, scene_instance_id, user.id)
-    value = (instance.draft_state or {}).get("geometry_profile")
-    return SceneGeometryProfile.model_validate(value) if value else None
+    return _saved_geometry(_owned_scene_instance(db, project_id, scene_instance_id, user.id))
 
 
 @router.put(
@@ -335,19 +382,13 @@ def update_scene_geometry(
     user: User = Depends(require_ready_user),
 ) -> SceneGeometryProfile:
     instance = _owned_scene_instance(db, project_id, scene_instance_id, user.id)
-    instance.draft_state = {
-        **(instance.draft_state or {}),
-        "geometry_profile": payload.model_dump(mode="json"),
-        "last_analysis_package": None,
-        "last_analysis_snapshot": None,
-        "last_analysis_snapshot_id": None,
-        "foundation_candidate_sets": {},
-    }
-    family = _family_or_404(instance.family_id)
-    graph = instantiate_scene_graph(family, instance.variant_id)
-    instance.stale_node_ids = [
-        node.id for node in graph.nodes if node.applicability != "not_applicable"
-    ]
+    _family_or_404(instance.family_id)
+    instance.draft_state = _client_draft(
+        {**(instance.draft_state or {}), "geometry_profile": payload.model_dump(mode="json")}
+    )
+    node_ids = _applicable_node_ids(instance.family_id, instance.variant_id)
+    if node_ids is not None:
+        instance.stale_node_ids = node_ids
     instance.updated_at = datetime.now(timezone.utc)
     db.commit()
     return payload
@@ -381,22 +422,16 @@ def update_scene_connections(
     user: User = Depends(require_ready_user),
 ) -> SceneConnectionsView:
     instance = _owned_scene_instance(db, project_id, scene_instance_id, user.id)
-    raw_geometry = (instance.draft_state or {}).get("geometry_profile")
-    if raw_geometry is None:
+    geometry = _saved_geometry(instance)
+    if geometry is None:
         raise HTTPException(status_code=422, detail="请先保存 Geometry 2.3 模型")
-    geometry = SceneGeometryProfile.model_validate(raw_geometry)
     if geometry.profile_version != "2.3":
         raise HTTPException(status_code=422, detail="连接接口只允许修改 Geometry 2.3；旧模型请另存为新版")
     updated = geometry.model_copy(update={"connection_types": payload.types, "connection_instances": payload.instances})
     validated = SceneGeometryProfile.model_validate(updated.model_dump(mode="json"))
-    instance.draft_state = {
-        **(instance.draft_state or {}),
-        "geometry_profile": validated.model_dump(mode="json"),
-        "last_analysis_package": None,
-        "last_analysis_snapshot": None,
-        "last_analysis_snapshot_id": None,
-        "foundation_candidate_sets": {},
-    }
+    instance.draft_state = _client_draft(
+        {**(instance.draft_state or {}), "geometry_profile": validated.model_dump(mode="json")}
+    )
     instance.updated_at = datetime.now(timezone.utc)
     db.commit()
     return payload
@@ -700,10 +735,9 @@ def preview_saved_scene_analysis(
 ) -> SceneAnalysisPreviewView:
     project = _owned_project(db, project_id, user.id)
     instance = _owned_scene_instance(db, project_id, scene_instance_id, user.id)
-    raw_geometry = (instance.draft_state or {}).get("geometry_profile")
-    if raw_geometry is None:
+    geometry = _saved_geometry(instance)
+    if geometry is None:
         return SceneAnalysisPreviewView(ready=False, missing_inputs=["Geometry 2.3模型"])
-    geometry = SceneGeometryProfile.model_validate(raw_geometry)
     site_profile = ProjectSiteProfile.model_validate(project.site_profile) if project.site_profile else None
     package = build_pergola_load_package(geometry, site_profile, payload.roof_load_selection)
     return SceneAnalysisPreviewView(
@@ -728,10 +762,9 @@ def analyze_saved_scene(
 ) -> SceneAnalysisView:
     project = _owned_project(db, project_id, user.id)
     instance = _owned_scene_instance(db, project_id, scene_instance_id, user.id)
-    raw_geometry = (instance.draft_state or {}).get("geometry_profile")
-    if raw_geometry is None:
+    geometry = _saved_geometry(instance)
+    if geometry is None:
         raise HTTPException(status_code=422, detail={"code": "missing_saved_geometry", "message": "请先保存 Geometry 2.3 模型。"})
-    geometry = SceneGeometryProfile.model_validate(raw_geometry)
     if geometry.profile_version != "2.3":
         raise HTTPException(status_code=422, detail={"code": "readonly_legacy_geometry", "message": "旧模型只读；请另存为 Geometry 2.3 后计算。"})
     validation = validate_scene_geometry(project_id, scene_instance_id, geometry, db, user)
@@ -944,6 +977,8 @@ def analyze_saved_scene(
         created_at=datetime.now(timezone.utc).isoformat(),
         content_hash=_canonical_hash(snapshot_basis),
     )
+    # Lock before the content-hash lookup so identical concurrent analyses
+    # reuse one snapshot instead of racing on the unique hash.
     _lock_project_numbering(db, project_id)
     snapshot_record = db.scalar(
         select(SceneAnalysisSnapshotRecord).where(
@@ -971,7 +1006,8 @@ def analyze_saved_scene(
             report_number=f"SC-{project_id:06d}-A{scene_instance_id:04d}-{next_snapshot:03d}",
         )
         db.add(snapshot_record)
-        db.flush()
+        with _numbering_conflict_as_409(db):
+            db.flush()
     package = SceneAnalysisView(
         workflow_status=workflow_status,
         model_validation=validation,
@@ -994,7 +1030,8 @@ def analyze_saved_scene(
         "last_analysis_snapshot_id": snapshot_record.id,
     }
     instance.updated_at = datetime.now(timezone.utc)
-    db.commit()
+    with _numbering_conflict_as_409(db):
+        db.commit()
     return package
 
 
@@ -1087,7 +1124,7 @@ def recommend_scene_design(
 ) -> SceneRecommendationView:
     project = _owned_project(db, project_id, user.id)
     instance = _owned_scene_instance(db, project_id, scene_instance_id, user.id)
-    graph = instantiate_scene_graph(_family_or_404(instance.family_id), instance.variant_id)
+    graph = _scene_graph_or_422(_family_or_404(instance.family_id), instance.variant_id)
     target = next((node for node in graph.nodes if node.id == payload.target_node_id), None)
     if target is None or target.role != "foundation":
         raise HTTPException(status_code=422, detail="推荐目标必须是当前场景的基础节点")
@@ -1120,9 +1157,9 @@ def recommend_foundation_from_saved_analysis(
 ) -> SceneRecommendationView:
     project = _owned_project(db, project_id, user.id)
     instance = _owned_scene_instance(db, project_id, scene_instance_id, user.id)
-    raw_geometry = (instance.draft_state or {}).get("geometry_profile")
+    geometry = _saved_geometry(instance)
     snapshot_id = (instance.draft_state or {}).get("last_analysis_snapshot_id")
-    if raw_geometry is None or snapshot_id is None:
+    if geometry is None or snapshot_id is None:
         raise HTTPException(status_code=422, detail={
             "code": "missing_saved_analysis",
             "message": "请先保存 Geometry 2.2 并完成服务端分析；基础候选不接受手填柱脚反力。",
@@ -1139,12 +1176,24 @@ def recommend_foundation_from_saved_analysis(
             "code": "missing_saved_analysis",
             "message": "分析快照不存在或不属于当前场景，请重新分析。",
         })
-    geometry = SceneGeometryProfile.model_validate(raw_geometry)
     foundation = next((item for item in geometry.foundation_instances if item.id == payload.foundation_instance_id), None)
     if foundation is None:
         raise HTTPException(status_code=422, detail={"code": "unknown_foundation_instance", "object_id": payload.foundation_instance_id})
-    foundation_type = next(item for item in geometry.foundation_types if item.id == foundation.foundation_type_id)
-    support = next(item for item in geometry.supports if item.id == foundation.support_id)
+    # Geometry before 2.1 does not cross-check these references at validation.
+    foundation_type = next((item for item in geometry.foundation_types if item.id == foundation.foundation_type_id), None)
+    if foundation_type is None:
+        raise HTTPException(status_code=422, detail={
+            "code": "unknown_foundation_type",
+            "message": f"基础 {foundation.mark} 引用了不存在的基础类型 {foundation.foundation_type_id}。",
+            "object_id": foundation.id,
+        })
+    support = next((item for item in geometry.supports if item.id == foundation.support_id), None)
+    if support is None:
+        raise HTTPException(status_code=422, detail={
+            "code": "unknown_foundation_support",
+            "message": f"基础 {foundation.mark} 引用了不存在的支承 {foundation.support_id}。",
+            "object_id": foundation.id,
+        })
     solver_result = snapshot_record.snapshot.get("analysis", {}).get("solver_result", {})
     reactions, _ = _governing_support_reactions(solver_result)
     reaction = reactions.get(support.node_id)
@@ -1252,35 +1301,35 @@ def duplicate_scene_instance(
     project.updated_at = datetime.now(timezone.utc)
     db.add(duplicate)
     db.flush()
-    source_revisions = db.scalars(
+    latest = db.scalar(
         select(ProjectRevision)
-        .where(ProjectRevision.project_id == project_id)
+        .where(
+            ProjectRevision.project_id == project_id,
+            ProjectRevision.scene_instance_id == source.id,
+        )
         .order_by(ProjectRevision.revision_number.desc())
-    ).all()
-    latest = next(
-        (
-            item
-            for item in source_revisions
-            if item.snapshot.get("scene_context", {}).get("scene_instance_id")
-            == source.id
-        ),
-        None,
+        .limit(1)
     )
     if latest is not None:
-        _lock_project_numbering(db, project.id)
-        current_revision = db.scalar(
-            select(func.max(ProjectRevision.revision_number)).where(
-                ProjectRevision.project_id == project.id
-            )
+        next_revision = _next_number(
+            db, project.id, ProjectRevision.revision_number, ProjectRevision.project_id == project.id
         )
-        next_revision = (current_revision or 0) + 1
-        copied_snapshot = deepcopy(latest.snapshot)
-        copied_snapshot["scene_context"]["scene_instance_id"] = duplicate.id
-        copied_snapshot["scene_context"]["title"] = duplicate.title
+        # A new row for the copy; the source revision stays untouched.
+        scene_context = latest.snapshot["scene_context"]
+        copied_snapshot = deepcopy({
+            **latest.snapshot,
+            "scene_context": {
+                **scene_context,
+                "scene_instance_id": duplicate.id,
+                "title": duplicate.title,
+                "draft_state": _snapshot_draft(scene_context.get("draft_state")),
+            },
+        })
         db.add(
             ProjectRevision(
                 project_id=project.id,
                 revision_number=next_revision,
+                scene_instance_id=duplicate.id,
                 snapshot_schema_version=latest.snapshot_schema_version,
                 snapshot=copied_snapshot,
                 result_bundle=deepcopy(latest.result_bundle),
@@ -1289,7 +1338,8 @@ def duplicate_scene_instance(
                 report_number=f"SC-{project.id:06d}-R{next_revision:03d}",
             )
         )
-    db.commit()
+    with _numbering_conflict_as_409(db):
+        db.commit()
     db.refresh(duplicate)
     return _instance_view(duplicate)
 
@@ -1309,20 +1359,15 @@ def list_scene_revisions(
         _owned_scene_instance(db, project_id, scene_instance_id, user.id)
     revisions = db.scalars(
         select(ProjectRevision)
-        .where(ProjectRevision.project_id == project_id)
+        .where(
+            ProjectRevision.project_id == project_id,
+            ProjectRevision.scene_instance_id.is_not(None)
+            if scene_instance_id is None
+            else ProjectRevision.scene_instance_id == scene_instance_id,
+        )
         .order_by(ProjectRevision.revision_number.desc())
     ).all()
-    scene_revisions = [
-        item
-        for item in revisions
-        if "scene_context" in item.snapshot
-        and (
-            scene_instance_id is None
-            or item.snapshot["scene_context"].get("scene_instance_id")
-            == scene_instance_id
-        )
-    ]
-    return [_scene_revision_view(item) for item in scene_revisions]
+    return [_scene_revision_view(item) for item in revisions]
 
 
 @router.post(
@@ -1382,17 +1427,14 @@ def create_scene_revision(
         for node_id, node_result in scene_result.node_results.items()
         if node_result.calculation_result is not None
     }
-    _lock_project_numbering(db, project.id)
-    current_revision = db.scalar(
-        select(func.max(ProjectRevision.revision_number)).where(
-            ProjectRevision.project_id == project.id
-        )
+    next_revision = _next_number(
+        db, project.id, ProjectRevision.revision_number, ProjectRevision.project_id == project.id
     )
-    next_revision = (current_revision or 0) + 1
     report_number = f"SC-{project.id:06d}-R{next_revision:03d}"
     revision = ProjectRevision(
         project_id=project.id,
         revision_number=next_revision,
+        scene_instance_id=instance.id,
         snapshot_schema_version=SCENE_SNAPSHOT_SCHEMA_VERSION,
         snapshot={
             "scene_context": {
@@ -1402,7 +1444,7 @@ def create_scene_revision(
                 "title": instance.title,
                 "mode": instance.mode,
                 "template_version": instance.template_version,
-                "draft_state": instance.draft_state,
+                "draft_state": _snapshot_draft(instance.draft_state),
             },
             "scene_graph": instantiate_scene_graph(
                 family, instance.variant_id
@@ -1438,6 +1480,7 @@ def create_scene_revision(
     instance.updated_at = datetime.now(timezone.utc)
     project.updated_at = datetime.now(timezone.utc)
     db.add(revision)
-    db.commit()
+    with _numbering_conflict_as_409(db):
+        db.commit()
     db.refresh(revision)
     return _scene_revision_view(revision)

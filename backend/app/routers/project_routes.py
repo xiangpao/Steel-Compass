@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..api_schemas import (
@@ -38,21 +41,37 @@ from ..report import (
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
+def _client_draft(payload: dict) -> dict:
+    """Drop server-owned analysis pointers and candidates from a draft.
+
+    Applied to client-submitted drafts (which must not restore them) and on any
+    input change that invalidates the last analysis.
+    """
+    return {**payload, "last_analysis_package": None, "last_analysis_snapshot": None,
+            "last_analysis_snapshot_id": None, "foundation_candidate_sets": {}}
+
+
+def _applicable_node_ids(family_id: str, variant_id: str) -> list[str] | None:
+    """Every applicable node of the variant, or None once it left the catalog."""
+    from ..core.scene_catalog import get_scene_family, instantiate_scene_graph
+    family = get_scene_family(family_id)
+    if family is None:
+        return None
+    try:
+        graph = instantiate_scene_graph(family, variant_id)
+    except KeyError:
+        # Historical variants remain readable even after catalog changes.
+        return None
+    return [n.id for n in graph.nodes if n.applicability != "not_applicable"]
+
+
 def _invalidate_project_analysis(db: Session, project: Project) -> None:
     """Invalidate mutable pointers only; historical analysis snapshots stay intact."""
-    from ..core.scene_catalog import get_scene_family, instantiate_scene_graph
     for instance in db.scalars(select(SceneInstance).where(SceneInstance.project_id == project.id)):
-        instance.draft_state = {**(instance.draft_state or {}), "last_analysis_package": None,
-            "last_analysis_snapshot": None, "last_analysis_snapshot_id": None, "foundation_candidate_sets": {}}
-        family = get_scene_family(instance.family_id)
-        if family:
-            try:
-                graph = instantiate_scene_graph(family, instance.variant_id)
-            except KeyError:
-                # Historical variants remain readable even after catalog changes.
-                pass
-            else:
-                instance.stale_node_ids = [n.id for n in graph.nodes if n.applicability != "not_applicable"]
+        instance.draft_state = _client_draft(instance.draft_state or {})
+        node_ids = _applicable_node_ids(instance.family_id, instance.variant_id)
+        if node_ids is not None:
+            instance.stale_node_ids = node_ids
         instance.updated_at = datetime.now(timezone.utc)
 
 
@@ -75,7 +94,44 @@ def _lock_project_numbering(db: Session, project_id: int) -> None:
     db.execute(select(Project.id).where(Project.id == project_id).with_for_update())
 
 
-def _project_view(project: Project) -> ProjectView:
+def _next_number(db: Session, project_id: int, column, *criteria) -> int:
+    """Lock the project row, then return max(column)+1 among matching rows."""
+    _lock_project_numbering(db, project_id)
+    return (db.scalar(select(func.max(column)).where(*criteria)) or 0) + 1
+
+
+@contextmanager
+def _numbering_conflict_as_409(db: Session) -> Iterator[None]:
+    """Turn a lost max+1 race into a retryable 409 instead of a raw 500.
+
+    Postgres serializes allocation through the row lock, but SQLite ignores
+    FOR UPDATE, so a concurrent save can still hit a unique constraint.
+    """
+    try:
+        yield
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={
+            "code": "numbering_conflict",
+            "message": "编号分配与并发保存冲突，请重试。",
+        }) from exc
+
+
+def _version_counts(db: Session, project_ids: list[int]) -> dict[int, int]:
+    """Versions plus revisions per project via COUNT, without loading JSON rows."""
+    counts = dict.fromkeys(project_ids, 0)
+    for model in (ProjectVersion, ProjectRevision):
+        rows = db.execute(
+            select(model.project_id, func.count())
+            .where(model.project_id.in_(project_ids))
+            .group_by(model.project_id)
+        )
+        for project_id, count in rows:
+            counts[project_id] += count
+    return counts
+
+
+def _project_view(project: Project, version_count: int) -> ProjectView:
     return ProjectView(
         id=project.id,
         name=project.name,
@@ -92,8 +148,12 @@ def _project_view(project: Project) -> ProjectView:
         ),
         created_at=project.created_at,
         updated_at=project.updated_at,
-        version_count=len(project.versions) + len(project.revisions),
+        version_count=version_count,
     )
+
+
+def _single_project_view(db: Session, project: Project) -> ProjectView:
+    return _project_view(project, _version_counts(db, [project.id])[project.id])
 
 
 def _version_view(version: ProjectVersion) -> VersionView:
@@ -213,7 +273,8 @@ def list_projects(
         .where(Project.owner_id == user.id)
         .order_by(Project.updated_at.desc())
     ).all()
-    return [_project_view(item) for item in projects]
+    counts = _version_counts(db, [item.id for item in projects])
+    return [_project_view(item, counts[item.id]) for item in projects]
 
 
 @router.post("", response_model=ProjectView, status_code=status.HTTP_201_CREATED)
@@ -232,7 +293,7 @@ def create_project(
     db.add(project)
     db.commit()
     db.refresh(project)
-    return _project_view(project)
+    return _single_project_view(db, project)
 
 
 @router.get("/{project_id}", response_model=ProjectView)
@@ -241,7 +302,7 @@ def get_project(
     db: Session = Depends(get_db),
     user: User = Depends(require_ready_user),
 ) -> ProjectView:
-    return _project_view(_owned_project(db, project_id, user.id))
+    return _single_project_view(db, _owned_project(db, project_id, user.id))
 
 
 @router.get("/{project_id}/site-profile", response_model=ProjectSiteProfile | None)
@@ -423,8 +484,13 @@ def duplicate_project(
     )
     db.add(duplicate)
     db.flush()
-    if source.versions:
-        latest = source.versions[-1]
+    latest = db.scalar(
+        select(ProjectVersion)
+        .where(ProjectVersion.project_id == source.id)
+        .order_by(ProjectVersion.version_number.desc())
+        .limit(1)
+    )
+    if latest is not None:
         db.add(
             ProjectVersion(
                 project_id=duplicate.id,
@@ -437,7 +503,7 @@ def duplicate_project(
         )
     db.commit()
     db.refresh(duplicate)
-    return _project_view(duplicate)
+    return _single_project_view(db, duplicate)
 
 
 @router.get("/{project_id}/versions", response_model=list[VersionView])
@@ -464,13 +530,9 @@ def create_version(
     project = _owned_project(db, project_id, user.id)
     require_current_request_schema(payload.calculation)
     result = calculate(payload.calculation)
-    _lock_project_numbering(db, project.id)
-    current_version = db.scalar(
-        select(func.max(ProjectVersion.version_number)).where(
-            ProjectVersion.project_id == project.id
-        )
+    next_version = _next_number(
+        db, project.id, ProjectVersion.version_number, ProjectVersion.project_id == project.id
     )
-    next_version = (current_version or 0) + 1
     report_number = f"SC-{project.id:06d}-V{next_version:03d}"
     version = ProjectVersion(
         project_id=project.id,
@@ -482,7 +544,8 @@ def create_version(
     )
     project.updated_at = datetime.now(timezone.utc)
     db.add(version)
-    db.commit()
+    with _numbering_conflict_as_409(db):
+        db.commit()
     db.refresh(version)
     return _version_view(version)
 
@@ -566,13 +629,9 @@ def create_revision(
             }
         )
 
-    _lock_project_numbering(db, project.id)
-    current_revision = db.scalar(
-        select(func.max(ProjectRevision.revision_number)).where(
-            ProjectRevision.project_id == project.id
-        )
+    next_revision = _next_number(
+        db, project.id, ProjectRevision.revision_number, ProjectRevision.project_id == project.id
     )
-    next_revision = (current_revision or 0) + 1
     report_number = f"SC-{project.id:06d}-R{next_revision:03d}"
     catalog_versions = {
         key: value
@@ -597,7 +656,8 @@ def create_revision(
     )
     project.updated_at = datetime.now(timezone.utc)
     db.add(revision)
-    db.commit()
+    with _numbering_conflict_as_409(db):
+        db.commit()
     db.refresh(revision)
     return _revision_view(revision)
 

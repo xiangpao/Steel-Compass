@@ -44,14 +44,14 @@ def verify(url, legacy):
     upgrade("head")
     with engine.connect() as conn:
         assert "scene_analysis_snapshots" in inspect(conn).get_table_names()
-        assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar() == "20260813_07"
+        assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar() == "20261101_08"
         if legacy:
             assert conn.execute(text("SELECT name,description FROM projects WHERE id=1")).one() == ("retained", "original")
             assert conn.execute(text("SELECT snapshot,result_bundle,engine_version FROM project_revisions WHERE id=1")).one() == before
         server = conn.execute(text("SHOW server_version")).scalar()
     engine.dispose()
     return {"database": target.database, "server_version": server, "legacy": legacy,
-            "migration_head": "20260813_07", "idempotent": True,
+            "migration_head": "20261101_08", "idempotent": True,
             "historical_rows_preserved": legacy, "status": "passed"}
 
 
