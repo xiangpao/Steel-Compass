@@ -45,6 +45,11 @@ export async function api<T>(
   return payload as T;
 }
 
+/** True when a request was cancelled through its AbortSignal. */
+export function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     const payload = error.payload as {

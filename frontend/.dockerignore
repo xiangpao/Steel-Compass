@@ -1,4 +1,8 @@
 node_modules
 .next
 npm-debug.log
-
+*.log
+output/
+test-results/
+playwright-report/
+tsconfig.tsbuildinfo

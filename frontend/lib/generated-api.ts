@@ -1,7 +1,10 @@
 /**
- * Generated snapshot of backend OpenAPI Schema 3.3 calculation contracts.
- * Source: CalculationRequest.model_json_schema(), engine 3.3.0-beta.1.
- * Do not add product-only fields here; regenerate when the backend contract changes.
+ * Hand-maintained request types for the Schema 3.3 typed calculation inputs
+ * the frontend builds (lib/modules.ts). They mirror the backend
+ * CalculationRequest contract; lib/api-contract-check.ts asserts at compile
+ * time that each type is assignable to the type generated from the backend
+ * OpenAPI snapshot (lib/api-schema.ts, `npm run gen:api`).
+ * Do not add product-only fields here.
  */
 
 export type ApiCalculationModule =

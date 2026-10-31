@@ -1966,7 +1966,6 @@ button {
   border-color: var(--teal);
 }
 
-.parametric-scene-intro,
 .custom-section-toolbar,
 .custom-section-editor {
   border: 1px solid var(--line);
@@ -1974,13 +1973,6 @@ button {
   background: color-mix(in srgb, var(--surface) 92%, #dceef2);
 }
 
-.parametric-scene-intro {
-  display: grid;
-  gap: 5px;
-  padding: 14px 16px;
-}
-
-.parametric-scene-intro span,
 .custom-section-toolbar span,
 .custom-section-actions span {
   color: var(--muted);
@@ -2002,8 +1994,7 @@ button {
 }
 
 .custom-section-toolbar button,
-.custom-section-actions button,
-.geometry-preset-row button {
+.custom-section-actions button {
   min-height: 40px;
   border: 1px solid var(--line-strong);
   border-radius: 10px;
@@ -2033,14 +2024,6 @@ button {
   gap: 16px;
 }
 
-.geometry-preset-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.geometry-preset-row button:hover,
 .custom-section-toolbar button:hover,
 .custom-section-actions button:hover {
   border-color: var(--accent);
@@ -2776,151 +2759,6 @@ button {
   align-items: start;
 }
 
-.free-model-layout {
-  grid-template-columns: minmax(330px, 410px) minmax(520px, 1fr) 350px;
-  gap: 14px;
-}
-
-.free-model-layout > .scene-workbench {
-  max-height: calc(100vh - 128px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-
-.plan-editor-panel,
-.free-model-layout > .load-path-panel {
-  position: sticky;
-  top: 82px;
-  min-width: 0;
-  max-height: calc(100vh - 96px);
-}
-
-.plan-editor-panel {
-  overflow: hidden;
-  background: var(--white);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: 0 10px 35px rgb(20 44 51 / 5%);
-}
-
-.model-panel-heading {
-  display: flex;
-  min-height: 68px;
-  padding: 12px 15px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid var(--line-soft);
-}
-
-.model-panel-heading h2 {
-  margin: 2px 0 0;
-  font-size: 16px;
-}
-
-.model-panel-heading > span,
-.model-editor-message {
-  color: var(--ink-soft);
-  font-size: 11px;
-}
-
-.model-editor-message {
-  min-height: 38px;
-  margin: 0;
-  padding: 10px 14px;
-  border-top: 1px solid var(--line-soft);
-}
-
-.plan-model-editor {
-  height: calc(100vh - 210px);
-  min-height: 500px;
-}
-
-.model-editor-toolbar {
-  display: flex;
-  min-height: 54px;
-  padding: 5px;
-  gap: 4px;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--line-soft);
-}
-
-.model-editor-toolbar button {
-  display: inline-flex;
-  min-width: 48px;
-  min-height: 44px;
-  padding: 4px 7px;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  flex-direction: column;
-  color: var(--ink-soft);
-  font-size: 10px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 7px;
-}
-
-.model-editor-toolbar button.active {
-  color: var(--teal-dark);
-  background: var(--teal-pale);
-  border-color: var(--teal);
-}
-
-.model-inspector-stack {
-  display: grid;
-  gap: 10px;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--line-soft);
-}
-
-.model-inspector-stack .scene-model-preview {
-  height: 280px;
-  margin-top: 0;
-}
-
-.selected-member-card {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  background: var(--paper);
-  border: 1px solid var(--line-soft);
-  border-radius: 8px;
-}
-
-.selected-member-card dl {
-  display: grid;
-  margin: 0;
-  gap: 5px;
-}
-
-.selected-member-card dl div {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 11px;
-}
-
-.selected-member-card dt { color: var(--ink-soft); }
-.selected-member-card dd { margin: 0; text-align: right; }
-.selected-member-card label { display: grid; gap: 5px; font-size: 11px; }
-
-.member-scope-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.member-scope-actions button {
-  min-height: 36px;
-  padding: 0 10px;
-  flex: 1;
-  background: var(--white);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-}
-
 .section-property-trace {
   padding: 10px 12px;
   background: #f7faf9;
@@ -3371,6 +3209,18 @@ button {
   border-radius: 6px;
 }
 
+.comparison-rename {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+}
+
+.comparison-rename input {
+  flex: 1;
+  min-width: 0;
+}
+
 .comparison-grid article > span,
 .comparison-grid article > small {
   color: var(--ink-faint);
@@ -3432,21 +3282,6 @@ button {
 }
 
 @media (max-width: 1100px) {
-  .free-model-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .free-model-layout > .scene-workbench,
-  .plan-editor-panel {
-    position: static;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .plan-model-editor {
-    height: 620px;
-  }
-
   .desktop-load-path {
     display: none;
   }
