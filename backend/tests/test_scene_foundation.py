@@ -202,3 +202,81 @@ def test_pedestal_changes_foundation_reaction_chain() -> None:
     )[0]
     assert with_pedestal["reactions"]["N_service"]["value"] > plain["reactions"]["N_service"]["value"]
     assert with_pedestal["reactions"]["My"]["value"] > plain["reactions"]["My"]["value"]
+
+
+def _windy_pedestal_case() -> tuple[SceneGeometryProfile, dict[str, dict]]:
+    pedestal = PedestalProfile(
+        enabled=True, length_mm=500, width_mm=500, clear_height_mm=900, concrete_grade="C30",
+        cover_mm=40, longitudinal_bar_count_x=2, longitudinal_bar_count_y=2,
+        longitudinal_bar_diameter_mm=16, stirrup_diameter_mm=8, stirrup_spacing_mm=150,
+        dowel_anchorage_mm=600,
+    )
+    geometry = _geometry(pedestal=pedestal)
+    start = geometry.foundation_types[0].model_copy(update={
+        "length_m": 1.0, "width_m": 1.0, "thickness_mm": 300, "embedment_m": 1.4})
+    uls = {"fx_kn": 7.0, "fy_kn": 0.0, "fz_kn": 78.0, "mx_kn_m": 0.0, "my_kn_m": 4.0, "mz_kn_m": 0.0}
+    sls = {"fx_kn": 5.0, "fy_kn": 0.0, "fz_kn": 60.0, "mx_kn_m": 0.0, "my_kn_m": 3.0, "mz_kn_m": 0.0}
+    cases = [
+        {"combination_id": "ULS-W", "limit_state": "ULS", "reaction": uls},
+        {"combination_id": "SLS-STANDARD-W", "limit_state": "SLS", "reaction": sls},
+    ]
+    return geometry.model_copy(update={"foundation_types": [start]}), {"B1": {**sls, "_cases": cases}}
+
+
+def test_candidate_sizing_cannot_be_rejected_by_the_final_foundation_check() -> None:
+    # Regression: the trapezoid pre-sizer ignored soil cover above the footing
+    # and recommended 1.0x1.0 m, which the final check failed on bearing.
+    from app.core.design_profiles import recommend_spread_foundation_from_reaction
+    from app.core.foundation_candidate_validation import size_scene_foundation_candidate
+
+    geometry, reactions = _windy_pedestal_case()
+    start = geometry.foundation_types[0]
+    legacy = recommend_spread_foundation_from_reaction(
+        foundation_instance_id="FI1", reaction=reactions["B1"]["_cases"][0]["reaction"],
+        bearing_capacity_kpa=120, initial_length_m=start.length_m, initial_width_m=start.width_m,
+        initial_thickness_mm=start.thickness_mm, pedestal=start.pedestal)
+    assert legacy.converged and "与完整基础验算一致性" in legacy.recommended["pending_checks"]
+    legacy_size = start.model_copy(update={key: legacy.recommended[key] for key in ("length_m", "width_m", "thickness_mm")})
+    legacy_final = calculate_scene_foundations(
+        geometry.model_copy(update={"foundation_types": [legacy_size]}), reactions, _geotechnical(), project_name="亭廊")[0]
+    assert "地基承载力" in legacy_final["failed_checks"]
+
+    candidate = size_scene_foundation_candidate(geometry, "FI1", reactions, _geotechnical(), project_name="亭廊")
+    assert candidate.converged
+    chosen = candidate.recommended
+    sized = start.model_copy(update={key: chosen[key] for key in ("length_m", "width_m", "thickness_mm")})
+    final = calculate_scene_foundations(
+        geometry.model_copy(update={"foundation_types": [sized]}), reactions, _geotechnical(), project_name="亭廊")[0]
+    assert final["failed_checks"] == []
+    assert final["status"] == "incomplete"
+    assert chosen["final_check_status"] == "incomplete"
+    assert chosen["length_m"] * chosen["width_m"] > legacy.recommended["length_m"] * legacy.recommended["width_m"]
+    assert set(chosen["validated_combination_ids"]) == {"ULS-W", "SLS-STANDARD-W"}
+
+
+def test_candidate_sizing_stops_on_reinforcement_instead_of_growing_plan() -> None:
+    from app.core.foundation_candidate_validation import size_scene_foundation_candidate
+
+    geometry, reactions = _windy_pedestal_case()
+    thin_bars = geometry.foundation_types[0].model_copy(update={
+        "length_m": 2.0, "width_m": 2.0, "bottom_x": "Φ6@400", "bottom_y": "Φ6@400"})
+    candidate = size_scene_foundation_candidate(
+        geometry.model_copy(update={"foundation_types": [thin_bars]}), "FI1", reactions,
+        _geotechnical(), project_name="亭廊")
+    assert not candidate.converged
+    assert "配筋" in candidate.failure_reason
+    assert len(candidate.iterations) == 1
+
+
+def test_stepped_transition_effective_depth_follows_bar_diameter() -> None:
+    # Regression: the transition checks hard-coded d = h - cover - 8 mm while
+    # the reference slab check uses h - cover - d_bar/2 per axis.
+    geometry = _geometry(form_id="spread-stepped", steps=[FoundationStep(length_m=1.4, width_m=1.2, height_mm=250)])
+    foundation_type = geometry.foundation_types[0].model_copy(update={"bottom_x": "Φ25@150", "bottom_y": "Φ20@150"})
+    item = calculate_scene_foundations(
+        geometry.model_copy(update={"foundation_types": [foundation_type]}), REACTIONS, _geotechnical(), project_name="亭廊")[0]
+    level = item["detailed_shape_checks"][0]
+    assert level["effective_depth_mm"] == 750 - 50 - 12.5
+    assert level["effective_depth_x_mm"] == 750 - 50 - 12.5
+    assert level["effective_depth_y_mm"] == 750 - 50 - 10
+    assert level["verification_status"] == "unverified"

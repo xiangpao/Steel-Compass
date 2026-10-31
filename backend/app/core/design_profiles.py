@@ -1210,6 +1210,12 @@ def recommend_spread_foundation_from_reaction(
     search checks biaxial soil pressure and scheme-level sliding, while
     deliberately leaving punching, bending and reinforcement as pending full
     foundation-module checks.
+
+    Legacy pre-sizing only: it uses the trapezoid formula with q_min >= 0,
+    ignores soil cover, groundwater and the 25% detachment allowance, and may
+    therefore disagree with ``calculate_spread_footing``. Scene candidates
+    that must agree with the final check use
+    ``foundation_candidate_validation.size_scene_foundation_candidate``.
     """
 
     vertical = float(reaction.get("fz_kn", 0.0))
@@ -1274,7 +1280,7 @@ def recommend_spread_foundation_from_reaction(
             "bearing_ok": bearing_ok,
             "full_contact_ok": contact_ok,
             "sliding_ok": sliding_ok,
-            "pending_checks": ["冲切", "双向剪切", "弯曲", "X/Y配筋", "锚固", "沉降资料完整性"],
+            "pending_checks": ["冲切", "双向剪切", "弯曲", "X/Y配筋", "锚固", "沉降资料完整性", "覆土与地下水浮力（预估未计入）", "与完整基础验算一致性"],
         }
         iterations.append(iteration)
         if bearing_ok and contact_ok and sliding_ok:

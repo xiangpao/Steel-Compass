@@ -6,9 +6,12 @@ from typing import Any
 from .concrete import CONCRETE
 from .contact import solve_rectangular_contact
 from .design_profiles import (
+    ColumnBaseAssembly,
+    FoundationInstanceAssignment,
     FoundationTypeDefinition,
     ProjectGeotechnicalProfile,
     SceneGeometryProfile,
+    SupportAssignment,
 )
 from .engine import calculate
 from .schemas import CalculationMode, CalculationModule, CalculationRequest
@@ -211,10 +214,17 @@ def _nonprismatic_checks(
     foundation: FoundationTypeDefinition,
     loaded_length_mm: float,
     loaded_width_mm: float,
-    reaction: dict[str, float],
+    bar_dia_x_mm: float,
+    bar_dia_y_mm: float,
     contact_solutions: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Check every step/taper transition instead of replacing it by one slab."""
+    """Check every step/taper transition instead of replacing it by one slab.
+
+    Effective depths follow calculate_spread_footing (h - cover - d_bar/2 per
+    axis, punching with the smaller one). As in that reference, footing and
+    cover weight is not deducted because its distribution over a non-uniform
+    shape is not modelled; the result therefore stays provisional.
+    """
     if foundation.form_id == "spread-prismatic":
         return []
     concrete = CONCRETE.get(foundation.concrete_grade)
@@ -223,7 +233,6 @@ def _nonprismatic_checks(
     uls = [item for item in contact_solutions if item["limit_state"] == "ULS"]
     if not uls or any(item["status"] != "solved" for item in uls):
         return []
-    area = foundation.length_m * foundation.width_m
     ft = concrete["ft"]
     levels: list[tuple[str, float, float, float]] = []
     if foundation.form_id == "spread-stepped":
@@ -242,7 +251,9 @@ def _nonprismatic_checks(
         ])
     results: list[dict[str, Any]] = []
     for label, upper_l, upper_b, total_depth_mm in levels:
-        d_mm = total_depth_mm - foundation.cover_mm - 8.0
+        d_x_mm = total_depth_mm - foundation.cover_mm - bar_dia_x_mm / 2
+        d_y_mm = total_depth_mm - foundation.cover_mm - bar_dia_y_mm / 2
+        d_mm = min(d_x_mm, d_y_mm)
         if d_mm <= 0:
             continue
         governing: dict[str, Any] | None = None
@@ -255,11 +266,11 @@ def _nonprismatic_checks(
             perimeter_mm = 2 * ((upper_l + d_mm / 1000) + (upper_b + d_mm / 1000)) * 1000
             punch_capacity = 0.7 * ft * perimeter_mm * d_mm / 1000
             xlo,xhi,ylo,yhi = -foundation.length_m/2, foundation.length_m/2, -foundation.width_m/2, foundation.width_m/2
-            sx,sy = upper_l/2+d_mm/1000, upper_b/2+d_mm/1000
+            sx,sy = upper_l/2+d_x_mm/1000, upper_b/2+d_y_mm/1000
             shear_x = max(solution.integrate((sx,xhi,ylo,yhi))[0],solution.integrate((xlo,-sx,ylo,yhi))[0])
             shear_y = max(solution.integrate((xlo,xhi,sy,yhi))[0],solution.integrate((xlo,xhi,ylo,-sy))[0])
-            cap_x = 0.7 * ft * foundation.width_m * 1000 * d_mm / 1000
-            cap_y = 0.7 * ft * foundation.length_m * 1000 * d_mm / 1000
+            cap_x = 0.7 * ft * foundation.width_m * 1000 * d_x_mm / 1000
+            cap_y = 0.7 * ft * foundation.length_m * 1000 * d_y_mm / 1000
             utilization = max(punching / max(punch_capacity, 1e-9), shear_x / max(cap_x, 1e-9), shear_y / max(cap_y, 1e-9))
             if governing is None or utilization > governing["utilization"]:
                 governing = {"combination_id": case["combination_name"], "pressure_kpa": q, "punching_kn": punching, "punch_capacity_kn": punch_capacity, "shear_x_kn": shear_x, "shear_x_capacity_kn": cap_x, "shear_y_kn": shear_y, "shear_y_capacity_kn": cap_y, "utilization": utilization}
@@ -268,6 +279,9 @@ def _nonprismatic_checks(
             "level": label,
             "upper_plan_m": {"length": upper_l, "width": upper_b},
             "effective_depth_mm": d_mm,
+            "effective_depth_x_mm": d_x_mm,
+            "effective_depth_y_mm": d_y_mm,
+            "self_weight_deduction": "not_deducted_nonuniform_distribution",
             "controlling_combination": governing["combination_id"],
             "checks": [
                 {"name": f"{label}冲切", "demand": {"value": governing["punching_kn"], "unit": "kN"}, "capacity": {"value": governing["punch_capacity_kn"], "unit": "kN"}, "utilization": governing["punching_kn"] / max(governing["punch_capacity_kn"], 1e-9), "passed": governing["punching_kn"] <= governing["punch_capacity_kn"], "reference": "GB/T 50010-2010 冲切承载力；非棱柱基础转换截面方案映射"},
@@ -291,158 +305,166 @@ def calculate_scene_foundations(
     foundation_types = {item.id: item for item in geometry.foundation_types}
     supports = {item.id: item for item in geometry.supports}
     bases_by_support = {item.support_id: item for item in geometry.column_bases}
-    items: list[dict[str, Any]] = []
-    for foundation in geometry.foundation_instances:
-        foundation_type = foundation_types[foundation.foundation_type_id]
-        support = supports[foundation.support_id]
-        if geotechnical is None:
-            items.append(_missing_item(foundation.id, foundation.mark, support.id, "project_geotechnical_profile"))
-            continue
-        reaction = support_reactions.get(support.node_id)
-        if reaction is None:
-            items.append(_missing_item(foundation.id, foundation.mark, support.id, "support_reaction"))
-            continue
-        shape = _shape_geometry(foundation_type)
-        if shape is None:
-            items.append(_missing_item(
-                foundation.id,
-                foundation.mark,
-                support.id,
-                "complete_step_or_taper_geometry",
-            ))
-            continue
-        if foundation_type.cover_mm is None:
-            items.append(_missing_item(foundation.id, foundation.mark, support.id, "foundation_cover_mm"))
-            continue
-        rebar_x = _parse_rebar(foundation_type.bottom_x)
-        rebar_y = _parse_rebar(foundation_type.bottom_y)
-        if rebar_x is None or rebar_y is None:
-            items.append(_missing_item(foundation.id, foundation.mark, support.id, "parseable_bottom_x_y_rebar"))
-            continue
-        column_base = bases_by_support.get(support.id)
-        pedestal = foundation_type.pedestal
-        if not (pedestal and pedestal.enabled) and column_base is None:
-            items.append(_missing_item(foundation.id, foundation.mark, support.id, "column_base_or_pedestal_geometry"))
-            continue
-        loaded_length = (
-            float(pedestal.length_mm)
-            if pedestal and pedestal.enabled
-            else float(column_base.base_plate_length_mm)  # type: ignore[union-attr]
+    return [
+        evaluate_scene_foundation(
+            foundation,
+            foundation_types[foundation.foundation_type_id],
+            supports[foundation.support_id],
+            bases_by_support.get(foundation.support_id),
+            support_reactions,
+            geotechnical,
+            project_name=project_name,
         )
-        loaded_width = (
-            float(pedestal.width_mm)
-            if pedestal and pedestal.enabled
-            else float(column_base.base_plate_width_mm)  # type: ignore[union-attr]
+        for foundation in geometry.foundation_instances
+    ]
+
+
+def evaluate_scene_foundation(
+    foundation: FoundationInstanceAssignment,
+    foundation_type: FoundationTypeDefinition,
+    support: SupportAssignment,
+    column_base: ColumnBaseAssembly | None,
+    support_reactions: dict[str, dict[str, float]],
+    geotechnical: ProjectGeotechnicalProfile | None,
+    *,
+    project_name: str,
+) -> dict[str, Any]:
+    """Full check of one foundation; also used per trial size by candidate sizing."""
+    if geotechnical is None:
+        return _missing_item(foundation.id, foundation.mark, support.id, "project_geotechnical_profile")
+    reaction = support_reactions.get(support.node_id)
+    if reaction is None:
+        return _missing_item(foundation.id, foundation.mark, support.id, "support_reaction")
+    shape = _shape_geometry(foundation_type)
+    if shape is None:
+        return _missing_item(foundation.id, foundation.mark, support.id, "complete_step_or_taper_geometry")
+    if foundation_type.cover_mm is None:
+        return _missing_item(foundation.id, foundation.mark, support.id, "foundation_cover_mm")
+    rebar_x = _parse_rebar(foundation_type.bottom_x)
+    rebar_y = _parse_rebar(foundation_type.bottom_y)
+    if rebar_x is None or rebar_y is None:
+        return _missing_item(foundation.id, foundation.mark, support.id, "parseable_bottom_x_y_rebar")
+    pedestal = foundation_type.pedestal
+    if not (pedestal and pedestal.enabled) and column_base is None:
+        return _missing_item(foundation.id, foundation.mark, support.id, "column_base_or_pedestal_geometry")
+    loaded_length = (
+        float(pedestal.length_mm)
+        if pedestal and pedestal.enabled
+        else float(column_base.base_plate_length_mm)  # type: ignore[union-attr]
+    )
+    loaded_width = (
+        float(pedestal.width_mm)
+        if pedestal and pedestal.enabled
+        else float(column_base.base_plate_width_mm)  # type: ignore[union-attr]
+    )
+    base_height_m = foundation_type.thickness_mm / 1000
+    soil_cover_depth = max(foundation_type.embedment_m - base_height_m, 0.0)
+    soil_above_upper_shape_depth = max(
+        foundation_type.embedment_m - shape["total_height_m"],
+        0.0,
+    )
+    pedestal_volume_in_cover = 0.0
+    if pedestal and pedestal.enabled:
+        pedestal_volume_in_cover = (
+            float(pedestal.length_mm) / 1000
+            * float(pedestal.width_mm) / 1000
+            * min(float(pedestal.clear_height_mm) / 1000, soil_above_upper_shape_depth)
         )
-        base_height_m = foundation_type.thickness_mm / 1000
-        soil_cover_depth = max(foundation_type.embedment_m - base_height_m, 0.0)
-        soil_above_upper_shape_depth = max(
-            foundation_type.embedment_m - shape["total_height_m"],
-            0.0,
-        )
-        pedestal_volume_in_cover = 0.0
-        if pedestal and pedestal.enabled:
-            pedestal_volume_in_cover = (
-                float(pedestal.length_mm) / 1000
-                * float(pedestal.width_mm) / 1000
-                * min(float(pedestal.clear_height_mm) / 1000, soil_above_upper_shape_depth)
-            )
-        soil_cover_volume = max(
-            foundation_type.length_m * foundation_type.width_m * soil_cover_depth
-            - shape["upper_volume_m3"]
-            - pedestal_volume_in_cover,
-            0.0,
-        )
-        inputs: dict[str, Any] = {
-            "explicit_design_profile": True,
-            "length_m": foundation_type.length_m,
-            "width_m": foundation_type.width_m,
-            "thickness_mm": foundation_type.thickness_mm,
-            "column_x_mm": loaded_length,
-            "column_y_mm": loaded_width,
-            "embedment_m": foundation_type.embedment_m,
-            "soil_cover_m": soil_cover_depth,
-            "footing_concrete_volume_m3": shape["concrete_volume_m3"],
-            "soil_cover_volume_m3": soil_cover_volume,
-            "total_foundation_height_m": shape["total_height_m"],
-            "concrete_grade": foundation_type.concrete_grade,
-            "rebar_grade": foundation_type.rebar_grade,
-            "cover_mm": foundation_type.cover_mm,
-            "bar_dia_x_mm": rebar_x[0],
-            "bar_spacing_x_mm": rebar_x[1],
-            "bar_dia_y_mm": rebar_y[0],
-            "bar_spacing_y_mm": rebar_y[1],
-            "soil_capacity_kpa": geotechnical.bearing_capacity_kpa,
-            "soil_source": geotechnical.bearing_capacity_source,
-            "upstream_reaction_envelopes": scene_reaction_envelopes(reaction),
-            **_groundwater_inputs(geotechnical),
-        }
-        if geotechnical.base_friction_coefficient is not None:
-            inputs["base_friction_coefficient"] = geotechnical.base_friction_coefficient
-        for axis in ("x", "y"):
-            top_text = getattr(foundation_type, f"top_{axis}", None)
-            if top_text:
-                parsed_top = _parse_rebar(top_text)
-                if parsed_top is not None:
-                    inputs[f"top_bar_dia_{axis}_mm"] = parsed_top[0]
-                    inputs[f"top_bar_spacing_{axis}_mm"] = parsed_top[1]
-        if pedestal and pedestal.enabled:
-            inputs.update({
-                "pedestal_enabled": True,
-                "pedestal_length_mm": pedestal.length_mm,
-                "pedestal_width_mm": pedestal.width_mm,
-                "pedestal_height_mm": pedestal.clear_height_mm,
-            })
-        result = calculate(CalculationRequest(
-            mode=CalculationMode.QUICK,
-            module=CalculationModule.SPREAD_FOOTING,
-            project_name=f"{project_name} · {foundation.mark}",
-            standard_profile="CN-2026.7",
-            inputs=inputs,
-            loads=[],
-        ))
-        failed_checks = [item.name for item in result.checks if not item.passed]
-        settlement = _settlement_check(foundation_type, geotechnical, reaction)
-        detailed_shape_checks = _nonprismatic_checks(
-            foundation_type, loaded_length, loaded_width, reaction, result.contact_solutions
-        )
-        for level in detailed_shape_checks:
-            failed_checks.extend(
-                check["name"] for check in level["checks"] if not check["passed"]
-            )
-        if settlement is not None and not settlement["passed"]:
-            failed_checks.append(settlement["name"])
-        pending_checks = ["基础构造锚固"]
-        if any(item.get("contact_area_m2", 0) < foundation_type.length_m * foundation_type.width_m * (1-1e-9)
-               for item in result.contact_solutions):
-            pending_checks.append("非均匀接触沉降")
-            if any(requirement.get("missing_inputs") for record in result.contact_solutions
-                   for requirement in record.get("top_reinforcement_requirements",{}).values()):
-                pending_checks.append("脱开区向下荷载产生反向弯矩，需要明确顶筋")
-        if settlement is None:
-            pending_checks.append("沉降计算（需录入分层压缩参数与允许值）")
-        items.append({
-            "foundation_id": foundation.id,
-            "mark": foundation.mark,
-            "support_id": support.id,
-            "support_node_id": support.node_id,
-            "status": "failed" if failed_checks else "incomplete",
-            "verification_status": "unverified",
-            "calculation_trace_id": result.trace_id,
-            "checks": [item.model_dump(mode="json") for item in result.checks],
-            "steps": [item.model_dump(mode="json") for item in result.steps],
-            "contact_solutions": result.contact_solutions,
-            "reactions": {key: value.model_dump(mode="json") for key, value in result.reactions.items()},
-            "warnings": [item.model_dump(mode="json") for item in result.warnings],
-            "failed_checks": failed_checks,
-            "shape_geometry": {
-                "form_id": foundation_type.form_id,
-                **shape,
-                "soil_cover_volume_m3": soil_cover_volume,
-            },
-            "settlement_check": settlement,
-            "detailed_shape_checks": detailed_shape_checks,
-            "pending_checks": pending_checks,
-            "analysis_assumption": "采用已保存的设计组合包络；基础适配器不再二次统一放大反力。",
+    soil_cover_volume = max(
+        foundation_type.length_m * foundation_type.width_m * soil_cover_depth
+        - shape["upper_volume_m3"]
+        - pedestal_volume_in_cover,
+        0.0,
+    )
+    inputs: dict[str, Any] = {
+        "explicit_design_profile": True,
+        "length_m": foundation_type.length_m,
+        "width_m": foundation_type.width_m,
+        "thickness_mm": foundation_type.thickness_mm,
+        "column_x_mm": loaded_length,
+        "column_y_mm": loaded_width,
+        "embedment_m": foundation_type.embedment_m,
+        "soil_cover_m": soil_cover_depth,
+        "footing_concrete_volume_m3": shape["concrete_volume_m3"],
+        "soil_cover_volume_m3": soil_cover_volume,
+        "total_foundation_height_m": shape["total_height_m"],
+        "concrete_grade": foundation_type.concrete_grade,
+        "rebar_grade": foundation_type.rebar_grade,
+        "cover_mm": foundation_type.cover_mm,
+        "bar_dia_x_mm": rebar_x[0],
+        "bar_spacing_x_mm": rebar_x[1],
+        "bar_dia_y_mm": rebar_y[0],
+        "bar_spacing_y_mm": rebar_y[1],
+        "soil_capacity_kpa": geotechnical.bearing_capacity_kpa,
+        "soil_source": geotechnical.bearing_capacity_source,
+        "upstream_reaction_envelopes": scene_reaction_envelopes(reaction),
+        **_groundwater_inputs(geotechnical),
+    }
+    if geotechnical.base_friction_coefficient is not None:
+        inputs["base_friction_coefficient"] = geotechnical.base_friction_coefficient
+    for axis in ("x", "y"):
+        top_text = getattr(foundation_type, f"top_{axis}", None)
+        if top_text:
+            parsed_top = _parse_rebar(top_text)
+            if parsed_top is not None:
+                inputs[f"top_bar_dia_{axis}_mm"] = parsed_top[0]
+                inputs[f"top_bar_spacing_{axis}_mm"] = parsed_top[1]
+    if pedestal and pedestal.enabled:
+        inputs.update({
+            "pedestal_enabled": True,
+            "pedestal_length_mm": pedestal.length_mm,
+            "pedestal_width_mm": pedestal.width_mm,
+            "pedestal_height_mm": pedestal.clear_height_mm,
         })
-    return items
+    result = calculate(CalculationRequest(
+        mode=CalculationMode.QUICK,
+        module=CalculationModule.SPREAD_FOOTING,
+        project_name=f"{project_name} · {foundation.mark}",
+        standard_profile="CN-2026.7",
+        inputs=inputs,
+        loads=[],
+    ))
+    failed_checks = [item.name for item in result.checks if not item.passed]
+    settlement = _settlement_check(foundation_type, geotechnical, reaction)
+    detailed_shape_checks = _nonprismatic_checks(
+        foundation_type, loaded_length, loaded_width, rebar_x[0], rebar_y[0], result.contact_solutions
+    )
+    for level in detailed_shape_checks:
+        failed_checks.extend(
+            check["name"] for check in level["checks"] if not check["passed"]
+        )
+    if settlement is not None and not settlement["passed"]:
+        failed_checks.append(settlement["name"])
+    pending_checks = ["基础构造锚固"]
+    if any(item.get("contact_area_m2", 0) < foundation_type.length_m * foundation_type.width_m * (1-1e-9)
+           for item in result.contact_solutions):
+        pending_checks.append("非均匀接触沉降")
+        if any(requirement.get("missing_inputs") for record in result.contact_solutions
+               for requirement in record.get("top_reinforcement_requirements",{}).values()):
+            pending_checks.append("脱开区向下荷载产生反向弯矩，需要明确顶筋")
+    if settlement is None:
+        pending_checks.append("沉降计算（需录入分层压缩参数与允许值）")
+    return {
+        "foundation_id": foundation.id,
+        "mark": foundation.mark,
+        "support_id": support.id,
+        "support_node_id": support.node_id,
+        "status": "failed" if failed_checks else "incomplete",
+        "verification_status": "unverified",
+        "calculation_trace_id": result.trace_id,
+        "checks": [item.model_dump(mode="json") for item in result.checks],
+        "steps": [item.model_dump(mode="json") for item in result.steps],
+        "contact_solutions": result.contact_solutions,
+        "reactions": {key: value.model_dump(mode="json") for key, value in result.reactions.items()},
+        "warnings": [item.model_dump(mode="json") for item in result.warnings],
+        "failed_checks": failed_checks,
+        "shape_geometry": {
+            "form_id": foundation_type.form_id,
+            **shape,
+            "soil_cover_volume_m3": soil_cover_volume,
+        },
+        "settlement_check": settlement,
+        "detailed_shape_checks": detailed_shape_checks,
+        "pending_checks": pending_checks,
+        "analysis_assumption": "采用已保存的设计组合包络；基础适配器不再二次统一放大反力。",
+    }
