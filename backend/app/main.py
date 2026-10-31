@@ -50,6 +50,14 @@ async def lifespan(_: FastAPI):
 
 settings = get_settings()
 request_logger = logging.getLogger("steel_compass.requests")
+# uvicorn configures only its own loggers; without a handler the INFO-level
+# structured request log is dropped by the root WARNING threshold.
+if not request_logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(message)s"))
+    request_logger.addHandler(_handler)
+    request_logger.setLevel(logging.INFO)
+    request_logger.propagate = False
 app = FastAPI(
     title="Steel-Compass V2 API",
     version=__version__,

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
+from functools import lru_cache
+import os
+
 from .design_profiles import (
     CustomSectionCreate,
     CustomSectionDefinition,
@@ -78,24 +82,65 @@ def _run_combination(
     )
 
 
+def _run_case(
+    profile: SceneStructuralProfile,
+    case: object,
+    custom_sections: list[CustomSectionDefinition],
+) -> dict[str, object]:
+    self_weight = getattr(case, "id") == "SELF-WEIGHT"
+    return analyze_scene_space_frame(
+        profile,
+        [] if self_weight else [case],
+        custom_sections,
+        include_self_weight=self_weight,
+    )
+
+
+def _analysis_workers() -> int:
+    from ..config import get_settings
+
+    return min(get_settings().analysis_workers, os.cpu_count() or 1)
+
+
+@lru_cache(maxsize=1)
+def _pool(workers: int) -> ProcessPoolExecutor:
+    # Reused across requests; each analysis is independent and deterministic,
+    # so results are identical to the serial loop.
+    return ProcessPoolExecutor(max_workers=workers)
+
+
 def analyze_pergola_package(
     profile: SceneStructuralProfile,
     load_package: PergolaLoadPackage,
     custom_sections: list[CustomSectionDefinition],
 ) -> dict[str, object]:
     cases_by_id = {case.id: case for case in load_package.cases}
-    case_results: dict[str, dict[str, object]] = {}
-    for case in load_package.cases:
-        case_results[case.id] = analyze_scene_space_frame(
-            profile,
-            [] if case.id == "SELF-WEIGHT" else [case],
-            custom_sections,
-            include_self_weight=case.id == "SELF-WEIGHT",
-        )
-    combination_results = {
-        combination.id: _run_combination(profile, cases_by_id, combination, custom_sections)
-        for combination in load_package.combinations
-    }
+    workers = _analysis_workers()
+    if workers > 1:
+        pool = _pool(workers)
+        case_futures = {
+            case.id: pool.submit(_run_case, profile, case, custom_sections)
+            for case in load_package.cases
+        }
+        combination_futures = {
+            combination.id: pool.submit(
+                _run_combination, profile, cases_by_id, combination, custom_sections
+            )
+            for combination in load_package.combinations
+        }
+        case_results = {key: future.result() for key, future in case_futures.items()}
+        combination_results = {
+            key: future.result() for key, future in combination_futures.items()
+        }
+    else:
+        case_results = {
+            case.id: _run_case(profile, case, custom_sections)
+            for case in load_package.cases
+        }
+        combination_results = {
+            combination.id: _run_combination(profile, cases_by_id, combination, custom_sections)
+            for combination in load_package.combinations
+        }
     check_basis = combination_results or case_results
     sections, grades = _member_properties(profile, custom_sections)
     geometry_for_checks = profile.geometry

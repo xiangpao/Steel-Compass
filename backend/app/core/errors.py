@@ -20,6 +20,13 @@ class CalculationInputError(ValueError):
         self.field = field
         self.details = details or {}
 
+    def __reduce__(self):
+        # Keyword-only fields must survive pickling across worker processes.
+        return (
+            _rebuild_input_error,
+            (type(self), self.code, self.message, self.field, self.details),
+        )
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "code": self.code,
@@ -27,3 +34,13 @@ class CalculationInputError(ValueError):
             "field": self.field,
             "details": self.details,
         }
+
+
+def _rebuild_input_error(
+    cls: type[CalculationInputError],
+    code: str,
+    message: str,
+    field: str | None,
+    details: dict[str, Any],
+) -> CalculationInputError:
+    return cls(code, message, field=field, details=details)
