@@ -1,0 +1,24 @@
+{
+  "generated": "2026-11-01",
+  "backend": "uvicorn 127.0.0.1:18001, isolated temp SQLite, ANALYSIS_WORKERS=4",
+  "frontend": "next production build on 127.0.0.1:3101 proxying to the isolated backend",
+  "snapshot_id": 3,
+  "snapshot_number": 1,
+  "report_number": "SC-000003-A0003-001",
+  "content_hash": "cb3655471b5f1119a4e5b3d6e9606fc9036959a1062d76e6dfd701652252fb53",
+  "snapshot_schema_version": "4.0",
+  "standard_profile": "CN-2026.7",
+  "snapshot_json_bytes": 97079004,
+  "pdf_bytes": 413427,
+  "pdf_sha256": "1295fdc267c6fac652b09513586797d86a03a5d13a1c7ae2105c004ac63e4699",
+  "pdf_pages": 200,
+  "workflow_status": "incomplete",
+  "section_status": {
+    "structural_analysis": "complete",
+    "member_checks": "complete",
+    "buckling_analysis": "complete",
+    "connection_checks": "incomplete",
+    "foundation_checks": "incomplete"
+  },
+  "verification": "unverified"
+}

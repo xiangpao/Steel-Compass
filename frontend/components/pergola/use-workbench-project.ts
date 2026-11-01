@@ -69,21 +69,27 @@ export function useWorkbenchProject({
   const [analysisSnapshotId, setAnalysisSnapshotId] = useState<number | null>(null);
   const [serverBusy, setServerBusy] = useState(false);
   const savedGeotechnical = useRef<{ profile: ProjectGeotechnicalProfile; ui: string } | null>(null);
-  // Bumped whenever inputs change; an analysis response for an older input
-  // generation is discarded instead of being shown as the current result.
-  const inputGeneration = useRef(0);
+  // Fingerprint of every analysis input. An analysis response is kept only if
+  // the inputs still match the fingerprint taken when the request was sent;
+  // comparing content (not object identity) means writing the saved,
+  // normalized model back into state does not count as an edit.
+  const inputFingerprint = useRef("");
   const analysis = useRef<AbortController | null>(null);
   const latest = useRef(inputs);
+  const latestFingerprint = useRef("");
   useEffect(() => {
     latest.current = inputs;
   });
 
   const { geometry, siteProfile, sectionDrafts, soilPresetId, geoStage, report, roofAssemblyId, maintenanceCategory, maintenanceLoad } = inputs;
+  const fingerprint = JSON.stringify([geometry, siteProfile, sectionDrafts, soilPresetId, geoStage, report, roofAssemblyId, maintenanceCategory, maintenanceLoad]);
   useEffect(() => {
-    inputGeneration.current += 1;
+    latestFingerprint.current = fingerprint;
+    if (fingerprint === inputFingerprint.current) return;
+    inputFingerprint.current = fingerprint;
     setAnalysisResult(null);
     setAnalysisSnapshotId(null);
-  }, [geometry, siteProfile, sectionDrafts, soilPresetId, geoStage, report, roofAssemblyId, maintenanceCategory, maintenanceLoad]);
+  }, [fingerprint]);
 
   useEffect(() => () => analysis.current?.abort(), []);
 
@@ -232,7 +238,8 @@ export function useWorkbenchProject({
       inputs.setSiteProfile(profileToSave);
       clearAnalysis();
       onMessage("项目条件、截面修订、Geometry 2.3 与地下条件已保存；旧分析结果已失效。");
-      return { projectId, instanceId, assemblyId };
+      const savedFingerprint = JSON.stringify([savedGeometry, profileToSave, sectionDrafts, soilPresetId, geoStage, report, roofAssemblyId, maintenanceCategory, maintenanceLoad]);
+      return { projectId, instanceId, assemblyId, savedFingerprint };
     } finally {
       setServerBusy(false);
     }
@@ -272,15 +279,14 @@ export function useWorkbenchProject({
     const controller = new AbortController();
     analysis.current = controller;
     try {
-      const { projectId, instanceId, assemblyId } = await persistProjectModel();
-      const generation = inputGeneration.current;
+      const { projectId, instanceId, assemblyId, savedFingerprint } = await persistProjectModel();
       setServerBusy(true);
       const result = await api<AnalysisResult>(`/api/v2/projects/${projectId}/scene-instances/${instanceId}/analyze`, {
         method: "POST",
         body: JSON.stringify({ stage: geoStage, roof_load_selection: roofLoadSelection(assemblyId, maintenanceCategory, maintenanceLoad) }),
         signal: controller.signal,
       });
-      if (generation !== inputGeneration.current) {
+      if (savedFingerprint !== latestFingerprint.current) {
         onMessage("分析期间模型或条件已修改，本次结果已作废，请重新分析。");
         return;
       }
